@@ -13,7 +13,7 @@ export default function EpicControls({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(
-    epicName ? `${epicName} - Sprint` : "New Sprint",
+    epicName ? `${epicName} - Weekly Sprint` : "New Weekly Sprint",
   );
   const [tasks, setTasks] = useState<
     Array<{ id: string; name: string; efforts: number }>
@@ -124,14 +124,14 @@ export default function EpicControls({
         onClick={() => setOpen(true)}
         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
       >
-        Create New Sprint
+        Create New Weekly Sprint
       </button>
       <button
         onClick={removeEpic}
         disabled={deleting}
         className="rounded-lg border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
       >
-        {deleting ? "Deleting..." : "Delete Epic"}
+        {deleting ? "Deleting..." : "Delete Monthly Epic"}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -140,11 +140,11 @@ export default function EpicControls({
             onClick={() => setOpen(false)}
           />
           <div className="relative z-10 w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold">Create New Sprint</h3>
+            <h3 className="text-lg font-semibold">Create New Weekly Sprint</h3>
             <div className="mt-4 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Sprint name
+                  Weekly Sprint name
                 </label>
                 <input
                   value={name}

@@ -3,9 +3,26 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import TaskCard from "./TaskCard";
+import { mutate } from "swr";
 import TaskDetails from "./TaskDetails";
 
-type Task = { id: string; name: string };
+type Session = {
+  id: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  duration?: number | null;
+};
+
+type Task = {
+  id: string;
+  name: string;
+  completed?: boolean;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  sessions?: Session[];
+  timeSpent?: number;
+  timeActuallySpent?: number;
+};
 type Sprint = {
   id: string;
   name: string;
@@ -14,8 +31,6 @@ type Sprint = {
   end: string;
   tasks: Task[];
 };
-
-const STORAGE_KEY = "sprint-timer-state:v1";
 
 function formatSeconds(total: number) {
   const sec = Math.floor(total % 60);
@@ -66,23 +81,6 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
   const tickRef = useRef<number | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setState(JSON.parse(raw));
-    } catch (e) {
-      // ignore parse errors
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
-      // ignore
-    }
-  }, [state]);
-
-  useEffect(() => {
     tickRef.current = window.setInterval(
       () => forceRerender((n) => n + 1),
       1000,
@@ -91,6 +89,43 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       if (tickRef.current) window.clearInterval(tickRef.current);
     };
   }, []);
+
+  function getTaskUiMeta(task: Task) {
+    const stored = state.tasks[task.id] || {};
+    const sessions = Array.isArray(task.sessions) ? task.sessions : [];
+
+    const firstStartedComputed = sessions.reduce((min, s) => {
+      if (!s.startedAt) return min;
+      const ts = new Date(s.startedAt).getTime();
+      return Math.min(min, ts);
+    }, Number.POSITIVE_INFINITY);
+
+    const firstStarted =
+      stored.firstStarted ??
+      (Number.isFinite(firstStartedComputed)
+        ? firstStartedComputed
+        : undefined);
+
+    const completedAtFromTask = task.endedAt
+      ? new Date(task.endedAt).getTime()
+      : undefined;
+
+    const completedAtFromSessions = sessions.reduce((max, s) => {
+      if (!s.endedAt) return max;
+      const ts = new Date(s.endedAt).getTime();
+      return Math.max(max, ts);
+    }, 0);
+
+    const completedAt =
+      stored.completedAt ??
+      completedAtFromTask ??
+      (completedAtFromSessions || undefined);
+
+    const sessionsCount = stored.sessions ?? sessions.length;
+    const completed = stored.completed ?? !!task.completed;
+
+    return { firstStarted, completedAt, sessions: sessionsCount, completed };
+  }
 
   async function startTask(taskId: string) {
     const now = Date.now();
@@ -206,17 +241,46 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     }
   }
 
-  function uncompleteTask(taskId: string) {
-    setState((prev) => {
-      let newTasks = { ...prev.tasks };
-      if (newTasks[taskId])
-        newTasks[taskId] = {
-          ...newTasks[taskId],
-          completed: false,
-          completedAt: undefined,
-        };
-      return { tasks: newTasks, running: prev.running };
-    });
+  async function uncompleteTask(taskId: string) {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: false, endedAt: null }),
+      });
+      if (!res.ok) throw new Error("Failed to uncomplete task");
+      await syncTaskFromServer(taskId);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Could not uncomplete task");
+    }
+  }
+
+  async function deleteSprintById(sprintId: string) {
+    if (
+      !confirm(
+        "Delete this sprint and all its tasks/sessions? This cannot be undone.",
+      )
+    )
+      return;
+    try {
+      const res = await fetch(`/api/sprints/${sprintId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete sprint");
+      // update local view
+      setLocalSprints((prev) =>
+        (prev || []).filter((sp) => sp.id !== sprintId),
+      );
+      // refresh SWR caches
+      await Promise.all([
+        mutate("/api/epics"),
+        mutate(`/api/sprints/${sprintId}`),
+      ]);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Could not delete sprint");
+    }
   }
 
   function applyTaskUpdateLocally(
@@ -251,22 +315,49 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     });
   }
 
-  function getElapsed(taskId: string) {
-    const base = state.tasks[taskId]?.elapsed || 0;
-    if (state.running && state.running.taskId === taskId)
-      return base + Math.floor((Date.now() - state.running.startAt) / 1000);
-    return base;
+  function getElapsed(task: Task) {
+    const stored = state.tasks[task.id];
+    let base = stored?.elapsed;
+    if (base === undefined) {
+      const sessions = Array.isArray(task.sessions) ? task.sessions : [];
+      base = sessions.reduce(
+        (acc: number, s: any) => acc + (s.duration || 0),
+        0,
+      );
+    }
+    // If task is completed and we still have no elapsed from sessions, fall back to task-level fields
+    if ((base || 0) === 0 && task.completed) {
+      if (
+        typeof task.timeActuallySpent === "number" &&
+        task.timeActuallySpent > 0
+      ) {
+        base = task.timeActuallySpent;
+      } else if (typeof task.timeSpent === "number" && task.timeSpent > 0) {
+        base = task.timeSpent;
+      }
+    }
+    if (state.running && state.running.taskId === task.id)
+      return (
+        (base || 0) + Math.floor((Date.now() - state.running.startAt) / 1000)
+      );
+    return base || 0;
   }
 
   function sprintStatus(s: Sprint) {
-    const taskIds = s.tasks.map((t) => t.id);
-    const allCompleted = taskIds.every((id) => state.tasks[id]?.completed);
+    const tasks = s.tasks as Task[];
+    const allCompleted =
+      tasks.length > 0 &&
+      tasks.every((t) => state.tasks[t.id]?.completed ?? t.completed);
     if (allCompleted) return "Completed";
-    const anyRunning = taskIds.some(
-      (id) =>
-        (state.running && state.running.taskId === id) ||
-        (state.tasks[id]?.elapsed || 0) > 0,
-    );
+    const anyRunning = tasks.some((t) => {
+      const completed = state.tasks[t.id]?.completed ?? t.completed;
+      if (completed) return false;
+      const hasProgress =
+        (Array.isArray(t.sessions) && t.sessions.length > 0) ||
+        (state.tasks[t.id]?.elapsed || 0) > 0;
+      const isRunning = state.running && state.running.taskId === t.id;
+      return hasProgress || isRunning;
+    });
     if (anyRunning) return "In Progress";
     return "Not Started";
   }
@@ -284,28 +375,34 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       <div className="space-y-6">
         {displaySprints.map((s) => {
           const status = sprintStatus(s);
-          const totalTasks = (s.tasks && s.tasks.length) || 0;
-          const completedCount = s.tasks.filter(
-            (t) => state.tasks[t.id]?.completed,
-          ).length;
+          const tasks = s.tasks as Task[];
+          const totalTasks = tasks.length || 0;
+          const completedCount = tasks.filter((t) => {
+            const meta = getTaskUiMeta(t);
+            return meta.completed;
+          }).length;
           const progress =
             totalTasks > 0
               ? Math.round((completedCount / totalTasks) * 100)
               : 0;
 
-          const todo = s.tasks.filter(
-            (t) =>
-              !state.tasks[t.id]?.completed &&
-              !(state.tasks[t.id]?.elapsed || 0) &&
-              !(state.running && state.running.taskId === t.id),
-          );
-          const inProgress = s.tasks.filter(
-            (t) =>
-              (state.running && state.running.taskId === t.id) ||
-              ((state.tasks[t.id]?.elapsed || 0) > 0 &&
-                !state.tasks[t.id]?.completed),
-          );
-          const done = s.tasks.filter((t) => state.tasks[t.id]?.completed);
+          const todo = tasks.filter((t) => {
+            const meta = getTaskUiMeta(t);
+            const isRunning = state.running && state.running.taskId === t.id;
+            const hasProgress =
+              meta.sessions > 0 || (state.tasks[t.id]?.elapsed || 0) > 0;
+            return !meta.completed && !hasProgress && !isRunning;
+          });
+
+          const inProgress = tasks.filter((t) => {
+            const meta = getTaskUiMeta(t);
+            const isRunning = state.running && state.running.taskId === t.id;
+            const hasProgress =
+              meta.sessions > 0 || (state.tasks[t.id]?.elapsed || 0) > 0;
+            return !meta.completed && (hasProgress || isRunning);
+          });
+
+          const done = tasks.filter((t) => getTaskUiMeta(t).completed);
 
           return (
             <section
@@ -346,15 +443,23 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   <span>{progress}% complete</span>
                   <span className="text-gray-400">{s.tasks.length} tasks</span>
                   {!editingSprintId || editingSprintId !== s.id ? (
-                    <button
-                      onClick={() => {
-                        setEditingSprintId(s.id);
-                        setEditingSprintName(s.sprintLabel || s.name);
-                      }}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      Edit
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingSprintId(s.id);
+                          setEditingSprintName(s.sprintLabel || s.name);
+                        }}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteSprintById(s.id)}
+                        className="rounded-lg border border-rose-300 px-3 py-1.5 text-xs sm:text-sm text-rose-600 hover:bg-rose-50"
+                      >
+                        Delete
+                      </button>
+                    </>
                   ) : (
                     <div className="flex items-center gap-2">
                       <button
@@ -432,23 +537,26 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                     <div className="text-xs text-gray-400">{todo.length}</div>
                   </div>
                   <div className="space-y-3">
-                    {todo.map((t) => (
-                      <TaskCard
-                        key={t.id}
-                        id={t.id}
-                        name={t.name}
-                        formattedElapsed={formatSeconds(getElapsed(t.id))}
-                        firstStarted={state.tasks[t.id]?.firstStarted}
-                        completedAt={state.tasks[t.id]?.completedAt}
-                        sessions={state.tasks[t.id]?.sessions || 0}
-                        running={state.running?.taskId === t.id}
-                        completed={!!state.tasks[t.id]?.completed}
-                        onStart={startTask}
-                        onPause={stopTask}
-                        onEnd={completeTask}
-                        onOpen={(id: string) => setOpenTaskId(id)}
-                      />
-                    ))}
+                    {todo.map((t) => {
+                      const meta = getTaskUiMeta(t);
+                      return (
+                        <TaskCard
+                          key={t.id}
+                          id={t.id}
+                          name={t.name}
+                          formattedElapsed={formatSeconds(getElapsed(t))}
+                          firstStarted={meta.firstStarted}
+                          completedAt={meta.completedAt}
+                          sessions={meta.sessions || 0}
+                          running={state.running?.taskId === t.id}
+                          completed={meta.completed}
+                          onStart={startTask}
+                          onPause={stopTask}
+                          onEnd={completeTask}
+                          onOpen={(id: string) => setOpenTaskId(id)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -460,23 +568,26 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    {inProgress.map((t) => (
-                      <TaskCard
-                        key={t.id}
-                        id={t.id}
-                        name={t.name}
-                        formattedElapsed={formatSeconds(getElapsed(t.id))}
-                        firstStarted={state.tasks[t.id]?.firstStarted}
-                        completedAt={state.tasks[t.id]?.completedAt}
-                        sessions={state.tasks[t.id]?.sessions || 0}
-                        running={state.running?.taskId === t.id}
-                        completed={!!state.tasks[t.id]?.completed}
-                        onStart={startTask}
-                        onPause={stopTask}
-                        onEnd={completeTask}
-                        onOpen={(id: string) => setOpenTaskId(id)}
-                      />
-                    ))}
+                    {inProgress.map((t) => {
+                      const meta = getTaskUiMeta(t);
+                      return (
+                        <TaskCard
+                          key={t.id}
+                          id={t.id}
+                          name={t.name}
+                          formattedElapsed={formatSeconds(getElapsed(t))}
+                          firstStarted={meta.firstStarted}
+                          completedAt={meta.completedAt}
+                          sessions={meta.sessions || 0}
+                          running={state.running?.taskId === t.id}
+                          completed={meta.completed}
+                          onStart={startTask}
+                          onPause={stopTask}
+                          onEnd={completeTask}
+                          onOpen={(id: string) => setOpenTaskId(id)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -486,24 +597,27 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                     <div className="text-xs text-gray-400">{done.length}</div>
                   </div>
                   <div className="space-y-3">
-                    {done.map((t) => (
-                      <TaskCard
-                        key={t.id}
-                        id={t.id}
-                        name={t.name}
-                        formattedElapsed={formatSeconds(getElapsed(t.id))}
-                        firstStarted={state.tasks[t.id]?.firstStarted}
-                        completedAt={state.tasks[t.id]?.completedAt}
-                        sessions={state.tasks[t.id]?.sessions || 0}
-                        running={false}
-                        completed={true}
-                        onStart={startTask}
-                        onPause={stopTask}
-                        onEnd={completeTask}
-                        onUncomplete={uncompleteTask}
-                        onOpen={(id: string) => setOpenTaskId(id)}
-                      />
-                    ))}
+                    {done.map((t) => {
+                      const meta = getTaskUiMeta(t);
+                      return (
+                        <TaskCard
+                          key={t.id}
+                          id={t.id}
+                          name={t.name}
+                          formattedElapsed={formatSeconds(getElapsed(t))}
+                          firstStarted={meta.firstStarted}
+                          completedAt={meta.completedAt}
+                          sessions={meta.sessions || 0}
+                          running={false}
+                          completed={meta.completed}
+                          onStart={startTask}
+                          onPause={stopTask}
+                          onEnd={completeTask}
+                          onUncomplete={uncompleteTask}
+                          onOpen={(id: string) => setOpenTaskId(id)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -556,10 +670,6 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   if (!addTaskFor) return;
                   setAddingTask(true);
                   try {
-                    const getRes = await fetch(`/api/sprints/${addTaskFor}`);
-                    if (!getRes.ok) throw new Error("Failed to load sprint");
-                    const sprint = await getRes.json();
-
                     const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
                     const plannedTime =
                       Math.max(0, Number(newTaskEfforts || 0)) * 2 * 3600;
@@ -569,34 +679,22 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                       plannedTime,
                     };
 
-                    const updatedSprint = {
-                      ...sprint,
-                      tasks: [...(sprint.tasks || []), newTask],
-                      plannedTime: (sprint.plannedTime || 0) + plannedTime,
-                    };
+                    const postRes = await fetch(
+                      `/api/sprints/${addTaskFor}/tasks`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(newTask),
+                      },
+                    );
+                    if (!postRes.ok) throw new Error("Failed to create task");
+                    await postRes.json();
 
-                    const putRes = await fetch(`/api/sprints/${addTaskFor}`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(updatedSprint),
-                    });
-                    if (!putRes.ok) throw new Error("Failed to update sprint");
-                    const updated = await putRes.json();
-
-                    // update local copy
-                    setLocalSprints((prev) => {
-                      const copy = (prev && [...prev]) || [...(sprints || [])];
-                      const idx = copy.findIndex((sp) => sp.id === addTaskFor);
-                      if (idx >= 0) {
-                        copy[idx] = {
-                          ...copy[idx],
-                          tasks: updated.tasks || copy[idx].tasks,
-                        } as any;
-                      }
-                      return copy;
-                    });
-
-                    router.refresh();
+                    // refresh server data and local view via SWR so parent hooks update
+                    await Promise.all([
+                      mutate(`/api/sprints/${addTaskFor}`),
+                      mutate("/api/epics"),
+                    ]);
                     setAddTaskFor(null);
                   } catch (err) {
                     console.error(err);

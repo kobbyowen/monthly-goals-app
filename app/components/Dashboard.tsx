@@ -15,12 +15,15 @@ type Task = {
   name: string;
   completed?: boolean;
   sessions?: Session[];
+  timeSpent?: number;
+  timeActuallySpent?: number;
 };
 
 type Epic = {
   id: string;
   name: string;
   tasks?: Task[];
+  sprints?: { id: string; name: string; tasks?: Task[] }[];
 };
 
 function formatSeconds(total: number) {
@@ -32,7 +35,15 @@ function formatSeconds(total: number) {
 
 function totalDurationForTask(t: Task): number {
   const sessions = t.sessions || [];
-  return sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+  let base = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+  if ((base || 0) === 0 && t.completed) {
+    if (typeof t.timeActuallySpent === "number" && t.timeActuallySpent > 0) {
+      base = t.timeActuallySpent;
+    } else if (typeof t.timeSpent === "number" && t.timeSpent > 0) {
+      base = t.timeSpent;
+    }
+  }
+  return base;
 }
 
 export default function Dashboard({ epics }: { epics: Epic[] }) {
@@ -55,7 +66,10 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
     [epics, selectedEpicId],
   );
 
-  const tasks = (selectedEpic?.tasks || []) as Task[];
+  // Aggregate tasks from the epic itself and any child sprints
+  const tasks = ((selectedEpic?.tasks || []) as Task[]).concat(
+    ...(selectedEpic?.sprints?.map((sp) => (sp.tasks || []) as Task[]) || []),
+  );
 
   const completedTasks = tasks.filter((t) => t.completed);
   const inProgressTasks = tasks.filter(
@@ -131,16 +145,17 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             Analytics
           </p>
           <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-            No epics yet
+            No monthly epics yet
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Create an epic to start tracking time, sessions, and progress.
+            Create a monthly epic to start tracking time, sessions, and
+            progress.
           </p>
           <button
             onClick={() => router.push("/epics")}
             className="mt-4 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
           >
-            Go to Epics
+            Go to Monthly Epics
           </button>
         </div>
       </div>
@@ -155,7 +170,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
           Time Management Dashboard
         </h1>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Epic</span>
+          <span className="text-xs text-slate-500">Monthly Epic</span>
           <select
             value={selectedEpicId || ""}
             onChange={(e) => setSelectedEpicId(e.target.value || null)}
@@ -173,7 +188,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
       {/* ANALYTICS SUMMARY */}
       <section>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">
-          Monthly / Epic Summary
+          Monthly Epic Summary
         </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -218,8 +233,8 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
               </span>
             </div>
 
-            <div className="mt-3 space-y-2">
-              {notStartedTasks.slice(0, 3).map((t) => (
+            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+              {notStartedTasks.map((t) => (
                 <div
                   key={t.id}
                   className="rounded-lg border border-slate-100 bg-slate-50 p-2"
@@ -270,8 +285,8 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
               </span>
             </div>
 
-            <div className="mt-3 space-y-2">
-              {inProgressTasks.slice(0, 3).map((t) => (
+            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+              {inProgressTasks.map((t) => (
                 <div
                   key={t.id}
                   className="rounded-lg border border-yellow-100 bg-yellow-50 p-2"
@@ -328,8 +343,8 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
               </span>
             </div>
 
-            <div className="mt-3 space-y-2">
-              {completedTasks.slice(0, 3).map((t) => (
+            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+              {completedTasks.map((t) => (
                 <div
                   key={t.id}
                   className="rounded-lg border border-emerald-100 bg-emerald-50 p-2"
@@ -365,7 +380,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
       {/* TIMELINE */}
       <section>
         <h2 className="mb-3 text-sm font-semibold text-slate-700">
-          Epic Timeline
+          Monthly Epic Timeline
         </h2>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 overflow-x-auto">
@@ -387,14 +402,14 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
               ))
             ) : (
               <p className="text-xs text-slate-400">
-                No sessions recorded yet for this epic.
+                No sessions recorded yet for this monthly epic.
               </p>
             )}
           </div>
         </div>
 
         <p className="mt-2 text-xs text-slate-500">
-          Timeline highlights how work is distributed across this epic.
+          Timeline highlights how work is distributed across this monthly epic.
         </p>
       </section>
 

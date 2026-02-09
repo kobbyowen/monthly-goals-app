@@ -18,9 +18,11 @@ export default function Page() {
         <div className="mx-auto max-w-6xl space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold">Epics</h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold">
+                Monthly Epics
+              </h1>
               <p className="mt-1 text-xs sm:text-sm text-gray-500">
-                Plan and track work across sprints.
+                Plan and track work across weekly sprints.
               </p>
             </div>
             <CreateEpic />

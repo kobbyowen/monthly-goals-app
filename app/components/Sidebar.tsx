@@ -121,7 +121,7 @@ export default function Sidebar({
       <div className="space-y-4">
         <div>
           <div className="text-xs font-semibold uppercase text-gray-400 mb-2">
-            Current Epics
+            Current Monthly Epics
           </div>
           <ul className="space-y-1">
             {currentEpics.length ? (
@@ -145,14 +145,16 @@ export default function Sidebar({
                 </li>
               ))
             ) : (
-              <li className="text-xs text-gray-500">No current epics</li>
+              <li className="text-xs text-gray-500">
+                No current monthly epics
+              </li>
             )}
           </ul>
         </div>
 
         <div>
           <div className="text-xs font-semibold uppercase text-gray-400 mb-2">
-            Past Epics
+            Past Monthly Epics
           </div>
           <ul className="space-y-1">
             {pastEpics.length ? (
@@ -176,7 +178,7 @@ export default function Sidebar({
                 </li>
               ))
             ) : (
-              <li className="text-xs text-gray-500">No past epics</li>
+              <li className="text-xs text-gray-500">No past monthly epics</li>
             )}
           </ul>
         </div>

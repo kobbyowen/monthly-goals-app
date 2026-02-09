@@ -52,7 +52,11 @@ export default function CreateEpic({
       router.push(`/epics/${created.id}`);
     } catch (err) {
       console.error("Create epic failed:", err);
-      alert(`Could not create epic: ${err?.message || err}`);
+      if (err instanceof Error) {
+        alert(`Could not create epic: ${err.message}`);
+      } else {
+        alert(`Could not create epic: ${String(err)}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -64,7 +68,7 @@ export default function CreateEpic({
         onClick={() => setOpen(true)}
         className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition"
       >
-        New Epic
+        New Monthly Epic
       </button>
 
       {open && (
@@ -74,10 +78,10 @@ export default function CreateEpic({
             onClick={() => setOpen(false)}
           />
           <div className="relative z-10 w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold">Create New Epic</h3>
+            <h3 className="text-lg font-semibold">Create New Monthly Epic</h3>
             <div className="mt-4">
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Epic name
+                Monthly Epic name
               </label>
               <input
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -87,7 +91,7 @@ export default function CreateEpic({
             </div>
             <div className="mt-4">
               <label className="block text-xs font-medium text-slate-600 mb-1">
-                Initial sprints (editable)
+                Initial weekly sprints (editable)
               </label>
               <div className="space-y-2">
                 {sprintNames.map((sn, idx) => (
@@ -108,7 +112,7 @@ export default function CreateEpic({
                         );
                       }}
                       className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                      aria-label={`Remove sprint ${idx + 1}`}
+                      aria-label={`Remove weekly sprint ${idx + 1}`}
                     >
                       Remove
                     </button>
@@ -119,12 +123,12 @@ export default function CreateEpic({
                     onClick={() =>
                       setSprintNames((prev) => [
                         ...prev,
-                        `Sprint ${prev.length + 1}`,
+                        `Weekly Sprint ${prev.length + 1}`,
                       ])
                     }
                     className="mt-2 inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-indigo-600 text-white hover:bg-indigo-700"
                   >
-                    + Add sprint
+                    + Add Weekly Sprint
                   </button>
                 </div>
               </div>

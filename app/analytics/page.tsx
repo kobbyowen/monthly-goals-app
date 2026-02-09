@@ -14,11 +14,12 @@ export default function AnalyticsPage() {
             Analytics
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            Epic analytics coming soon
+            Monthly Epic analytics coming soon
           </h1>
           <p className="text-sm sm:text-base text-slate-500 max-w-xl mx-auto">
             We&apos;re working on rich charts and insights for how your team
-            spends time across epics, sprints, and tasks. Stay tuned.
+            spends time across monthly epics, weekly sprints, and tasks. Stay
+            tuned.
           </p>
         </div>
       </main>

@@ -5,10 +5,17 @@ async function createSprint(payload) {
 }
 
 async function listSprints(userId, kind) {
-  if (userId) {
-    return sprintRepo.listSprints(userId, kind);
+  // For epics, return each epic with its child sprints (and their tasks/sessions)
+  const base = await sprintRepo.listSprints(userId || undefined, kind);
+  if (kind === "epic") {
+    const results = [];
+    for (const e of base || []) {
+      const full = await sprintRepo.getSprint(e.id, userId || undefined);
+      results.push(full || e);
+    }
+    return results;
   }
-  return sprintRepo.listSprints(undefined, kind);
+  return base;
 }
 
 async function getSprint(id, userId) {

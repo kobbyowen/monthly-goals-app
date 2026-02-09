@@ -39,7 +39,7 @@ export default function EditEpicName({
   return (
     <div className="mb-4 flex items-center justify-between">
       {!editing ? (
-        <h1 className="text-2xl font-semibold">{name || "Epic"}</h1>
+        <h1 className="text-2xl font-semibold">{name || "Monthly Epic"}</h1>
       ) : (
         <input
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"

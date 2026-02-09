@@ -35,6 +35,27 @@ async function createSprint(payload) {
     include: { tasks: { include: { sessions: true } } },
   });
 
+  // If child sprints were provided (e.g., creating an epic with initial sprints),
+  // persist them as separate Sprint rows linked to this epic.
+  const sprintNames = Array.isArray(sprints) ? sprints : [];
+  if (sprintNames.length) {
+    const children = await Promise.all(
+      sprintNames.map(async (sn) => {
+        const childId = ensureId("sprint");
+        const childData = {
+          id: childId,
+          name: typeof sn === "string" ? sn : (sn && sn.name) || "Sprint",
+          epicId: created.id,
+          kind: "sprint",
+          userId: s.userId,
+        };
+        return prisma.sprint.create({ data: convertSprintInput(childData) });
+      }),
+    );
+    // Attach children to returned object for convenience
+    return { ...created, sprints: children };
+  }
+
   return created;
 }
 

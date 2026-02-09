@@ -20,7 +20,9 @@ export default async function SprintPage(ctx: any) {
     <div className="min-h-screen flex">
       <Sidebar sprints={[]} />
       <main className="flex-1 p-6">
-        <h1 className="text-2xl font-semibold">{sprint?.name || "Sprint"}</h1>
+        <h1 className="text-2xl font-semibold">
+          {sprint?.name || "Weekly Sprint"}
+        </h1>
         <div className="mt-4">
           <SprintList />
         </div>
