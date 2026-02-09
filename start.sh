@@ -29,6 +29,8 @@ node server/migrate.js
 echo "Building Next.js app..."
 npm run build
 
-# Start in production mode
 echo "Starting app (production)..."
-NODE_ENV=production npm run start
+# Start in production mode
+PORT=${PORT:-2200}
+echo "Starting app (production) on port $PORT..."
+PORT="$PORT" NODE_ENV=production npm run start
