@@ -1,0 +1,221 @@
+"use client";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { mutate } from "swr";
+
+export default function EpicControls({
+  epicId,
+  epicName,
+}: {
+  epicId: string;
+  epicName?: string;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(
+    epicName ? `${epicName} - Sprint` : "New Sprint",
+  );
+  const [tasks, setTasks] = useState<
+    Array<{ id: string; name: string; efforts: number }>
+  >([
+    {
+      id:
+        crypto && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : String(Date.now()),
+      name: "",
+      efforts: 1,
+    },
+  ]);
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  function addTask() {
+    setTasks((t) => [
+      ...t,
+      {
+        id:
+          crypto && (crypto as any).randomUUID
+            ? (crypto as any).randomUUID()
+            : String(Date.now()),
+        name: "",
+        efforts: 1,
+      },
+    ]);
+  }
+
+  function updateTask(idx: number, field: string, value: any) {
+    setTasks((t) => {
+      const copy = [...t];
+      (copy[idx] as any)[field] = value;
+      return copy;
+    });
+  }
+
+  function removeTask(idx: number) {
+    setTasks((t) => t.filter((_, i) => i !== idx));
+  }
+
+  async function submit() {
+    if (!name) return;
+    setLoading(true);
+    try {
+      const sprintId =
+        crypto && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : `sprint-${Date.now()}`;
+      const mappedTasks = tasks.map((t) => ({
+        id:
+          t.id || `${sprintId}-task-${Math.random().toString(36).slice(2, 8)}`,
+        name: t.name || "Untitled",
+        plannedTime: Math.max(0, Number(t.efforts || 0)) * 2 * 3600,
+      }));
+      const plannedTime = mappedTasks.reduce(
+        (s, t) => s + (t.plannedTime || 0),
+        0,
+      );
+
+      const payload = { id: sprintId, name, plannedTime, tasks: mappedTasks };
+      // attach this sprint to its parent epic
+      (payload as any).epicId = epicId;
+
+      const res = await fetch(`/api/sprints`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to create sprint");
+      setOpen(false);
+      // revalidate epics and the specific epic so the new sprint appears without a full refresh
+      mutate("/api/epics");
+      if (epicId) mutate(`/api/epics/${epicId}`);
+    } catch (err) {
+      console.error(err);
+      alert("Could not create sprint");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function removeEpic() {
+    if (!epicId) return;
+    if (!confirm("Delete this epic and all of its sprints and tasks?")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/epics/${epicId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete epic");
+      router.push("/");
+      mutate("/api/epics");
+    } catch (err) {
+      console.error(err);
+      alert("Could not delete epic");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const totalHours = tasks.reduce((s, t) => s + Number(t.efforts || 0) * 2, 0);
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3">
+      <button
+        onClick={() => setOpen(true)}
+        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+      >
+        Create New Sprint
+      </button>
+      <button
+        onClick={removeEpic}
+        disabled={deleting}
+        className="rounded-lg border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+      >
+        {deleting ? "Deleting..." : "Delete Epic"}
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black opacity-40"
+            onClick={() => setOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold">Create New Sprint</h3>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Sprint name
+                </label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium">Tasks</label>
+                  <button onClick={addTask} className="text-sm text-indigo-600">
+                    + Add task
+                  </button>
+                </div>
+
+                <div className="mt-2 space-y-2">
+                  {tasks.map((t, idx) => (
+                    <div key={t.id} className="flex items-center gap-2">
+                      <input
+                        placeholder="Task name"
+                        value={t.name}
+                        onChange={(e) =>
+                          updateTask(idx, "name", e.target.value)
+                        }
+                        className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        value={t.efforts}
+                        onChange={(e) =>
+                          updateTask(idx, "efforts", Number(e.target.value))
+                        }
+                        className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+                        title="Number of efforts (each effort = 2 hours)"
+                      />
+                      <button
+                        onClick={() => removeTask(idx)}
+                        className="text-sm text-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-600">
+                Estimated total: {totalHours} hours
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submit}
+                disabled={loading}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${loading ? "bg-emerald-600 opacity-60 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"}`}
+              >
+                {loading ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

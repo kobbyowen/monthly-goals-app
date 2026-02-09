@@ -1,0 +1,33 @@
+{
+  "id": "sprint-4",
+  "name": "Sprint 4 – Closure & Polish",
+  "dateExpectedToStart": "2026-02-23",
+  "dateExpectedToEnd": "2026-02-28",
+  "dateStarted": "2026-02-23T08:00:00Z",
+  "dateEnded": null,
+  "status": "in_progress",
+  "plannedTime": 172800,
+  "actualTimeSpent": 36000,
+  "tasks": [
+    {
+      "id": "task-react-weekly-s4",
+      "name": "Advanced React Interview Prep",
+      "category": "weekly",
+      "plannedTime": 28800,
+      "timeSpent": 14400,
+      "timeActuallySpent": 0,
+      "startedAt": "2026-02-23T08:00:00Z",
+      "endedAt": null,
+      "completed": false,
+      "sessions": [
+        {
+          "id": "session-001",
+          "startedAt": "2026-02-23T08:00:00Z",
+          "endedAt": "2026-02-23T10:00:00Z",
+          "duration": 7200,
+          "notes": "Hooks deep dive"
+        }
+      ]
+    }
+  ]
+}

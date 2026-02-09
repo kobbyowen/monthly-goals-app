@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/sprint.db"
+}
+
+model Sprint {
+  id                 String   @id
+  name               String
+  sprintLabel        String?
+  userId             String?
+  kind               String?  @default("epic")
+  epicId             String?
+  dateExpectedToStart String?
+  dateExpectedToEnd   String?
+  dateStarted        String?
+  dateEnded          String?
+  status             String?
+  plannedTime        Int      @default(0)
+  actualTimeSpent    Int      @default(0)
+  tasks              Task[]
+  @@map("sprints")
+}
+
+model Task {
+  id                String   @id
+  sprintId          String
+  name              String
+  category          String?
+  plannedTime       Int      @default(0)
+  timeSpent         Int      @default(0)
+  timeActuallySpent Int      @default(0)
+  startedAt         String?
+  endedAt           String?
+  completed         Boolean  @default(false)
+  sprint            Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  sessions          Session[]
+  @@map("tasks")
+}
+
+model Session {
+  id        String   @id
+  taskId    String
+  startedAt String?
+  endedAt   String?
+  duration  Int      @default(0)
+  notes     String?
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@map("sessions")
+}
+
+model User {
+  id           String         @id
+  name         String?
+  email        String         @unique
+  passwordHash String
+  createdAt    String?
+  sessions     AuthSession[]
+
+  @@map("users")
+}
+
+model AuthSession {
+  id        String  @id
+  userId    String
+  token     String  @unique
+  createdAt String?
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_sessions")
+}

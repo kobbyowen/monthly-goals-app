@@ -1,0 +1,11 @@
+{
+  "id": "task-2",
+  "name": "Code cleanup",
+  "category": "ad-hoc",
+  "plannedTime": 3600,
+  "timeSpent": 0,
+  "timeActuallySpent": 0,
+  "startedAt": null,
+  "endedAt": null,
+  "completed": false
+}

@@ -1,0 +1,632 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import TaskCard from "./TaskCard";
+import TaskDetails from "./TaskDetails";
+
+type Task = { id: string; name: string };
+type Sprint = {
+  id: string;
+  name: string;
+  sprintLabel?: string;
+  start: string;
+  end: string;
+  tasks: Task[];
+};
+
+const STORAGE_KEY = "sprint-timer-state:v1";
+
+function formatSeconds(total: number) {
+  const sec = Math.floor(total % 60);
+  const min = Math.floor((total / 60) % 60);
+  const hrs = Math.floor(total / 3600);
+  return [hrs, min, sec].map((n) => String(n).padStart(2, "0")).join(":");
+}
+
+// No sample/dummy sprints: show an empty view when no sprints are provided.
+
+type Persist = {
+  tasks: Record<
+    string,
+    {
+      elapsed: number;
+      completed?: boolean;
+      sessions?: number;
+      firstStarted?: number;
+      completedAt?: number;
+    }
+  >;
+  running?: { taskId: string; startAt: number; sessionId?: string } | undefined;
+};
+
+function generateId(pref = "sess") {
+  return `${pref}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
+  const [localSprints, setLocalSprints] = useState<Sprint[] | undefined>(
+    sprints,
+  );
+  const router = useRouter();
+  const [addTaskFor, setAddTaskFor] = useState<string | null>(null);
+  const [newTaskName, setNewTaskName] = useState("");
+  const [newTaskEfforts, setNewTaskEfforts] = useState<number>(1);
+  const [addingTask, setAddingTask] = useState(false);
+  const [editingSprintId, setEditingSprintId] = useState<string | null>(null);
+  const [editingSprintName, setEditingSprintName] = useState<string>("");
+  const [savingSprintName, setSavingSprintName] = useState(false);
+
+  const [state, setState] = useState<Persist>({
+    tasks: {},
+    running: undefined,
+  });
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [, forceRerender] = useState(0);
+  const tickRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setState(JSON.parse(raw));
+    } catch (e) {
+      // ignore parse errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      // ignore
+    }
+  }, [state]);
+
+  useEffect(() => {
+    tickRef.current = window.setInterval(
+      () => forceRerender((n) => n + 1),
+      1000,
+    );
+    return () => {
+      if (tickRef.current) window.clearInterval(tickRef.current);
+    };
+  }, []);
+
+  async function startTask(taskId: string) {
+    const now = Date.now();
+    // create a session on the server
+    const sessionId = generateId("session");
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: sessionId,
+          startedAt: new Date(now).toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create session");
+      const created = await res.json();
+      // update running state and then reconcile from backend
+      setState((prev) => ({
+        ...prev,
+        running: { taskId, startAt: now, sessionId: created.id || sessionId },
+      }));
+      await syncTaskFromServer(taskId);
+    } catch (err) {
+      console.error("Could not start session", err);
+      alert("Could not start session");
+    }
+  }
+
+  async function stopTask(taskId: string) {
+    const now = Date.now();
+    const runningSessionId = state.running?.sessionId;
+    try {
+      if (runningSessionId) {
+        const duration = Math.floor(
+          (now - (state.running?.startAt || now)) / 1000,
+        );
+        const res = await fetch(`/api/sessions/${runningSessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            endedAt: new Date(now).toISOString(),
+            duration,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to end session");
+      }
+      // Clear running state then reconcile with backend
+      setState((prev) => ({ ...prev, running: undefined }));
+      await syncTaskFromServer(taskId);
+    } catch (err) {
+      console.error("Could not stop session", err);
+      alert("Could not stop session");
+    }
+  }
+
+  async function completeTask(taskId: string) {
+    const now = Date.now();
+    // if running, stop session first
+    if (state.running && state.running.taskId === taskId) {
+      await stopTask(taskId);
+    }
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          completed: true,
+          endedAt: new Date(now).toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to complete task");
+      await syncTaskFromServer(taskId);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert("Could not complete task");
+    }
+  }
+
+  async function syncTaskFromServer(taskId: string) {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`);
+      if (!res.ok) throw new Error("Failed to fetch task");
+      const t = await res.json();
+      const sessions = Array.isArray(t.sessions) ? t.sessions : [];
+      const baseElapsed = sessions.reduce(
+        (acc: number, s: any) => acc + (s.duration || 0),
+        0,
+      );
+      const runningAdd =
+        state.running && state.running.taskId === taskId
+          ? Math.floor((Date.now() - state.running.startAt) / 1000)
+          : 0;
+      setState((prev) => ({
+        ...prev,
+        tasks: {
+          ...prev.tasks,
+          [taskId]: {
+            elapsed: baseElapsed + runningAdd,
+            sessions: sessions.length,
+            firstStarted: sessions.length
+              ? new Date(sessions[0].startedAt).getTime()
+              : prev.tasks[taskId]?.firstStarted,
+            completed: !!t.completed,
+            completedAt: t.endedAt
+              ? new Date(t.endedAt).getTime()
+              : prev.tasks[taskId]?.completedAt,
+          },
+        },
+      }));
+    } catch (err) {
+      console.error("syncTaskFromServer error", err);
+    }
+  }
+
+  function uncompleteTask(taskId: string) {
+    setState((prev) => {
+      let newTasks = { ...prev.tasks };
+      if (newTasks[taskId])
+        newTasks[taskId] = {
+          ...newTasks[taskId],
+          completed: false,
+          completedAt: undefined,
+        };
+      return { tasks: newTasks, running: prev.running };
+    });
+  }
+
+  function applyTaskUpdateLocally(
+    taskId: string,
+    partial: {
+      name?: string;
+    },
+  ) {
+    setLocalSprints((prev) => {
+      if (!prev) return prev;
+      return prev.map((s) => ({
+        ...s,
+        tasks: s.tasks.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                ...partial,
+              }
+            : t,
+        ),
+      }));
+    });
+  }
+
+  function removeTaskLocally(taskId: string) {
+    setLocalSprints((prev) => {
+      if (!prev) return prev;
+      return prev.map((s) => ({
+        ...s,
+        tasks: s.tasks.filter((t) => t.id !== taskId),
+      }));
+    });
+  }
+
+  function getElapsed(taskId: string) {
+    const base = state.tasks[taskId]?.elapsed || 0;
+    if (state.running && state.running.taskId === taskId)
+      return base + Math.floor((Date.now() - state.running.startAt) / 1000);
+    return base;
+  }
+
+  function sprintStatus(s: Sprint) {
+    const taskIds = s.tasks.map((t) => t.id);
+    const allCompleted = taskIds.every((id) => state.tasks[id]?.completed);
+    if (allCompleted) return "Completed";
+    const anyRunning = taskIds.some(
+      (id) =>
+        (state.running && state.running.taskId === id) ||
+        (state.tasks[id]?.elapsed || 0) > 0,
+    );
+    if (anyRunning) return "In Progress";
+    return "Not Started";
+  }
+
+  // use local or server-provided sprints; otherwise show empty list
+  const displaySprints =
+    localSprints && localSprints.length
+      ? localSprints
+      : sprints && sprints.length
+        ? sprints
+        : [];
+
+  return (
+    <div className="py-4 sm:py-6">
+      <div className="space-y-6">
+        {displaySprints.map((s) => {
+          const status = sprintStatus(s);
+          const totalTasks = (s.tasks && s.tasks.length) || 0;
+          const completedCount = s.tasks.filter(
+            (t) => state.tasks[t.id]?.completed,
+          ).length;
+          const progress =
+            totalTasks > 0
+              ? Math.round((completedCount / totalTasks) * 100)
+              : 0;
+
+          const todo = s.tasks.filter(
+            (t) =>
+              !state.tasks[t.id]?.completed &&
+              !(state.tasks[t.id]?.elapsed || 0) &&
+              !(state.running && state.running.taskId === t.id),
+          );
+          const inProgress = s.tasks.filter(
+            (t) =>
+              (state.running && state.running.taskId === t.id) ||
+              ((state.tasks[t.id]?.elapsed || 0) > 0 &&
+                !state.tasks[t.id]?.completed),
+          );
+          const done = s.tasks.filter((t) => state.tasks[t.id]?.completed);
+
+          return (
+            <section
+              key={s.id}
+              className="bg-white dark:bg-gray-950 rounded-2xl p-6 shadow-sm"
+            >
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    {!editingSprintId || editingSprintId !== s.id ? (
+                      <h2 className="text-lg font-semibold">
+                        {s.sprintLabel || s.name}
+                      </h2>
+                    ) : (
+                      <input
+                        value={editingSprintName}
+                        onChange={(e) => setEditingSprintName(e.target.value)}
+                        className="text-lg font-semibold rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                    )}
+                    <span className="text-xs sm:text-sm text-gray-500">
+                      {s.start} — {s.end}
+                    </span>
+                    <span
+                      className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status === "Completed" ? "bg-green-100 text-green-800" : status === "In Progress" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800"}`}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                  <div className="mt-2 w-full max-w-xs bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-2 bg-blue-600 rounded-full"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-600">
+                  <span>{progress}% complete</span>
+                  <span className="text-gray-400">{s.tasks.length} tasks</span>
+                  {!editingSprintId || editingSprintId !== s.id ? (
+                    <button
+                      onClick={() => {
+                        setEditingSprintId(s.id);
+                        setEditingSprintName(s.sprintLabel || s.name);
+                      }}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!editingSprintId) return;
+                          setSavingSprintName(true);
+                          try {
+                            const res = await fetch(
+                              `/api/sprints/${editingSprintId}`,
+                              {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  sprintLabel: editingSprintName,
+                                }),
+                              },
+                            );
+                            if (!res.ok)
+                              throw new Error("Failed to update sprint");
+                            const updated = await res.json();
+                            setLocalSprints((prev) => {
+                              const copy = (prev && [...prev]) || [
+                                ...(sprints || []),
+                              ];
+                              const idx = copy.findIndex(
+                                (sp) => sp.id === editingSprintId,
+                              );
+                              if (idx >= 0)
+                                copy[idx] = {
+                                  ...copy[idx],
+                                  sprintLabel:
+                                    updated.sprintLabel || editingSprintName,
+                                } as any;
+                              return copy;
+                            });
+                            setEditingSprintId(null);
+                            router.refresh();
+                          } catch (err) {
+                            console.error(err);
+                            alert("Could not save sprint name");
+                          } finally {
+                            setSavingSprintName(false);
+                          }
+                        }}
+                        disabled={savingSprintName}
+                        className="rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        {savingSprintName ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditingSprintId(null)}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setAddTaskFor(s.id);
+                      setNewTaskName("");
+                      setNewTaskEfforts(1);
+                    }}
+                    className="rounded-lg px-4 py-1.5 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    Add New Task
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-[220px] flex flex-col gap-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-semibold">To Do</div>
+                    <div className="text-xs text-gray-400">{todo.length}</div>
+                  </div>
+                  <div className="space-y-3">
+                    {todo.map((t) => (
+                      <TaskCard
+                        key={t.id}
+                        id={t.id}
+                        name={t.name}
+                        formattedElapsed={formatSeconds(getElapsed(t.id))}
+                        firstStarted={state.tasks[t.id]?.firstStarted}
+                        completedAt={state.tasks[t.id]?.completedAt}
+                        sessions={state.tasks[t.id]?.sessions || 0}
+                        running={state.running?.taskId === t.id}
+                        completed={!!state.tasks[t.id]?.completed}
+                        onStart={startTask}
+                        onPause={stopTask}
+                        onEnd={completeTask}
+                        onOpen={(id: string) => setOpenTaskId(id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-[220px] flex flex-col gap-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-semibold">In Progress</div>
+                    <div className="text-xs text-gray-400">
+                      {inProgress.length}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {inProgress.map((t) => (
+                      <TaskCard
+                        key={t.id}
+                        id={t.id}
+                        name={t.name}
+                        formattedElapsed={formatSeconds(getElapsed(t.id))}
+                        firstStarted={state.tasks[t.id]?.firstStarted}
+                        completedAt={state.tasks[t.id]?.completedAt}
+                        sessions={state.tasks[t.id]?.sessions || 0}
+                        running={state.running?.taskId === t.id}
+                        completed={!!state.tasks[t.id]?.completed}
+                        onStart={startTask}
+                        onPause={stopTask}
+                        onEnd={completeTask}
+                        onOpen={(id: string) => setOpenTaskId(id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-[220px] flex flex-col gap-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-semibold">Done</div>
+                    <div className="text-xs text-gray-400">{done.length}</div>
+                  </div>
+                  <div className="space-y-3">
+                    {done.map((t) => (
+                      <TaskCard
+                        key={t.id}
+                        id={t.id}
+                        name={t.name}
+                        formattedElapsed={formatSeconds(getElapsed(t.id))}
+                        firstStarted={state.tasks[t.id]?.firstStarted}
+                        completedAt={state.tasks[t.id]?.completedAt}
+                        sessions={state.tasks[t.id]?.sessions || 0}
+                        running={false}
+                        completed={true}
+                        onStart={startTask}
+                        onPause={stopTask}
+                        onEnd={completeTask}
+                        onUncomplete={uncompleteTask}
+                        onOpen={(id: string) => setOpenTaskId(id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      {addTaskFor && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black opacity-40 backdrop-blur-sm"
+            onClick={() => setAddTaskFor(null)}
+          />
+          <div className="relative z-50 w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold">Add New Task</h3>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Task name
+                </label>
+                <input
+                  value={newTaskName}
+                  onChange={(e) => setNewTaskName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Efforts (each = 2 hours)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={newTaskEfforts}
+                  onChange={(e) => setNewTaskEfforts(Number(e.target.value))}
+                  className="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setAddTaskFor(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!addTaskFor) return;
+                  setAddingTask(true);
+                  try {
+                    const getRes = await fetch(`/api/sprints/${addTaskFor}`);
+                    if (!getRes.ok) throw new Error("Failed to load sprint");
+                    const sprint = await getRes.json();
+
+                    const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+                    const plannedTime =
+                      Math.max(0, Number(newTaskEfforts || 0)) * 2 * 3600;
+                    const newTask: any = {
+                      id: taskId,
+                      name: newTaskName || "Untitled",
+                      plannedTime,
+                    };
+
+                    const updatedSprint = {
+                      ...sprint,
+                      tasks: [...(sprint.tasks || []), newTask],
+                      plannedTime: (sprint.plannedTime || 0) + plannedTime,
+                    };
+
+                    const putRes = await fetch(`/api/sprints/${addTaskFor}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(updatedSprint),
+                    });
+                    if (!putRes.ok) throw new Error("Failed to update sprint");
+                    const updated = await putRes.json();
+
+                    // update local copy
+                    setLocalSprints((prev) => {
+                      const copy = (prev && [...prev]) || [...(sprints || [])];
+                      const idx = copy.findIndex((sp) => sp.id === addTaskFor);
+                      if (idx >= 0) {
+                        copy[idx] = {
+                          ...copy[idx],
+                          tasks: updated.tasks || copy[idx].tasks,
+                        } as any;
+                      }
+                      return copy;
+                    });
+
+                    router.refresh();
+                    setAddTaskFor(null);
+                  } catch (err) {
+                    console.error(err);
+                    alert("Could not add task");
+                  } finally {
+                    setAddingTask(false);
+                  }
+                }}
+                disabled={addingTask}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${addingTask ? "bg-emerald-600 opacity-60 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"}`}
+              >
+                {addingTask ? "Adding..." : "Add Task"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {openTaskId && (
+        <TaskDetails
+          taskId={openTaskId}
+          onClose={() => setOpenTaskId(null)}
+          onUpdated={(task) =>
+            applyTaskUpdateLocally(task.id, { name: task.name })
+          }
+          onDeleted={(id) => {
+            removeTaskLocally(id);
+            setOpenTaskId(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
