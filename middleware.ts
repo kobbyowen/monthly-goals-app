@@ -10,6 +10,11 @@ const PUBLIC_PATHS = [
 
 export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
+    const basePath = (req.nextUrl && (req.nextUrl as any).basePath) || "";
+    // Compute a path relative to basePath so PUBLIC_PATHS can be matched
+    const relativePath = basePath && pathname.startsWith(basePath)
+        ? pathname.slice(basePath.length) || "/"
+        : pathname;
 
     if (
         pathname.startsWith("/_next") ||
@@ -19,7 +24,7 @@ export function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
-    if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    if (PUBLIC_PATHS.some((p) => relativePath.startsWith(p))) {
         return NextResponse.next();
     }
 
@@ -28,7 +33,9 @@ export function middleware(req: NextRequest) {
         if (pathname.startsWith("/api")) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        const loginUrl = new URL("/auth/login", req.url);
+        const loginUrl = req.nextUrl.clone();
+        // place login under basePath (if any) so redirects keep subpath context
+        loginUrl.pathname = `${basePath || ""}/auth/login`;
         loginUrl.searchParams.set("from", pathname);
         return NextResponse.redirect(loginUrl);
     }
