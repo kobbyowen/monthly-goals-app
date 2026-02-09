@@ -16,6 +16,15 @@ export function middleware(req: NextRequest) {
         ? pathname.slice(basePath.length) || "/"
         : pathname;
 
+    // If a basePath is configured, redirect only root '/' to the basePath
+    // (useful for local/dev access). Do NOT rewrite every incoming URL;
+    // that causes asset and route lookups to fail.
+    if (basePath && pathname === "/") {
+        const redirect = req.nextUrl.clone();
+        redirect.pathname = `${basePath}/`;
+        return NextResponse.redirect(redirect);
+    }
+
     if (
         pathname.startsWith("/_next") ||
         pathname.startsWith("/favicon.ico") ||

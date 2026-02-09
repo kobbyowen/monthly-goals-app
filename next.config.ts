@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  basePath: "/time-planner",
+  basePath: "",
 };
 
 export default nextConfig;
