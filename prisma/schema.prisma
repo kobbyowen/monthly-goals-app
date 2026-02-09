@@ -14,6 +14,11 @@ model Sprint {
   userId             String?
   kind               String?  @default("epic")
   epicId             String?
+  // Month metadata for epics (year + month used for ordering/grouping)
+  epicYear           Int?
+  epicMonth          Int?    // 1-12
+  // Week-of-month for child sprints (1-5)
+  weekOfMonth        Int?
   dateExpectedToStart String?
   dateExpectedToEnd   String?
   dateStarted        String?

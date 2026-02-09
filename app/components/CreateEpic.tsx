@@ -10,6 +10,21 @@ export default function CreateEpic({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const monthOptions = Array.from({ length: 12 }).map((_, idx) => {
+    const month = idx + 1; // 1-12
+    const date = new Date(currentYear, idx, 1);
+    const label = date.toLocaleString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+    const key = `${currentYear}-${String(month).padStart(2, "0")}`;
+    return { key, label, year: currentYear, month };
+  });
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(
+    monthOptions[0]?.key,
+  );
   const [sprintNames, setSprintNames] = useState<string[]>([
     "Week 1 Sprint",
     "Week 2 Sprint",
@@ -19,10 +34,20 @@ export default function CreateEpic({
   const [loading, setLoading] = useState(false);
 
   async function create() {
-    if (!name) return;
+    if (!name || !selectedMonthKey) return;
     setLoading(true);
     try {
-      const payload = { name, sprints: sprintNames.filter(Boolean) };
+      const monthMeta = monthOptions.find((m) => m.key === selectedMonthKey);
+      const epicYear = monthMeta?.year;
+      const epicMonth = monthMeta?.month;
+      const sprints = sprintNames
+        .filter(Boolean)
+        .map((sn, idx) => ({ name: sn, weekOfMonth: idx + 1 }));
+      const payload: any = { name, sprints };
+      if (epicYear && epicMonth) {
+        payload.epicYear = epicYear;
+        payload.epicMonth = epicMonth;
+      }
       const res = await fetch(`/api/epics`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,6 +104,22 @@ export default function CreateEpic({
           />
           <div className="relative z-10 w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
             <h3 className="text-lg font-semibold">Create New Monthly Epic</h3>
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Month
+              </label>
+              <select
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                value={selectedMonthKey}
+                onChange={(e) => setSelectedMonthKey(e.target.value)}
+              >
+                {monthOptions.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="mt-4">
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 Monthly Epic name

@@ -42,12 +42,20 @@ async function createSprint(payload) {
     const children = await Promise.all(
       sprintNames.map(async (sn) => {
         const childId = ensureId("sprint");
+        const baseName =
+          typeof sn === "string" ? sn : (sn && sn.name) || "Sprint";
+        // If caller passed structured sprint objects (e.g., with weekOfMonth), preserve them.
+        const weekOfMonth =
+          typeof sn === "object" && sn && "weekOfMonth" in sn
+            ? sn.weekOfMonth
+            : undefined;
         const childData = {
           id: childId,
-          name: typeof sn === "string" ? sn : (sn && sn.name) || "Sprint",
+          name: baseName,
           epicId: created.id,
           kind: "sprint",
           userId: s.userId,
+          weekOfMonth,
         };
         return prisma.sprint.create({ data: convertSprintInput(childData) });
       }),

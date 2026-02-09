@@ -7,6 +7,7 @@ type Props = {
   id: string;
   name: string;
   formattedElapsed: string;
+  plannedTimeSeconds?: number;
   firstStarted?: number;
   completedAt?: number;
   sessions?: number;
@@ -29,6 +30,7 @@ export default function TaskCard({
   id,
   name,
   formattedElapsed,
+  plannedTimeSeconds,
   firstStarted,
   completedAt,
   sessions,
@@ -44,6 +46,16 @@ export default function TaskCard({
   const [editing, setEditing] = useState(false);
   const [nameValue, setNameValue] = useState(name);
   const [saving, setSaving] = useState(false);
+
+  function formatEstimate(seconds?: number) {
+    if (!seconds || seconds <= 0) return "—";
+    const minsTotal = Math.round(seconds / 60);
+    const hrs = Math.floor(minsTotal / 60);
+    const mins = minsTotal % 60;
+    if (hrs && mins) return `${hrs}h ${mins}m`;
+    if (hrs) return `${hrs}h`;
+    return `${mins}m`;
+  }
   return (
     <div
       onClick={() => onOpen && onOpen(id)}
@@ -73,6 +85,13 @@ export default function TaskCard({
       <div className="mt-3 text-center">
         <span className="font-mono text-2xl font-bold text-slate-900">
           {formattedElapsed}
+        </span>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-600">
+        <span className="uppercase tracking-wide text-slate-400">Est.</span>
+        <span className="font-medium text-slate-800">
+          {formatEstimate(plannedTimeSeconds)}
         </span>
       </div>
 
@@ -127,9 +146,9 @@ export default function TaskCard({
                 e.stopPropagation();
                 onEnd && onEnd(id);
               }}
-              className="rounded-lg bg-rose-600 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+              className="rounded-lg bg-emerald-600 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
             >
-              End
+              Complete
             </button>
           </>
         ) : (

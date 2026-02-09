@@ -81,13 +81,53 @@ export default function Sidebar({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { data: user } = useSWR("/api/me", fetcher);
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth() + 1;
 
-  const currentEpics = (sprints || []).filter((e: any) =>
+  const epicsWithMonth = (sprints || []).map((e: any) => {
+    const y = typeof e.epicYear === "number" ? e.epicYear : undefined;
+    const m = typeof e.epicMonth === "number" ? e.epicMonth : undefined;
+    const orderKey = y && m ? y * 12 + m : Number.POSITIVE_INFINITY;
+    return { ...e, _epicYear: y, _epicMonth: m, _orderKey: orderKey };
+  });
+
+  const withMonth = epicsWithMonth.filter((e) => e._epicYear && e._epicMonth);
+  const withoutMonth = epicsWithMonth.filter(
+    (e) => !e._epicYear || !e._epicMonth,
+  );
+
+  withMonth.sort((a, b) => (a._orderKey as number) - (b._orderKey as number));
+
+  const currentMonthEpics: any[] = [];
+  const futureEpics: any[] = [];
+  const pastEpicsWithMonth: any[] = [];
+
+  for (const e of withMonth) {
+    const y = e._epicYear as number;
+    const m = e._epicMonth as number;
+    if (y < curYear || (y === curYear && m < curMonth)) {
+      pastEpicsWithMonth.push(e);
+    } else if (y === curYear && m === curMonth) {
+      currentMonthEpics.push(e);
+    } else {
+      futureEpics.push(e);
+    }
+  }
+
+  const fallbackCurrent = withoutMonth.filter((e) =>
     e ? !e.dateEnded && e.status !== "completed" : false,
   );
-  const pastEpics = (sprints || []).filter((e: any) =>
+  const fallbackPast = withoutMonth.filter((e) =>
     e ? !!e.dateEnded || e.status === "completed" : false,
   );
+
+  const currentEpics = [
+    ...currentMonthEpics,
+    ...futureEpics,
+    ...fallbackCurrent,
+  ];
+  const pastEpics = [...pastEpicsWithMonth, ...fallbackPast];
 
   const renderBody = (closeOnSelect: boolean) => (
     <>
@@ -193,9 +233,9 @@ export default function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 w-72">
-        <div className="flex-1 overflow-y-auto">{renderBody(false)}</div>
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 flex items-center justify-between">
+      <aside className="hidden md:flex md:flex-col justify-between bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 w-72 h-screen">
+        <div className="flex-1 overflow-hidden">{renderBody(false)}</div>
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 flex items-center justify-between bg-white dark:bg-[#0b0b0b]">
           <div className="truncate">
             <div className="text-sm font-medium">
               {user?.name || "Signed in"}
@@ -209,7 +249,7 @@ export default function Sidebar({
               } catch (e) {}
               router.push("/auth/login");
             }}
-            className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50"
+            className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
           >
             Logout
           </button>
@@ -218,7 +258,7 @@ export default function Sidebar({
 
       {/* Mobile slide-in sidebar */}
       {open && (
-        <aside className="md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl">
+        <aside className="md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-md bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
@@ -237,7 +277,8 @@ export default function Sidebar({
             </button>
           </div>
 
-          <div className="overflow-y-auto">{renderBody(true)}</div>
+          <div className="flex-1 overflow-hidden">{renderBody(true)}</div>
+
           <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 flex items-center justify-between">
             <div>
               <div className="text-sm font-medium">
@@ -253,7 +294,7 @@ export default function Sidebar({
                 router.push("/auth/login");
                 setOpen(false);
               }}
-              className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50"
+              className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
             >
               Logout
             </button>

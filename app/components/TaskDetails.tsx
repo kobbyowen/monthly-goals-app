@@ -89,6 +89,60 @@ export default function TaskDetails({
     }
   }
 
+  const totalDurationSeconds = (() => {
+    const fromSessions = sessions.reduce((a, b) => a + (b.duration || 0), 0);
+    if (fromSessions > 0) return fromSessions;
+
+    // If durations aren't present, but we have timestamps on sessions and/or
+    // the task itself, compute total as last end - first start.
+    const startCandidates: number[] = [];
+    const endCandidates: number[] = [];
+
+    sessions.forEach((s) => {
+      if (s.startedAt) {
+        startCandidates.push(new Date(s.startedAt).getTime());
+      }
+      if (s.endedAt) {
+        endCandidates.push(new Date(s.endedAt).getTime());
+      }
+    });
+
+    if (taskMeta?.startedAt) {
+      startCandidates.push(new Date(taskMeta.startedAt).getTime());
+    }
+    if (taskMeta?.endedAt) {
+      endCandidates.push(new Date(taskMeta.endedAt).getTime());
+    }
+
+    if (startCandidates.length > 0 && endCandidates.length > 0) {
+      const minStart = Math.min(...startCandidates);
+      const maxEnd = Math.max(...endCandidates);
+      const diffSec = Math.max(0, Math.floor((maxEnd - minStart) / 1000));
+      if (diffSec > 0) return diffSec;
+    }
+
+    if (
+      typeof taskMeta?.timeActuallySpent === "number" &&
+      taskMeta.timeActuallySpent > 0
+    ) {
+      return taskMeta.timeActuallySpent;
+    }
+    if (typeof taskMeta?.timeSpent === "number" && taskMeta.timeSpent > 0) {
+      return taskMeta.timeSpent;
+    }
+    return 0;
+  })();
+
+  const firstSessionStart: Date | null = sessions.reduce(
+    (min, s) => {
+      if (!s.startedAt) return min;
+      const d = new Date(s.startedAt);
+      if (!min || d < min) return d;
+      return min;
+    },
+    null as Date | null,
+  );
+
   async function remove() {
     if (!confirm("Remove this task and all its sessions?")) return;
     try {
@@ -147,19 +201,18 @@ export default function TaskDetails({
             <div>
               <span className="text-slate-500">Total Time</span>
               <div className="mt-1 font-mono text-sm font-semibold text-slate-900">
-                {fmtSeconds(
-                  taskMeta?.timeSpent ||
-                    sessions.reduce((a, b) => a + (b.duration || 0), 0),
-                )}
+                {fmtSeconds(totalDurationSeconds)}
               </div>
             </div>
 
             <div>
               <span className="text-slate-500">Started On</span>
               <div className="mt-1 text-slate-800">
-                {taskMeta?.startedAt
-                  ? new Date(taskMeta.startedAt).toLocaleString()
-                  : "—"}
+                {firstSessionStart
+                  ? firstSessionStart.toLocaleString()
+                  : taskMeta?.startedAt
+                    ? new Date(taskMeta.startedAt).toLocaleString()
+                    : "—"}
               </div>
             </div>
 

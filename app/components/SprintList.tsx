@@ -16,6 +16,7 @@ type Session = {
 type Task = {
   id: string;
   name: string;
+  plannedTime?: number;
   completed?: boolean;
   startedAt?: string | null;
   endedAt?: string | null;
@@ -90,6 +91,30 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     };
   }, []);
 
+  // On initial load or when sprints change, detect any open session from the
+  // server data and mark it as running so timers resume after refresh.
+  useEffect(() => {
+    const source = localSprints && localSprints.length ? localSprints : sprints;
+    if (!source || state.running) return;
+    for (const s of source) {
+      for (const t of s.tasks as Task[]) {
+        const sessions = Array.isArray(t.sessions) ? t.sessions : [];
+        const open = sessions.find((sess) => sess.startedAt && !sess.endedAt);
+        if (open) {
+          setState((prev) => ({
+            ...prev,
+            running: {
+              taskId: t.id,
+              startAt: new Date(open.startedAt as string).getTime(),
+              sessionId: open.id,
+            },
+          }));
+          return;
+        }
+      }
+    }
+  }, [localSprints, sprints, state.running]);
+
   function getTaskUiMeta(task: Task) {
     const stored = state.tasks[task.id] || {};
     const sessions = Array.isArray(task.sessions) ? task.sessions : [];
@@ -156,13 +181,18 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
   async function stopTask(taskId: string) {
     const now = Date.now();
-    const runningSessionId = state.running?.sessionId;
     try {
-      if (runningSessionId) {
-        const duration = Math.floor(
-          (now - (state.running?.startAt || now)) / 1000,
-        );
-        const res = await fetch(`/api/sessions/${runningSessionId}`, {
+      // Look up the latest open session for this task from the server so we
+      // never rely on client-only state for timing.
+      const taskRes = await fetch(`/api/tasks/${taskId}`);
+      if (!taskRes.ok) throw new Error("Failed to fetch task");
+      const task = await taskRes.json();
+      const sessions = Array.isArray(task.sessions) ? task.sessions : [];
+      const open = sessions.find((s: any) => s.startedAt && !s.endedAt);
+      if (open) {
+        const started = new Date(open.startedAt).getTime();
+        const duration = Math.max(0, Math.floor((now - started) / 1000));
+        const res = await fetch(`/api/sessions/${open.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -316,16 +346,54 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
   }
 
   function getElapsed(task: Task) {
-    const stored = state.tasks[task.id];
-    let base = stored?.elapsed;
-    if (base === undefined) {
-      const sessions = Array.isArray(task.sessions) ? task.sessions : [];
-      base = sessions.reduce(
-        (acc: number, s: any) => acc + (s.duration || 0),
-        0,
-      );
+    const sessions = Array.isArray(task.sessions) ? task.sessions : [];
+    let base = sessions.reduce(
+      (acc: number, s: any) => acc + (s.duration || 0),
+      0,
+    );
+
+    // For non-completed tasks, if there is an open session, add live elapsed time since its start.
+    const open = sessions.find((s: any) => s.startedAt && !s.endedAt);
+    if (open && !task.completed) {
+      const started = new Date(open.startedAt as string).getTime();
+      base += Math.max(0, Math.floor((Date.now() - started) / 1000));
+      return base;
     }
-    // If task is completed and we still have no elapsed from sessions, fall back to task-level fields
+
+    // If no session durations exist, but we have timestamps on sessions
+    // and/or the task itself, compute total as last end - first start.
+    if (base === 0) {
+      const startCandidates: number[] = [];
+      const endCandidates: number[] = [];
+
+      sessions.forEach((s: any) => {
+        if (s.startedAt) {
+          startCandidates.push(new Date(s.startedAt as string).getTime());
+        }
+        if (s.endedAt) {
+          endCandidates.push(new Date(s.endedAt as string).getTime());
+        }
+      });
+
+      if (task.startedAt) {
+        startCandidates.push(new Date(task.startedAt).getTime());
+      }
+      if (task.endedAt) {
+        endCandidates.push(new Date(task.endedAt).getTime());
+      }
+
+      if (startCandidates.length > 0 && endCandidates.length > 0) {
+        const minStart = Math.min(...startCandidates);
+        const maxEnd = Math.max(...endCandidates);
+        const diffSec = Math.max(0, Math.floor((maxEnd - minStart) / 1000));
+        if (diffSec > 0) {
+          base = diffSec;
+          return base;
+        }
+      }
+    }
+
+    // For completed tasks without usable timestamps/durations, fall back to task-level fields.
     if ((base || 0) === 0 && task.completed) {
       if (
         typeof task.timeActuallySpent === "number" &&
@@ -336,10 +404,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
         base = task.timeSpent;
       }
     }
-    if (state.running && state.running.taskId === task.id)
-      return (
-        (base || 0) + Math.floor((Date.now() - state.running.startAt) / 1000)
-      );
+
     return base || 0;
   }
 
@@ -352,11 +417,11 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     const anyRunning = tasks.some((t) => {
       const completed = state.tasks[t.id]?.completed ?? t.completed;
       if (completed) return false;
+      const sessions = Array.isArray(t.sessions) ? t.sessions : [];
+      const hasOpen = sessions.some((s) => s.startedAt && !s.endedAt);
       const hasProgress =
-        (Array.isArray(t.sessions) && t.sessions.length > 0) ||
-        (state.tasks[t.id]?.elapsed || 0) > 0;
-      const isRunning = state.running && state.running.taskId === t.id;
-      return hasProgress || isRunning;
+        hasOpen || sessions.some((s) => (s.duration || 0) > 0);
+      return hasProgress;
     });
     if (anyRunning) return "In Progress";
     return "Not Started";
@@ -388,18 +453,20 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
           const todo = tasks.filter((t) => {
             const meta = getTaskUiMeta(t);
-            const isRunning = state.running && state.running.taskId === t.id;
+            const sessions = Array.isArray(t.sessions) ? t.sessions : [];
+            const hasOpen = sessions.some((s) => s.startedAt && !s.endedAt);
             const hasProgress =
-              meta.sessions > 0 || (state.tasks[t.id]?.elapsed || 0) > 0;
-            return !meta.completed && !hasProgress && !isRunning;
+              hasOpen || sessions.some((s) => (s.duration || 0) > 0);
+            return !meta.completed && !hasProgress;
           });
 
           const inProgress = tasks.filter((t) => {
             const meta = getTaskUiMeta(t);
-            const isRunning = state.running && state.running.taskId === t.id;
+            const sessions = Array.isArray(t.sessions) ? t.sessions : [];
+            const hasOpen = sessions.some((s) => s.startedAt && !s.endedAt);
             const hasProgress =
-              meta.sessions > 0 || (state.tasks[t.id]?.elapsed || 0) > 0;
-            return !meta.completed && (hasProgress || isRunning);
+              hasOpen || sessions.some((s) => (s.duration || 0) > 0);
+            return !meta.completed && hasProgress;
           });
 
           const done = tasks.filter((t) => getTaskUiMeta(t).completed);
@@ -539,16 +606,23 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   <div className="space-y-3">
                     {todo.map((t) => {
                       const meta = getTaskUiMeta(t);
+                      const sessionsArr = Array.isArray(t.sessions)
+                        ? t.sessions
+                        : [];
+                      const hasOpen = sessionsArr.some(
+                        (s) => s.startedAt && !s.endedAt,
+                      );
                       return (
                         <TaskCard
                           key={t.id}
                           id={t.id}
                           name={t.name}
                           formattedElapsed={formatSeconds(getElapsed(t))}
+                          plannedTimeSeconds={t.plannedTime}
                           firstStarted={meta.firstStarted}
                           completedAt={meta.completedAt}
                           sessions={meta.sessions || 0}
-                          running={state.running?.taskId === t.id}
+                          running={hasOpen}
                           completed={meta.completed}
                           onStart={startTask}
                           onPause={stopTask}
@@ -570,16 +644,23 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   <div className="space-y-3">
                     {inProgress.map((t) => {
                       const meta = getTaskUiMeta(t);
+                      const sessionsArr = Array.isArray(t.sessions)
+                        ? t.sessions
+                        : [];
+                      const hasOpen = sessionsArr.some(
+                        (s) => s.startedAt && !s.endedAt,
+                      );
                       return (
                         <TaskCard
                           key={t.id}
                           id={t.id}
                           name={t.name}
                           formattedElapsed={formatSeconds(getElapsed(t))}
+                          plannedTimeSeconds={t.plannedTime}
                           firstStarted={meta.firstStarted}
                           completedAt={meta.completedAt}
                           sessions={meta.sessions || 0}
-                          running={state.running?.taskId === t.id}
+                          running={hasOpen}
                           completed={meta.completed}
                           onStart={startTask}
                           onPause={stopTask}
@@ -605,6 +686,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                           id={t.id}
                           name={t.name}
                           formattedElapsed={formatSeconds(getElapsed(t))}
+                          plannedTimeSeconds={t.plannedTime}
                           firstStarted={meta.firstStarted}
                           completedAt={meta.completedAt}
                           sessions={meta.sessions || 0}

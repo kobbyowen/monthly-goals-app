@@ -30,6 +30,15 @@ try {
       db.exec(sql);
       console.log("Applied migration:", f);
     } catch (err) {
+      // SQLite will throw an error if a migration was partially applied
+      // (e.g. adding a column that already exists). For idempotence, treat
+      // duplicate-column errors as non-fatal and continue; rethrow other
+      // errors.
+      const msg = err && err.message ? String(err.message) : "";
+      if (/duplicate column name|already exists/i.test(msg)) {
+        console.warn(`Migration ${f} skipped: ${msg}`);
+        continue;
+      }
       console.error("Migration failed for", f, err);
       process.exit(1);
     }

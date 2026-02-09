@@ -29,6 +29,7 @@ export default function EpicControls({
   ]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [weekOfMonth, setWeekOfMonth] = useState<number>(1);
 
   function addTask() {
     setTasks((t) => [
@@ -57,7 +58,7 @@ export default function EpicControls({
   }
 
   async function submit() {
-    if (!name) return;
+    if (!name || !weekOfMonth) return;
     setLoading(true);
     try {
       const sprintId =
@@ -75,9 +76,15 @@ export default function EpicControls({
         0,
       );
 
-      const payload = { id: sprintId, name, plannedTime, tasks: mappedTasks };
+      const payload: any = {
+        id: sprintId,
+        name,
+        plannedTime,
+        tasks: mappedTasks,
+      };
       // attach this sprint to its parent epic
       (payload as any).epicId = epicId;
+      (payload as any).weekOfMonth = weekOfMonth;
 
       const res = await fetch(`/api/sprints`, {
         method: "POST",
@@ -151,6 +158,23 @@ export default function EpicControls({
                   onChange={(e) => setName(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Week of month
+                </label>
+                <select
+                  value={weekOfMonth}
+                  onChange={(e) => setWeekOfMonth(Number(e.target.value))}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  {[1, 2, 3, 4, 5].map((w) => (
+                    <option key={w} value={w}>
+                      Week {w}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
