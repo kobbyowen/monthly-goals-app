@@ -21,11 +21,6 @@ export function middleware(req: NextRequest) {
     // If a basePath is configured, redirect only root '/' to the basePath
     // (useful for local/dev access). Do NOT rewrite every incoming URL;
     // that causes asset and route lookups to fail.
-    if (basePath && pathname === "/") {
-        const redirect = req.nextUrl.clone();
-        redirect.pathname = `${basePath}/`;
-        return NextResponse.redirect(redirect);
-    }
 
     if (
         pathname.startsWith("/_next") ||
