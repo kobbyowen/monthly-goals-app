@@ -47,6 +47,9 @@ export default function TaskCard({
   const [nameValue, setNameValue] = useState(name);
   const [saving, setSaving] = useState(false);
 
+  const hasProgress = !completed && (sessions || 0) > 0;
+  const pauseLabel = !running && hasProgress ? "Continue" : "Pause";
+
   function formatEstimate(seconds?: number) {
     if (!seconds || seconds <= 0) return "—";
     const minsTotal = Math.round(seconds / 60);
@@ -134,11 +137,15 @@ export default function TaskCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onPause && onPause(id);
+                if (!running && hasProgress) {
+                  onStart && onStart(id);
+                } else {
+                  onPause && onPause(id);
+                }
               }}
               className="rounded-lg bg-slate-100 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
             >
-              Pause
+              {pauseLabel}
             </button>
 
             <button

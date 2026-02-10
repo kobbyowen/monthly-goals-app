@@ -30,7 +30,13 @@ export default function EpicPage() {
             <EpicControls epicId={epicId} epicName={epic?.name} />
           </div>
           <div className="mt-2">
-            <SprintList sprints={sprintView} />
+            {sprintView.length === 0 ? (
+              <p className="text-sm text-gray-500 italic">
+                No sprints for this epic yet.
+              </p>
+            ) : (
+              <SprintList sprints={sprintView} />
+            )}
           </div>
         </div>
       </main>

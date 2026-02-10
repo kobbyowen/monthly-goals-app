@@ -473,23 +473,54 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               ? Math.round((completedCount / totalTasks) * 100)
               : 0;
 
-          const todo = tasks.filter((t) => {
-            const meta = getTaskUiMeta(t);
-            const sessions = Array.isArray(t.sessions) ? t.sessions : [];
-            const hasOpen = sessions.some((s) => s.startedAt && !s.endedAt);
-            const hasProgress =
-              hasOpen || sessions.some((s) => (s.duration || 0) > 0);
-            return !meta.completed && !hasProgress;
-          });
+          const todo = tasks
+            .filter((t) => {
+              const meta = getTaskUiMeta(t);
+              const sessions = Array.isArray(t.sessions) ? t.sessions : [];
+              const hasOpen = sessions.some((s) => s.startedAt && !s.endedAt);
+              const hasProgress =
+                hasOpen || sessions.some((s) => (s.duration || 0) > 0);
+              return !meta.completed && !hasProgress;
+            })
+            .sort((a, b) => {
+              // Approximate creation time using the numeric portion of the id
+              const getIdTs = (t: Task) => {
+                const parts = String(t.id || "").split("-");
+                const maybeTs = parts.length > 1 ? Number(parts[1]) : 0;
+                return Number.isFinite(maybeTs) ? maybeTs : 0;
+              };
+              return getIdTs(b) - getIdTs(a);
+            });
 
-          const inProgress = tasks.filter((t) => {
-            const meta = getTaskUiMeta(t);
-            const sessions = Array.isArray(t.sessions) ? t.sessions : [];
-            const hasOpen = sessions.some((s) => s.startedAt && !s.endedAt);
-            const hasProgress =
-              hasOpen || sessions.some((s) => (s.duration || 0) > 0);
-            return !meta.completed && hasProgress;
-          });
+          const inProgress = tasks
+            .filter((t) => {
+              const meta = getTaskUiMeta(t);
+              const sessions = Array.isArray(t.sessions) ? t.sessions : [];
+              const hasOpen = sessions.some((s) => s.startedAt && !s.endedAt);
+              const hasProgress =
+                hasOpen || sessions.some((s) => (s.duration || 0) > 0);
+              return !meta.completed && hasProgress;
+            })
+            .sort((a, b) => {
+              const lastStarted = (task: Task) => {
+                const sessions = Array.isArray(task.sessions)
+                  ? task.sessions
+                  : [];
+                let last = 0;
+                sessions.forEach((s: any) => {
+                  if (s.startedAt) {
+                    const ts = new Date(s.startedAt as string).getTime();
+                    if (ts > last) last = ts;
+                  }
+                });
+                if (task.startedAt) {
+                  const ts = new Date(task.startedAt as string).getTime();
+                  if (ts > last) last = ts;
+                }
+                return last;
+              };
+              return lastStarted(b) - lastStarted(a);
+            });
 
           const done = tasks.filter((t) => getTaskUiMeta(t).completed);
 

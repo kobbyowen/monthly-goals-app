@@ -162,8 +162,10 @@ export default function Sidebar({
           SA
         </div>
         <div>
-          <div className="text-sm font-semibold">Sprint App</div>
-          <div className="text-xs text-gray-500">Tracker & Timer</div>
+          <div className="text-sm font-semibold">Monthly Goals Planner</div>
+          <div className="text-xs text-gray-500">
+            Monthly epics & weekly sprints
+          </div>
         </div>
       </div>
 
@@ -258,8 +260,8 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col justify-between bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 w-72 h-screen">
+      {/* Desktop sidebar (visible on large screens and up) */}
+      <aside className="hidden lg:flex lg:flex-col justify-between bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 w-72 h-screen">
         <div className="flex-1 overflow-hidden">{renderBody(false)}</div>
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 flex items-center justify-between bg-white dark:bg-[#0b0b0b]">
           <div className="truncate">
@@ -283,9 +285,9 @@ export default function Sidebar({
           </button>
         </div>
       </aside>
-      {/* Mobile slide-in sidebar */}
+      {/* Mobile / tablet slide-in sidebar */}
       {open && (
-        <aside className="md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between">
+        <aside className="lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-md bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">

@@ -19,7 +19,7 @@ export default function MobileHeader() {
         >
           ☰
         </button>
-        <div className="text-sm font-semibold">Sprint App</div>
+        <div className="text-sm font-semibold">Monthly Goals Planner</div>
         <div style={{ width: 40 }} />
       </div>
     </header>

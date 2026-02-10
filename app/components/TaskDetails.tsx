@@ -99,12 +99,15 @@ export default function TaskDetails({
     const startCandidates: number[] = [];
     const endCandidates: number[] = [];
 
+    let hasOpen = false;
     sessions.forEach((s) => {
       if (s.startedAt) {
         startCandidates.push(new Date(s.startedAt).getTime());
       }
       if (s.endedAt) {
         endCandidates.push(new Date(s.endedAt).getTime());
+      } else if (s.startedAt && !s.endedAt) {
+        hasOpen = true;
       }
     });
 
@@ -113,6 +116,10 @@ export default function TaskDetails({
     }
     if (taskMeta?.endedAt) {
       endCandidates.push(new Date(taskMeta.endedAt).getTime());
+    }
+
+    if (hasOpen && endCandidates.length === 0 && startCandidates.length > 0) {
+      endCandidates.push(Date.now());
     }
 
     if (startCandidates.length > 0 && endCandidates.length > 0) {
