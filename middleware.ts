@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { basePath as configuredBasePath } from "./basePath";
 
 const PUBLIC_PATHS = [
     "/auth/login",
@@ -10,7 +11,8 @@ const PUBLIC_PATHS = [
 
 export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
-    const basePath = (req.nextUrl && (req.nextUrl as any).basePath) || "";
+    const basePath = configuredBasePath
+
     // Compute a path relative to basePath so PUBLIC_PATHS can be matched
     const relativePath = basePath && pathname.startsWith(basePath)
         ? pathname.slice(basePath.length) || "/"
@@ -39,7 +41,7 @@ export function middleware(req: NextRequest) {
 
     const sessionToken = req.cookies.get("sessionToken")?.value;
     if (!sessionToken) {
-        if (pathname.startsWith("/api")) {
+        if (pathname.includes("/api/")) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const loginUrl = req.nextUrl.clone();
