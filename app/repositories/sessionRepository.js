@@ -17,7 +17,23 @@ async function createSession(taskId, s, userId) {
   const sess = { ...s };
   if (sess.startedAt) sess.startedAt = new Date(sess.startedAt).toISOString();
   if (sess.endedAt) sess.endedAt = new Date(sess.endedAt).toISOString();
-  return prisma.session.create({ data: { ...sess, taskId } });
+  const created = await prisma.session.create({ data: { ...sess, taskId } });
+
+  // If task doesn't have a startedAt timestamp, set it so task shows In Progress
+  try {
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (task && !task.startedAt && created.startedAt) {
+      await prisma.task.update({
+        where: { id: taskId },
+        data: { startedAt: created.startedAt, completed: false },
+      });
+    }
+  } catch (e) {
+    // ignore background update errors
+    console.error("createSession: failed to update parent task", e);
+  }
+
+  return created;
 }
 
 async function getSessionsForTask(taskId, userId) {
@@ -57,7 +73,35 @@ async function updateSession(id, data, userId) {
     payload.startedAt = new Date(payload.startedAt).toISOString();
   if (payload.endedAt)
     payload.endedAt = new Date(payload.endedAt).toISOString();
-  return prisma.session.update({ where: { id }, data: payload });
+  const updated = await prisma.session.update({ where: { id }, data: payload });
+
+  // If this update closed the session (endedAt provided), recompute task aggregates
+  try {
+    if (updated.endedAt) {
+      const taskId = updated.taskId;
+      // sum durations from sessions
+      const sessions = await prisma.session.findMany({ where: { taskId } });
+      const totalDuration = sessions.reduce(
+        (s, it) => s + (it.duration || 0),
+        0,
+      );
+      const latestEnded = sessions.reduce((m, it) => {
+        if (!it.endedAt) return m;
+        const ts = new Date(it.endedAt).getTime();
+        return Math.max(m, ts);
+      }, 0);
+
+      const taskUpdate = { timeActuallySpent: totalDuration };
+      if (latestEnded > 0)
+        taskUpdate.endedAt = new Date(latestEnded).toISOString();
+
+      await prisma.task.update({ where: { id: taskId }, data: taskUpdate });
+    }
+  } catch (e) {
+    console.error("updateSession: failed to update parent task aggregates", e);
+  }
+
+  return updated;
 }
 
 async function deleteSession(id, userId) {

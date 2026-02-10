@@ -7,6 +7,9 @@ export async function POST(req: Request, ctx: any) {
     try {
         const body = await req.json();
         if (!body.id || !body.name) return NextResponse.json({ error: 'Missing id or name' }, { status: 400 });
+        if (typeof body.plannedTime !== 'number' || isNaN(body.plannedTime)) {
+            return NextResponse.json({ error: 'Invalid or missing plannedTime' }, { status: 400 });
+        }
         const p = await ctx.params;
         const sprintId = p?.id || getParamFromUrl(req, 'sprints');
         const created = await taskService.createTask(sprintId, body);

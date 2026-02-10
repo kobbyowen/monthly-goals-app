@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { withBase } from "../lib/api";
 
@@ -26,12 +26,20 @@ export default function CreateEpic({
   const [selectedMonthKey, setSelectedMonthKey] = useState<string>(
     monthOptions[0]?.key,
   );
-  const [sprintNames, setSprintNames] = useState<string[]>([
-    "Week 1 Sprint",
-    "Week 2 Sprint",
-    "Week 3 Sprint",
-    "Week 4 Sprint",
-  ]);
+  const [sprintNames, setSprintNames] = useState<string[]>([]);
+  useEffect(() => {
+    // derive default sprint count from selected month
+    const meta = monthOptions.find((m) => m.key === selectedMonthKey);
+    const y = meta?.year || currentYear;
+    const m = meta?.month || 1;
+    // compute weeks dynamically
+    import("../utils/date").then((mod) => {
+      const w = mod.weeksInMonth(y, m);
+      setSprintNames(
+        Array.from({ length: w }).map((_, i) => `Week ${i + 1} Sprint`),
+      );
+    });
+  }, [selectedMonthKey]);
   const [loading, setLoading] = useState(false);
 
   async function create() {
@@ -75,7 +83,7 @@ export default function CreateEpic({
       }
       setOpen(false);
       // navigate to the newly created epic using the id returned by the server
-      router.push(`/epics/${created.id}`);
+      router.push(withBase(`/epics/${created.id}`));
     } catch (err) {
       console.error("Create epic failed:", err);
       if (err instanceof Error) {

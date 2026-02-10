@@ -11,10 +11,10 @@ const PUBLIC_PATHS = [
 
 export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
-    const basePath = configuredBasePath
+    const basePath: string | undefined = configuredBasePath;
 
     // Compute a path relative to basePath so PUBLIC_PATHS can be matched
-    const relativePath = basePath && pathname.startsWith(basePath)
+    const relativePath: string = basePath && pathname.startsWith(basePath)
         ? pathname.slice(basePath.length) || "/"
         : pathname;
 

@@ -167,13 +167,14 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
         }),
       });
       if (!res.ok) throw new Error("Failed to create session");
-      const created = await res.json();
-      // update running state and then reconcile from backend
-      setState((prev) => ({
-        ...prev,
-        running: { taskId, startAt: now, sessionId: created.id || sessionId },
-      }));
-      await syncTaskFromServer(taskId);
+      await res.json();
+
+      // As requested: force a full browser reload so that
+      // the new session, In Progress status, and ticking timer
+      // are all reflected immediately without manual refresh.
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
     } catch (err) {
       console.error("Could not start session", err);
       alert("Could not start session");
@@ -206,6 +207,13 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       // Clear running state then reconcile with backend
       setState((prev) => ({ ...prev, running: undefined }));
       await syncTaskFromServer(taskId);
+
+      // Force a full reload so the task status,
+      // end time, and total duration are all
+      // refreshed everywhere without manual reload.
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
     } catch (err) {
       console.error("Could not stop session", err);
       alert("Could not stop session");
@@ -229,7 +237,10 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       });
       if (!res.ok) throw new Error("Failed to complete task");
       await syncTaskFromServer(taskId);
-      router.refresh();
+
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
     } catch (err) {
       console.error(err);
       alert("Could not complete task");
@@ -281,7 +292,10 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       });
       if (!res.ok) throw new Error("Failed to uncomplete task");
       await syncTaskFromServer(taskId);
-      router.refresh();
+
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
     } catch (err) {
       console.error(err);
       alert("Could not uncomplete task");
@@ -349,6 +363,11 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
   }
 
   function getElapsed(task: Task) {
+    const storedMeta = state.tasks[task.id];
+    if (storedMeta && typeof storedMeta.elapsed === "number") {
+      return storedMeta.elapsed;
+    }
+
     const sessions = Array.isArray(task.sessions) ? task.sessions : [];
     let base = sessions.reduce(
       (acc: number, s: any) => acc + (s.duration || 0),
@@ -753,6 +772,18 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               <button
                 onClick={async () => {
                   if (!addTaskFor) return;
+                  // client-side validation
+                  if (!newTaskName || !newTaskName.trim()) {
+                    alert("Task name is required");
+                    return;
+                  }
+                  if (
+                    typeof newTaskEfforts !== "number" ||
+                    newTaskEfforts < 0
+                  ) {
+                    alert("Efforts must be a non-negative number");
+                    return;
+                  }
                   setAddingTask(true);
                   try {
                     const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -760,7 +791,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                       Math.max(0, Number(newTaskEfforts || 0)) * 2 * 3600;
                     const newTask: any = {
                       id: taskId,
-                      name: newTaskName || "Untitled",
+                      name: newTaskName.trim(),
                       plannedTime,
                     };
 
@@ -772,18 +803,57 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                         body: JSON.stringify(newTask),
                       },
                     );
-                    if (!postRes.ok) throw new Error("Failed to create task");
-                    await postRes.json();
+                    if (!postRes.ok) {
+                      let body = null;
+                      try {
+                        body = await postRes.json();
+                      } catch (e) {}
+                      const msg =
+                        (body && (body.error || body.message)) ||
+                        `${postRes.status} ${postRes.statusText}`;
+                      throw new Error(msg);
+                    }
+                    const created = await postRes.json();
 
-                    // refresh server data and local view via SWR so parent hooks update
+                    // update local view immediately
+                    setLocalSprints((prev) => {
+                      if (!prev) return prev;
+                      return prev.map((sp) => {
+                        if (sp.id !== addTaskFor) return sp;
+                        return {
+                          ...sp,
+                          tasks: [...(sp.tasks || []), created],
+                        } as any;
+                      });
+                    });
+
+                    // refresh server caches used elsewhere: sprint detail and epics
                     await Promise.all([
                       mutate(withBase(`/api/sprints/${addTaskFor}`)),
                       mutate(withBase("/api/epics")),
                     ]);
+
+                    // also try to refresh the parent epic so epic detail view updates
+                    try {
+                      const sprintRes = await fetch(
+                        withBase(`/api/sprints/${addTaskFor}`),
+                      );
+                      if (sprintRes.ok) {
+                        const sprintData = await sprintRes.json();
+                        if (sprintData && sprintData.epicId) {
+                          await mutate(
+                            withBase(`/api/epics/${sprintData.epicId}`),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      // ignore
+                    }
+
                     setAddTaskFor(null);
-                  } catch (err) {
+                  } catch (err: any) {
                     console.error(err);
-                    alert("Could not add task");
+                    alert(`Could not add task: ${err?.message || String(err)}`);
                   } finally {
                     setAddingTask(false);
                   }

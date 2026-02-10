@@ -93,9 +93,23 @@ export default function Sidebar({
     };
   }, []);
   const { data: user } = useSWR(withBase("/api/me"), fetcher);
-  const now = new Date();
+  const [now, setNow] = React.useState(() => new Date());
   const curYear = now.getFullYear();
   const curMonth = now.getMonth() + 1;
+
+  // Refresh `now` at midnight so current/future/past epic grouping updates
+  React.useEffect(() => {
+    const msUntilMidnight = () => {
+      const d = new Date();
+      const tomorrow = new Date(d);
+      tomorrow.setDate(d.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      return tomorrow.getTime() - d.getTime();
+    };
+
+    const timer = setTimeout(() => setNow(new Date()), msUntilMidnight());
+    return () => clearTimeout(timer);
+  }, [now]);
 
   const epicsWithMonth = (sprints || []).map((e: any) => {
     const y = typeof e.epicYear === "number" ? e.epicYear : undefined;

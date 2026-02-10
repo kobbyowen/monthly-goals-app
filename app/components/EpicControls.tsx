@@ -31,6 +31,35 @@ export default function EpicControls({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [weekOfMonth, setWeekOfMonth] = useState<number>(1);
+  const [maxWeeks, setMaxWeeks] = useState<number>(5);
+  // load epic to determine its month/year and compute weeks
+  const [epicMeta, setEpicMeta] = useState<{
+    epicYear?: number;
+    epicMonth?: number;
+  } | null>(null);
+  React.useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!epicId) return;
+      try {
+        const res = await fetch(withBase(`/api/epics/${epicId}`));
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setEpicMeta({ epicYear: data.epicYear, epicMonth: data.epicMonth });
+        if (data.epicYear && data.epicMonth) {
+          const mod = await import("../utils/date");
+          const w = mod.weeksInMonth(data.epicYear, data.epicMonth);
+          setMaxWeeks(w);
+          if (weekOfMonth > w) setWeekOfMonth(w);
+        }
+      } catch (e) {}
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [epicId]);
 
   function addTask() {
     setTasks((t) => [
@@ -65,7 +94,7 @@ export default function EpicControls({
       const sprintId =
         crypto && (crypto as any).randomUUID
           ? (crypto as any).randomUUID()
-          : `sprint-${Date.now()}`;
+          : `sprint-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const mappedTasks = tasks.map((t) => ({
         id:
           t.id || `${sprintId}-task-${Math.random().toString(36).slice(2, 8)}`,
@@ -92,7 +121,16 @@ export default function EpicControls({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Failed to create sprint");
+      if (!res.ok) {
+        let body = null;
+        try {
+          body = await res.json();
+        } catch (e) {}
+        const msg =
+          (body && (body.error || body.message)) ||
+          `${res.status} ${res.statusText}`;
+        throw new Error(msg);
+      }
       setOpen(false);
       // revalidate epics and the specific epic so the new sprint appears without a full refresh
       mutate(withBase("/api/epics"));
@@ -170,11 +208,14 @@ export default function EpicControls({
                   onChange={(e) => setWeekOfMonth(Number(e.target.value))}
                   className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 >
-                  {[1, 2, 3, 4, 5].map((w) => (
-                    <option key={w} value={w}>
-                      Week {w}
-                    </option>
-                  ))}
+                  {Array.from({ length: maxWeeks }).map((_, i) => {
+                    const w = i + 1;
+                    return (
+                      <option key={w} value={w}>
+                        Week {w}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
