@@ -27,7 +27,7 @@ export default function LoginPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Unable to sign in");
       }
-      router.push("/");
+      router.push(withBase("/"));
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Something went wrong");

@@ -1,5 +1,6 @@
+import { withBase } from "@/app/lib/api";
 import { NextResponse } from "next/server";
-const auth = require("../../../lib/auth.js");
+import auth from "../../../lib/auth.js";
 
 export async function POST(req: Request) {
     try {
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
         res.cookies.set("sessionToken", "", {
             httpOnly: true,
             sameSite: "lax",
-            path: "/",
+            path: withBase("/"),
             maxAge: 0,
             secure: process.env.NODE_ENV === "production",
         });

@@ -114,7 +114,7 @@ export default function EpicControls({
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete epic");
-      router.push("/");
+      router.push(withBase("/"));
       mutate(withBase("/api/epics"));
     } catch (err) {
       console.error(err);

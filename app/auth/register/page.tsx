@@ -32,7 +32,7 @@ export default function RegisterPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Unable to create account");
       }
-      router.push("/");
+      router.push(withBase("/"));
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Something went wrong");

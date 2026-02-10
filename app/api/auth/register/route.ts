@@ -1,3 +1,4 @@
+import { withBase } from "@/app/lib/api";
 import { NextResponse } from "next/server";
 const prisma = require("../../../lib/prisma.js");
 const auth = require("../../../lib/auth.js");
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
         res.cookies.set("sessionToken", session.token, {
             httpOnly: true,
             sameSite: "lax",
-            path: "/",
+            path: withBase("/"),
             secure: process.env.NODE_ENV === "production",
         });
         return res;
