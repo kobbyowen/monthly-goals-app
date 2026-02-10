@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import CreateEpic from "./CreateEpic";
 import { useRouter } from "next/navigation";
@@ -81,6 +81,17 @@ export default function Sidebar({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    if (typeof window !== "undefined") {
+      window.addEventListener("openSidebar", handler);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("openSidebar", handler);
+      }
+    };
+  }, []);
   const { data: user } = useSWR(withBase("/api/me"), fetcher);
   const now = new Date();
   const curYear = now.getFullYear();
@@ -132,7 +143,7 @@ export default function Sidebar({
 
   const renderBody = (closeOnSelect: boolean) => (
     <>
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex items-center gap-3 hidden md:flex">
         <div className="h-10 w-10 rounded-md bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
           SA
         </div>
@@ -306,14 +317,7 @@ export default function Sidebar({
         </aside>
       )}
 
-      {/* Mobile hamburger */}
-      <button
-        className="md:hidden fixed bottom-6 left-4 z-30 bg-indigo-600 text-white p-3 rounded-full shadow-lg"
-        onClick={() => setOpen(true)}
-        aria-label="open sidebar"
-      >
-        ☰
-      </button>
+      {/* Mobile hamburger is provided by a separate MobileHeader component */}
     </>
   );
 }
