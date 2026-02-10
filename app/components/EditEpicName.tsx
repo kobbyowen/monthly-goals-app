@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
+import { withBase } from "../lib/api";
 
 export default function EditEpicName({
   epicId,
@@ -19,7 +20,7 @@ export default function EditEpicName({
     if (!epicId || !value) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/epics/${epicId}`, {
+      const res = await fetch(withBase(`/api/epics/${epicId}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: value }),
@@ -27,7 +28,7 @@ export default function EditEpicName({
       if (!res.ok) throw new Error("Failed to update epic");
       setEditing(false);
       // Revalidate shared epics data so sidebars/dashboards update
-      mutate("/api/epics");
+      mutate(withBase("/api/epics"));
     } catch (err) {
       console.error(err);
       alert("Could not update epic name");

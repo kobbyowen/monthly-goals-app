@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { withBase } from "../lib/api";
 
 type Session = {
   id: string;
@@ -34,8 +35,8 @@ export default function TaskDetails({
       setLoading(true);
       try {
         const [tRes, sRes] = await Promise.all([
-          fetch(`/api/tasks/${taskId}`),
-          fetch(`/api/tasks/${taskId}/sessions`),
+          fetch(withBase(`/api/tasks/${taskId}`)),
+          fetch(withBase(`/api/tasks/${taskId}/sessions`)),
         ]);
         if (!tRes.ok) throw new Error("Failed to load task");
         const t = await tRes.json();
@@ -69,7 +70,7 @@ export default function TaskDetails({
     if (!taskName) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: taskName }),
@@ -146,7 +147,9 @@ export default function TaskDetails({
   async function remove() {
     if (!confirm("Remove this task and all its sessions?")) return;
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete task");
       if (typeof onDeleted === "function") {
         onDeleted(taskId);

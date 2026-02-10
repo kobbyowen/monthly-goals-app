@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { withBase } from "../lib/api";
 
 export const fetcher = async (url: string) => {
     const res = await fetch(url, { cache: "no-store" });
@@ -12,7 +13,10 @@ export const fetcher = async (url: string) => {
 };
 
 export function useEpics() {
-    const { data, error, isLoading, mutate } = useSWR("/api/epics", fetcher);
+    const { data, error, isLoading, mutate } = useSWR(
+        withBase("/api/epics"),
+        fetcher,
+    );
     return {
         epics: (data as any[]) || [],
         isLoading,

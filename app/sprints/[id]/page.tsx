@@ -1,13 +1,14 @@
 import React from "react";
 import Sidebar from "../../components/Sidebar";
 import SprintList from "../../components/SprintList";
+import { withBase } from "../../lib/api";
 
 async function getSprint(id: string) {
   if (!id) return null;
   const base =
     process.env.NEXT_PUBLIC_BASE_URL ||
     `http://localhost:${process.env.PORT || 3000}`;
-  const url = new URL(`/api/sprints/${id}`, base).toString();
+  const url = new URL(withBase(`/api/sprints/${id}`), base).toString();
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json();

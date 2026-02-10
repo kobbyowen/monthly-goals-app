@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
+import { withBase } from "../lib/api";
 
 export default function EpicControls({
   epicId,
@@ -86,7 +87,7 @@ export default function EpicControls({
       (payload as any).epicId = epicId;
       (payload as any).weekOfMonth = weekOfMonth;
 
-      const res = await fetch(`/api/sprints`, {
+      const res = await fetch(withBase(`/api/sprints`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -94,8 +95,8 @@ export default function EpicControls({
       if (!res.ok) throw new Error("Failed to create sprint");
       setOpen(false);
       // revalidate epics and the specific epic so the new sprint appears without a full refresh
-      mutate("/api/epics");
-      if (epicId) mutate(`/api/epics/${epicId}`);
+      mutate(withBase("/api/epics"));
+      if (epicId) mutate(withBase(`/api/epics/${epicId}`));
     } catch (err) {
       console.error(err);
       alert("Could not create sprint");
@@ -109,12 +110,12 @@ export default function EpicControls({
     if (!confirm("Delete this epic and all of its sprints and tasks?")) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/epics/${epicId}`, {
+      const res = await fetch(withBase(`/api/epics/${epicId}`), {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete epic");
       router.push("/");
-      mutate("/api/epics");
+      mutate(withBase("/api/epics"));
     } catch (err) {
       console.error(err);
       alert("Could not delete epic");

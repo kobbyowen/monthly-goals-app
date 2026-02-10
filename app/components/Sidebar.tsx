@@ -5,6 +5,7 @@ import CreateEpic from "./CreateEpic";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "../hooks/useEpics";
+import { withBase } from "../lib/api";
 
 function IconDashboard() {
   return (
@@ -80,7 +81,7 @@ export default function Sidebar({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const { data: user } = useSWR("/api/me", fetcher);
+  const { data: user } = useSWR(withBase("/api/me"), fetcher);
   const now = new Date();
   const curYear = now.getFullYear();
   const curMonth = now.getMonth() + 1;
@@ -245,7 +246,9 @@ export default function Sidebar({
           <button
             onClick={async () => {
               try {
-                await fetch("/api/auth/logout", { method: "POST" });
+                await fetch(withBase("/api/auth/logout"), {
+                  method: "POST",
+                });
               } catch (e) {}
               router.push("/auth/login");
             }}
@@ -255,7 +258,6 @@ export default function Sidebar({
           </button>
         </div>
       </aside>
-
       {/* Mobile slide-in sidebar */}
       {open && (
         <aside className="md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between">
@@ -289,7 +291,9 @@ export default function Sidebar({
             <button
               onClick={async () => {
                 try {
-                  await fetch("/api/auth/logout", { method: "POST" });
+                  await fetch(withBase("/api/auth/logout"), {
+                    method: "POST",
+                  });
                 } catch (e) {}
                 router.push("/auth/login");
                 setOpen(false);

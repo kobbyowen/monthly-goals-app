@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { withBase } from "../lib/api";
 
 export default function CreateEpic({
   onCreated,
@@ -48,7 +49,7 @@ export default function CreateEpic({
         payload.epicYear = epicYear;
         payload.epicMonth = epicMonth;
       }
-      const res = await fetch(`/api/epics`, {
+      const res = await fetch(withBase(`/api/epics`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

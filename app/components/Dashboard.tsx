@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { withBase } from "../lib/api";
 
 type Session = {
   id: string;
@@ -419,7 +420,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
           type="button"
           onClick={async () => {
             try {
-              await fetch("/api/auth/logout", { method: "POST" });
+              await fetch(withBase("/api/auth/logout"), { method: "POST" });
             } catch (e) {}
             router.push("/auth/login");
             router.refresh();

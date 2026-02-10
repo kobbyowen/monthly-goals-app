@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import TaskCard from "./TaskCard";
 import { mutate } from "swr";
 import TaskDetails from "./TaskDetails";
+import { withBase } from "../lib/api";
 
 type Session = {
   id: string;
@@ -157,7 +158,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     // create a session on the server
     const sessionId = generateId("session");
     try {
-      const res = await fetch(`/api/tasks/${taskId}/sessions`, {
+      const res = await fetch(withBase(`/api/tasks/${taskId}/sessions`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -184,7 +185,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     try {
       // Look up the latest open session for this task from the server so we
       // never rely on client-only state for timing.
-      const taskRes = await fetch(`/api/tasks/${taskId}`);
+      const taskRes = await fetch(withBase(`/api/tasks/${taskId}`));
       if (!taskRes.ok) throw new Error("Failed to fetch task");
       const task = await taskRes.json();
       const sessions = Array.isArray(task.sessions) ? task.sessions : [];
@@ -192,7 +193,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       if (open) {
         const started = new Date(open.startedAt).getTime();
         const duration = Math.max(0, Math.floor((now - started) / 1000));
-        const res = await fetch(`/api/sessions/${open.id}`, {
+        const res = await fetch(withBase(`/api/sessions/${open.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -218,7 +219,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       await stopTask(taskId);
     }
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -237,7 +238,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
   async function syncTaskFromServer(taskId: string) {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`);
+      const res = await fetch(withBase(`/api/tasks/${taskId}`));
       if (!res.ok) throw new Error("Failed to fetch task");
       const t = await res.json();
       const sessions = Array.isArray(t.sessions) ? t.sessions : [];
@@ -273,7 +274,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
   async function uncompleteTask(taskId: string) {
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: false, endedAt: null }),
@@ -295,7 +296,9 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     )
       return;
     try {
-      const res = await fetch(`/api/sprints/${sprintId}`, { method: "DELETE" });
+      const res = await fetch(withBase(`/api/sprints/${sprintId}`), {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete sprint");
       // update local view
       setLocalSprints((prev) =>
@@ -303,8 +306,8 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       );
       // refresh SWR caches
       await Promise.all([
-        mutate("/api/epics"),
-        mutate(`/api/sprints/${sprintId}`),
+        mutate(withBase("/api/epics")),
+        mutate(withBase(`/api/sprints/${sprintId}`)),
       ]);
       router.refresh();
     } catch (err) {
@@ -762,7 +765,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                     };
 
                     const postRes = await fetch(
-                      `/api/sprints/${addTaskFor}/tasks`,
+                      withBase(`/api/sprints/${addTaskFor}/tasks`),
                       {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -774,8 +777,8 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
                     // refresh server data and local view via SWR so parent hooks update
                     await Promise.all([
-                      mutate(`/api/sprints/${addTaskFor}`),
-                      mutate("/api/epics"),
+                      mutate(withBase(`/api/sprints/${addTaskFor}`)),
+                      mutate(withBase("/api/epics")),
                     ]);
                     setAddTaskFor(null);
                   } catch (err) {
