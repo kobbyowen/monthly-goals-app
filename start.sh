@@ -15,6 +15,14 @@ fi
 
 # Install dependencies
 echo "Installing dependencies..."
+echo "Cleaning previous build artifacts and local caches..."
+# remove Next.js build output and some common cache directories
+rm -rf .next .next/cache .next/static out dist
+rm -rf node_modules/.cache .cache .parcel-cache .vercel .turbo
+
+# attempt to clean npm cache (non-fatal)
+npm cache clean --force || true
+
 npm install
 
 # Generate Prisma client

@@ -123,7 +123,7 @@ export default function RegisterPage() {
         <p className="mt-6 text-center text-xs text-slate-600">
           Already have an account?
           <Link
-            href="/auth/login"
+            href={withBase("/auth/login")}
             className="ml-1 font-semibold text-emerald-600 hover:underline"
           >
             Sign in
