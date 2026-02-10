@@ -1,9 +1,9 @@
 // Small helper to ensure all client and server fetches
 // include the Next.js basePath (e.g. "/time-planner").
 
-// Keep this in sync with next.config.ts basePath. In production,
-// prefer setting NEXT_PUBLIC_BASE_PATH to override if needed.
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "/time-planner";
+// Import the same basePath that next.config.ts uses so
+// there is a single source of truth.
+import { basePath } from "../../basePath";
 
 export function withBase(path: string): string {
   if (!path.startsWith("/")) path = "/" + path;

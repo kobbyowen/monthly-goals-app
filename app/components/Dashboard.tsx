@@ -153,7 +153,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             progress.
           </p>
           <button
-            onClick={() => router.push("/epics")}
+            onClick={() => router.push(withBase("/epics"))}
             className="mt-4 inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
           >
             Go to Monthly Epics
@@ -252,7 +252,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
                     <button
                       onClick={() =>
                         selectedEpicId &&
-                        router.push("/epics/" + selectedEpicId)
+                        router.push(withBase(`/epics/${selectedEpicId}`))
                       }
                       className="flex-1 rounded-lg bg-emerald-600 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700"
                     >
@@ -307,7 +307,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
                     <button
                       onClick={() =>
                         selectedEpicId &&
-                        router.push("/epics/" + selectedEpicId)
+                        router.push(withBase(`/epics/${selectedEpicId}`))
                       }
                       className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-200"
                     >
@@ -316,7 +316,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
                     <button
                       onClick={() =>
                         selectedEpicId &&
-                        router.push("/epics/" + selectedEpicId)
+                        router.push(withBase(`/epics/${selectedEpicId}`))
                       }
                       className="flex-1 rounded-lg bg-rose-600 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-700"
                     >
@@ -422,7 +422,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             try {
               await fetch(withBase("/api/auth/logout"), { method: "POST" });
             } catch (e) {}
-            router.push("/auth/login");
+            router.push(withBase("/auth/login"));
             router.refresh();
           }}
           className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-slate-700 shadow-md ring-1 ring-slate-200 hover:bg-slate-50"

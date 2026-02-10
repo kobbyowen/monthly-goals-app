@@ -144,14 +144,14 @@ export default function Sidebar({
 
       <nav className="mb-6">
         <Link
-          href="/"
+          href={withBase("/")}
           className="flex items-center gap-3 w-full text-left px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
         >
           <IconDashboard />
           <span>Dashboard</span>
         </Link>
         <Link
-          href="/analytics"
+          href={withBase("/analytics")}
           className="flex items-center gap-3 w-full text-left px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
         >
           <IconAnalytics />
@@ -169,7 +169,7 @@ export default function Sidebar({
               currentEpics.map((ep: any) => (
                 <li key={ep.id}>
                   <Link
-                    href={`/epics/${ep.id}`}
+                    href={withBase(`/epics/${ep.id}`)}
                     onClick={() => {
                       onSelect?.(ep.id);
                       if (closeOnSelect) setOpen(false);
@@ -202,7 +202,7 @@ export default function Sidebar({
               pastEpics.map((ep: any) => (
                 <li key={ep.id}>
                   <Link
-                    href={`/epics/${ep.id}`}
+                    href={withBase(`/epics/${ep.id}`)}
                     onClick={() => {
                       onSelect?.(ep.id);
                       if (closeOnSelect) setOpen(false);
@@ -250,7 +250,7 @@ export default function Sidebar({
                   method: "POST",
                 });
               } catch (e) {}
-              router.push("/auth/login");
+              router.push(withBase("/auth/login"));
             }}
             className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
           >
@@ -295,7 +295,7 @@ export default function Sidebar({
                     method: "POST",
                   });
                 } catch (e) {}
-                router.push("/auth/login");
+                router.push(withBase("/auth/login"));
                 setOpen(false);
               }}
               className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
