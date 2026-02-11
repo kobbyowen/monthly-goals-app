@@ -1,58 +1,22 @@
 const path = require("path");
 const fs = require("fs");
 
-function getDatabaseUrlFromConfig() {
-  let dbUrl = process.env.DATABASE_URL || null;
-  if (!dbUrl) {
-    try {
-      const cfg = require(path.join(process.cwd(), "config.js"));
-      dbUrl =
-        cfg && (cfg.DATABASE_URL || (cfg.default && cfg.default.DATABASE_URL));
-    } catch (e) {
-      try {
-        const cfg = require(path.join(process.cwd(), "config"));
-        dbUrl =
-          cfg &&
-          (cfg.DATABASE_URL || (cfg.default && cfg.default.DATABASE_URL));
-      } catch (e2) {
-        dbUrl = null;
-      }
-    }
-  }
-  return dbUrl;
-}
+const cfg = require(path.join(process.cwd(), "config"));
+const dbUrl = process.env.DATABASE_URL || cfg.DATABASE_URL;
 
-function isSqliteUrl(u) {
-  if (!u || typeof u !== "string") return false;
-  return (
-    u.startsWith("file:") ||
-    u.includes(".sqlite") ||
-    u.includes("sqlite") ||
-    u.startsWith("sqlite:")
-  );
-}
+if (!dbUrl) throw new Error("DATABASE_URL is not set");
 
-const dbUrl = getDatabaseUrlFromConfig();
+const isSqlite = (u) =>
+  typeof u === "string" &&
+  (u.startsWith("file:") || u.includes(".sqlite") || u.startsWith("sqlite:"));
 
-if (isSqliteUrl(dbUrl)) {
+if (isSqlite(dbUrl)) {
   const Database = require("better-sqlite3");
-  let dbPath;
-  if (!dbUrl) {
-    const dbDir = path.join(process.cwd(), "data");
-    dbPath = path.join(dbDir, "sprint.db");
-  } else if (dbUrl.startsWith("file:")) {
-    const rel = dbUrl.replace(/^file:\/\//, "file:").replace(/^file:/, "");
-    dbPath = path.resolve(process.cwd(), rel);
-  } else {
-    dbPath = path.isAbsolute(dbUrl)
-      ? dbUrl
-      : path.resolve(process.cwd(), dbUrl);
-  }
-
-  try {
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-  } catch (e) {}
-
+  let dbPath = dbUrl.replace(/^file:\/\//, "").replace(/^file:/, "");
+  dbPath = path.isAbsolute(dbPath)
+    ? dbPath
+    : path.resolve(process.cwd(), dbPath);
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
   module.exports = db;
   module.exports.__type = "sqlite";
@@ -62,13 +26,8 @@ if (isSqliteUrl(dbUrl)) {
     module.exports = prisma;
     module.exports.__type = "prisma";
   } catch (e) {
-    module.exports = {
-      __type: "unsupported",
-      _error: new Error(
-        "Non-sqlite database selected but Prisma client not available. Set up Prisma or use a sqlite database.",
-      ),
-      $executeRaw: () => Promise.reject(module.exports._error),
-      $queryRaw: () => Promise.reject(module.exports._error),
-    };
+    throw new Error(
+      "Non-sqlite DATABASE_URL requires Prisma client. Install and generate Prisma client.",
+    );
   }
 }
