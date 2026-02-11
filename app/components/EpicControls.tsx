@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
 import { withBase } from "../lib/api";
+import { toast, confirmDialog } from "../lib/ui";
 
 export default function EpicControls({
   epicId,
@@ -137,7 +138,7 @@ export default function EpicControls({
       if (epicId) mutate(withBase(`/api/epics/${epicId}`));
     } catch (err) {
       console.error(err);
-      alert("Could not create sprint");
+      toast("Could not create sprint", "error");
     } finally {
       setLoading(false);
     }
@@ -145,7 +146,12 @@ export default function EpicControls({
 
   async function removeEpic() {
     if (!epicId) return;
-    if (!confirm("Delete this epic and all of its sprints and tasks?")) return;
+    if (
+      !(await confirmDialog(
+        "Delete this epic and all of its sprints and tasks?",
+      ))
+    )
+      return;
     setDeleting(true);
     try {
       const res = await fetch(withBase(`/api/epics/${epicId}`), {
@@ -156,7 +162,7 @@ export default function EpicControls({
       mutate(withBase("/api/epics"));
     } catch (err) {
       console.error(err);
-      alert("Could not delete epic");
+      toast("Could not delete epic", "error");
     } finally {
       setDeleting(false);
     }

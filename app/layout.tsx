@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MobileHeader from "./components/MobileHeader";
+import ToastProvider from "./components/ToastProvider";
+import ConfirmProvider from "./components/ConfirmProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +32,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <MobileHeader />
+        <ToastProvider />
+        <ConfirmProvider />
         <div className="pt-16 md:pt-0">{children}</div>
       </body>
     </html>

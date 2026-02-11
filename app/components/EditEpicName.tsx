@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
 import { withBase } from "../lib/api";
+import { toast } from "../lib/ui";
 
 export default function EditEpicName({
   epicId,
@@ -31,7 +32,7 @@ export default function EditEpicName({
       mutate(withBase("/api/epics"));
     } catch (err) {
       console.error(err);
-      alert("Could not update epic name");
+      toast("Could not update epic name", "error");
     } finally {
       setLoading(false);
     }

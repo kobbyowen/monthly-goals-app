@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { withBase } from "../lib/api";
+import { toast } from "../lib/ui";
 
 export default function CreateEpic({
   onCreated,
@@ -86,11 +87,10 @@ export default function CreateEpic({
       router.push(withBase(`/epics/${created.id}`));
     } catch (err) {
       console.error("Create epic failed:", err);
-      if (err instanceof Error) {
-        alert(`Could not create epic: ${err.message}`);
-      } else {
-        alert(`Could not create epic: ${String(err)}`);
-      }
+      toast(
+        `Could not create epic: ${err instanceof Error ? err.message : String(err)}`,
+        "error",
+      );
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { withBase } from "../lib/api";
+import { toast, confirmDialog } from "../lib/ui";
 
 type Session = {
   id: string;
@@ -47,7 +48,7 @@ export default function TaskDetails({
         setSessions(Array.isArray(ss) ? ss : []);
       } catch (err) {
         console.error(err);
-        alert("Could not load task details");
+        toast("Could not load task details", "error");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -84,7 +85,7 @@ export default function TaskDetails({
       onClose();
     } catch (err) {
       console.error(err);
-      alert("Could not save task");
+      toast("Could not save task", "error");
     } finally {
       setSaving(false);
     }
@@ -152,7 +153,8 @@ export default function TaskDetails({
   );
 
   async function remove() {
-    if (!confirm("Remove this task and all its sessions?")) return;
+    if (!(await confirmDialog("Remove this task and all its sessions?")))
+      return;
     try {
       const res = await fetch(withBase(`/api/tasks/${taskId}`), {
         method: "DELETE",
@@ -165,7 +167,7 @@ export default function TaskDetails({
       router.refresh();
     } catch (err) {
       console.error(err);
-      alert("Could not remove task");
+      toast("Could not remove task", "error");
     }
   }
 

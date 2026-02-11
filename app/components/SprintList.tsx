@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import TaskCard from "./TaskCard";
 import { mutate } from "swr";
 import TaskDetails from "./TaskDetails";
+import { toast, confirmDialog } from "../lib/ui";
 import { withBase } from "../lib/api";
 
 type Session = {
@@ -177,7 +178,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       }
     } catch (err) {
       console.error("Could not start session", err);
-      alert("Could not start session");
+      toast("Could not start session", "error");
     }
   }
 
@@ -216,7 +217,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       }
     } catch (err) {
       console.error("Could not stop session", err);
-      alert("Could not stop session");
+      toast("Could not stop session", "error");
     }
   }
 
@@ -243,7 +244,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       }
     } catch (err) {
       console.error(err);
-      alert("Could not complete task");
+      toast("Could not complete task", "error");
     }
   }
 
@@ -298,15 +299,15 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       }
     } catch (err) {
       console.error(err);
-      alert("Could not uncomplete task");
+      toast("Could not uncomplete task", "error");
     }
   }
 
   async function deleteSprintById(sprintId: string) {
     if (
-      !confirm(
+      !(await confirmDialog(
         "Delete this sprint and all its tasks/sessions? This cannot be undone.",
-      )
+      ))
     )
       return;
     try {
@@ -326,7 +327,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       router.refresh();
     } catch (err) {
       console.error(err);
-      alert("Could not delete sprint");
+      toast("Could not delete sprint", "error");
     }
   }
 
@@ -619,7 +620,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                             router.refresh();
                           } catch (err) {
                             console.error(err);
-                            alert("Could not save sprint name");
+                            toast("Could not save sprint name", "error");
                           } finally {
                             setSavingSprintName(false);
                           }
@@ -805,14 +806,14 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   if (!addTaskFor) return;
                   // client-side validation
                   if (!newTaskName || !newTaskName.trim()) {
-                    alert("Task name is required");
+                    toast("Task name is required", "error");
                     return;
                   }
                   if (
                     typeof newTaskEfforts !== "number" ||
                     newTaskEfforts < 0
                   ) {
-                    alert("Efforts must be a non-negative number");
+                    toast("Efforts must be a non-negative number", "error");
                     return;
                   }
                   setAddingTask(true);
@@ -884,7 +885,10 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                     setAddTaskFor(null);
                   } catch (err: any) {
                     console.error(err);
-                    alert(`Could not add task: ${err?.message || String(err)}`);
+                    toast(
+                      `Could not add task: ${err?.message || String(err)}`,
+                      "error",
+                    );
                   } finally {
                     setAddingTask(false);
                   }
