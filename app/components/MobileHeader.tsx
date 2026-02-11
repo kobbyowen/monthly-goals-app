@@ -10,7 +10,7 @@ export default function MobileHeader() {
   };
 
   return (
-    <header className="block md:hidden fixed top-0 left-0 right-0 z-40 bg-white dark:bg-[#0b0b0b] border-b border-gray-100 dark:border-gray-800">
+    <header className="block lg:hidden fixed top-0 left-0 right-0 z-40 bg-white dark:bg-[#0b0b0b] border-b border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <button
           aria-label="open sidebar"

@@ -23,9 +23,9 @@ export default function EpicPage() {
   return (
     <div className="min-h-screen flex bg-slate-100 dark:bg-black">
       <Sidebar sprints={epics} activeId={epicId} />
-      <main className="flex-1 px-4 py-4 sm:px-6 lg:px-8">
+      <main className="flex-1 h-screen overflow-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
             <EditEpicName epicId={epicId} name={epic?.name} />
             <EpicControls epicId={epicId} epicName={epic?.name} />
           </div>

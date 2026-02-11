@@ -38,13 +38,15 @@ export default function EditEpicName({
   }
 
   return (
-    <div className="mb-4 flex items-center justify-between">
+    <div className="flex items-center justify-between gap-3">
       {!editing ? (
-        <h1 className="text-2xl font-semibold">{name || "Monthly Epic"}</h1>
+        <h1 className="text-2xl font-semibold truncate max-w-[70%] sm:max-w-none">
+          {value || name || "Monthly Epic"}
+        </h1>
       ) : (
         <input
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          value={value}
+          value={value || name}
           onChange={(e) => setValue(e.target.value)}
         />
       )}

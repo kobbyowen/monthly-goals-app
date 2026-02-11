@@ -117,7 +117,7 @@ export default function TaskCard({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className="mt-4 grid gap-2 grid-cols-[repeat(auto-fit,minmax(0,1fr))]">
         {!completed ? (
           <>
             <button
@@ -132,20 +132,6 @@ export default function TaskCard({
               className={`rounded-lg py-1.5 text-xs font-semibold text-white ${running ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
             >
               {running ? "Stop" : "Start"}
-            </button>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!running && hasProgress) {
-                  onStart && onStart(id);
-                } else {
-                  onPause && onPause(id);
-                }
-              }}
-              className="rounded-lg bg-slate-100 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-            >
-              {pauseLabel}
             </button>
 
             <button

@@ -165,7 +165,7 @@ export default function EpicControls({
   const totalHours = tasks.reduce((s, t) => s + Number(t.efforts || 0) * 2, 0);
 
   return (
-    <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full">
+    <div className="mt-2 flex flex-col sm:flex-row sm:justify-end gap-3 w-full">
       <button
         onClick={() => setOpen(true)}
         className="w-full sm:w-auto justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 flex"
