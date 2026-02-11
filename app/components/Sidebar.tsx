@@ -157,7 +157,7 @@ export default function Sidebar({
 
   const renderBody = (closeOnSelect: boolean) => (
     <>
-      <div className="mb-6 flex items-center gap-3 hidden md:flex">
+      <div className="mb-8 flex items-center gap-3 hidden md:flex">
         <div className="h-10 w-10 rounded-md bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
           SA
         </div>
@@ -169,29 +169,29 @@ export default function Sidebar({
         </div>
       </div>
 
-      <nav className="mb-6">
+      <nav className="mb-8">
         <Link
           href={withBase("/")}
-          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
+          className="flex items-center gap-3 w-full text-left px-3 py-4 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
         >
           <IconDashboard />
           <span>Dashboard</span>
         </Link>
         <Link
           href={withBase("/analytics")}
-          className="flex items-center gap-3 w-full text-left px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
+          className="flex items-center gap-3 w-full text-left px-3 py-4 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
         >
           <IconAnalytics />
           <span>Analytics</span>
         </Link>
       </nav>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
           <div className="text-xs font-semibold uppercase text-gray-400 mb-2">
             Current Monthly Epics
           </div>
-          <ul className="space-y-1">
+          <ul className="space-y-3">
             {currentEpics.length ? (
               currentEpics.map((ep: any) => (
                 <li key={ep.id}>
@@ -201,7 +201,7 @@ export default function Sidebar({
                       onSelect?.(ep.id);
                       if (closeOnSelect) setOpen(false);
                     }}
-                    className={`w-full flex items-center gap-2 text-left px-3 py-2 rounded cursor-pointer text-sm ${
+                    className={`w-full flex items-center gap-2 text-left px-3 py-4 rounded cursor-pointer text-sm ${
                       activeId === ep.id
                         ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-100"
                         : "hover:bg-gray-50 dark:hover:bg-gray-900"
@@ -224,7 +224,7 @@ export default function Sidebar({
           <div className="text-xs font-semibold uppercase text-gray-400 mb-2">
             Past Monthly Epics
           </div>
-          <ul className="space-y-1">
+          <ul className="space-y-3">
             {pastEpics.length ? (
               pastEpics.map((ep: any) => (
                 <li key={ep.id}>
@@ -234,7 +234,7 @@ export default function Sidebar({
                       onSelect?.(ep.id);
                       if (closeOnSelect) setOpen(false);
                     }}
-                    className={`w-full flex items-center gap-2 text-left px-3 py-2 rounded cursor-pointer text-sm ${
+                    className={`w-full flex items-center gap-2 text-left px-3 py-4 rounded cursor-pointer text-sm ${
                       activeId === ep.id
                         ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-100"
                         : "hover:bg-gray-50 dark:hover:bg-gray-900"

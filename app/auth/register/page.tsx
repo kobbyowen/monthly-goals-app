@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { withBase } from "../../lib/api";
+import { toast } from "../../lib/ui";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -40,8 +41,14 @@ export default function RegisterPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Unable to create account");
       }
-      router.push(withBase("/"));
-      router.refresh();
+      // show success toast, then redirect to login
+      if (typeof window !== "undefined") {
+        toast("Account created successfully", "success");
+      }
+      setTimeout(() => {
+        router.push(withBase("/auth/login"));
+        router.refresh();
+      }, 1100);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {

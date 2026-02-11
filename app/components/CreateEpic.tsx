@@ -24,9 +24,12 @@ export default function CreateEpic({
     const key = `${currentYear}-${String(month).padStart(2, "0")}`;
     return { key, label, year: currentYear, month };
   });
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(
-    monthOptions[0]?.key,
-  );
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(() => {
+    // default to current month
+    const now = new Date();
+    const key = `${currentYear}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return monthOptions.find((m) => m.key === key)?.key || monthOptions[0]?.key;
+  });
   const [sprintNames, setSprintNames] = useState<string[]>([]);
   useEffect(() => {
     // derive default sprint count from selected month

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -59,77 +59,94 @@ export default function TaskCard({
     if (hrs) return `${hrs}h`;
     return `${mins}m`;
   }
+
+  function parseFormattedElapsed(str?: string) {
+    if (!str) return 0;
+    const parts = str.split(":").map((p) => parseInt(p, 10) || 0);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    if (parts.length === 1) return parts[0];
+    return 0;
+  }
+
+  function fmtHumanShort(s?: number) {
+    if (!s || s <= 0) return "0m";
+    const mins = Math.floor(s / 60);
+    if (mins < 60) return `${mins}m`;
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    if (rem === 0) return `${hrs}h`;
+    return `${hrs}h ${rem}m`;
+  }
+
+  const [localElapsed, setLocalElapsed] = useState(() =>
+    parseFormattedElapsed(formattedElapsed),
+  );
+
+  useEffect(() => {
+    setLocalElapsed(parseFormattedElapsed(formattedElapsed));
+  }, [formattedElapsed]);
+
+  useEffect(() => {
+    if (!running) return undefined;
+    const t = setInterval(() => setLocalElapsed((v) => v + 1), 1000);
+    return () => clearInterval(t);
+  }, [running]);
+
+  const percent =
+    plannedTimeSeconds && plannedTimeSeconds > 0
+      ? Math.min(1, localElapsed / plannedTimeSeconds)
+      : 0;
   return (
     <div
       onClick={() => onOpen && onOpen(id)}
-      className="w-full max-w-xs rounded-xl border border-slate-200 bg-white p-4 shadow-sm cursor-pointer"
+      className="w-full max-w-xs rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition cursor-pointer"
     >
-      <div className="flex items-start justify-between">
-        <div className="pr-2">
-          <button onClick={() => onOpen && onOpen(id)} className="text-left">
-            <h3 className="text-sm font-semibold text-slate-900 truncate">
-              {name}
-            </h3>
-          </button>
-          <div className="mt-1 text-xs text-slate-500">
-            {sessions || 0} sessions
-          </div>
-        </div>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-slate-900 truncate">{name}</h3>
 
-        <div>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${completed ? "bg-green-100 text-green-700" : running ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"}`}
-          >
-            {completed ? "Done" : running ? "Running" : "Idle"}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-3 text-center">
-        <span className="font-mono text-2xl font-bold text-slate-900">
-          {formattedElapsed}
+        <span
+          className={`rounded-full px-2 py-0.5 text-[9px] font-medium ${
+            completed
+              ? "bg-green-100 text-green-700"
+              : running
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-blue-100 text-blue-700"
+          }`}
+        >
+          {completed ? "Done" : running ? "Running" : "Idle"}
         </span>
       </div>
 
-      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-600">
-        <span className="uppercase tracking-wide text-slate-400">Est.</span>
-        <span className="font-medium text-slate-800">
-          {formatEstimate(plannedTimeSeconds)}
-        </span>
-      </div>
+      <div className="mt-2">
+        <div className="flex items-center justify-between text-[10px] text-slate-500">
+          <span>{fmtHumanShort(localElapsed)}</span>
+          <span>
+            Est.{" "}
+            <span className="text-slate-700 font-medium">
+              {formatEstimate(plannedTimeSeconds)}
+            </span>
+          </span>
+        </div>
 
-      <div className="mt-3 space-y-1 text-xs text-slate-600">
-        <div className="flex justify-between">
-          <span>Started</span>
-          <span className="font-medium text-slate-800">
-            {firstStarted ? new Date(firstStarted).toLocaleString() : "—"}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Ended</span>
-          <span className="italic">
-            {completedAt ? new Date(completedAt).toLocaleString() : "—"}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Sessions</span>
-          <span className="font-medium text-slate-800">{sessions || 0}</span>
+        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-200">
+          <div
+            className="h-1.5 rounded-full bg-yellow-500 transition-all"
+            style={{ width: `${Math.round(percent * 100)}%` }}
+          />
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2 grid-cols-[repeat(auto-fit,minmax(0,1fr))]">
+      <div className="mt-3 flex gap-2">
         {!completed ? (
           <>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (running) {
-                  onPause && onPause(id);
-                } else {
-                  onStart && onStart(id);
-                }
+                if (running) onPause && onPause(id);
+                else onStart && onStart(id);
               }}
-              className={`rounded-lg py-1.5 text-xs font-semibold text-white ${running ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+              className="flex-1 rounded-md bg-rose-600 py-1 text-[11px] font-semibold text-white hover:bg-rose-700"
             >
               {running ? "Stop" : "Start"}
             </button>
@@ -139,25 +156,21 @@ export default function TaskCard({
                 e.stopPropagation();
                 onEnd && onEnd(id);
               }}
-              className="rounded-lg bg-emerald-600 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex-1 rounded-md bg-emerald-600 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
             >
-              Complete
+              Done
             </button>
           </>
         ) : (
-          <>
-            <div />
-            <div />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onUncomplete && onUncomplete(id);
-              }}
-              className="rounded-lg bg-yellow-500 py-1.5 text-xs font-semibold text-white hover:bg-yellow-600"
-            >
-              Uncomplete
-            </button>
-          </>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onUncomplete && onUncomplete(id);
+            }}
+            className="flex-1 rounded-md bg-yellow-500 py-1 text-[11px] font-semibold text-white hover:bg-yellow-600"
+          >
+            Uncomplete
+          </button>
         )}
       </div>
     </div>

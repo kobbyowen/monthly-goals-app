@@ -783,14 +783,15 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Efforts (each = 2 hours)
+                  Efforts (each unit effort = 2 hours)
                 </label>
                 <input
                   type="number"
                   min={0}
+                  step={0.1}
                   value={newTaskEfforts}
                   onChange={(e) => setNewTaskEfforts(Number(e.target.value))}
-                  className="mt-1 w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
             </div>

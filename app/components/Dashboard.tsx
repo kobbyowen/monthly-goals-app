@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { withBase } from "../lib/api";
+import MiniTaskCard from "../components/MiniTaskCard";
 
 type Session = {
   id: string;
@@ -235,38 +236,35 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             </div>
 
             <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-              {notStartedTasks.map((t) => (
-                <div
-                  key={t.id}
-                  className="rounded-lg border border-slate-100 bg-slate-50 p-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-900">
-                      {t.name}
-                    </span>
-                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-700">
-                      Not Started
-                    </span>
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() =>
-                        selectedEpicId &&
-                        router.push(withBase(`/epics/${selectedEpicId}`))
-                      }
-                      className="flex-1 rounded-lg bg-emerald-600 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700"
-                    >
-                      Start
-                    </button>
-                    <button
-                      disabled
-                      className="flex-1 rounded-lg bg-rose-100 py-1.5 text-[11px] font-semibold text-rose-300 cursor-not-allowed"
-                    >
-                      End
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {notStartedTasks.map((t) => {
+                const used = totalDurationForTask(t) || 0;
+                const planned =
+                  (typeof t.timeActuallySpent === "number" &&
+                  t.timeActuallySpent > 0
+                    ? t.timeActuallySpent
+                    : typeof t.timeSpent === "number" && t.timeSpent > 0
+                      ? t.timeSpent
+                      : 0) || 0;
+                return (
+                  <MiniTaskCard
+                    key={t.id}
+                    name={t.name}
+                    badge="Not Started"
+                    time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
+                    running={Boolean(
+                      (t.sessions || []).some((s) => s.startedAt && !s.endedAt),
+                    )}
+                    leftText="Start"
+                    rightText="End"
+                    onLeft={() =>
+                      selectedEpicId &&
+                      router.push(withBase(`/epics/${selectedEpicId}`))
+                    }
+                    leftClass="bg-emerald-600"
+                    rightDisabled
+                  />
+                );
+              })}
               {!notStartedTasks.length && (
                 <p className="text-xs text-slate-400">
                   No tasks waiting to start.
@@ -287,44 +285,39 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             </div>
 
             <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-              {inProgressTasks.map((t) => (
-                <div
-                  key={t.id}
-                  className="rounded-lg border border-yellow-100 bg-yellow-50 p-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-900">
-                      {t.name}
-                    </span>
-                    <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] text-yellow-700">
-                      In Progress
-                    </span>
-                  </div>
-                  <div className="mt-2 text-center font-mono text-sm font-bold">
-                    {formatSeconds(totalDurationForTask(t))}
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() =>
-                        selectedEpicId &&
-                        router.push(withBase(`/epics/${selectedEpicId}`))
-                      }
-                      className="flex-1 rounded-lg bg-slate-100 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-200"
-                    >
-                      Resume
-                    </button>
-                    <button
-                      onClick={() =>
-                        selectedEpicId &&
-                        router.push(withBase(`/epics/${selectedEpicId}`))
-                      }
-                      className="flex-1 rounded-lg bg-rose-600 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-700"
-                    >
-                      End
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {inProgressTasks.map((t) => {
+                const used = totalDurationForTask(t) || 0;
+                const planned =
+                  (typeof t.timeActuallySpent === "number" &&
+                  t.timeActuallySpent > 0
+                    ? t.timeActuallySpent
+                    : typeof t.timeSpent === "number" && t.timeSpent > 0
+                      ? t.timeSpent
+                      : 0) || 0;
+                return (
+                  <MiniTaskCard
+                    key={t.id}
+                    name={t.name}
+                    badge="In Progress"
+                    time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
+                    running={Boolean(
+                      (t.sessions || []).some((s) => s.startedAt && !s.endedAt),
+                    )}
+                    leftText="Resume"
+                    rightText="End"
+                    onLeft={() =>
+                      selectedEpicId &&
+                      router.push(withBase(`/epics/${selectedEpicId}`))
+                    }
+                    onRight={() =>
+                      selectedEpicId &&
+                      router.push(withBase(`/epics/${selectedEpicId}`))
+                    }
+                    leftClass="bg-slate-100 text-slate-700"
+                    rightClass="bg-rose-600"
+                  />
+                );
+              })}
               {!inProgressTasks.length && (
                 <p className="text-xs text-slate-400">
                   No tasks currently in progress.
@@ -345,29 +338,31 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             </div>
 
             <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-              {completedTasks.map((t) => (
-                <div
-                  key={t.id}
-                  className="rounded-lg border border-emerald-100 bg-emerald-50 p-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-900">
-                      {t.name}
-                    </span>
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700">
-                      Completed
-                    </span>
-                  </div>
-                  <div className="mt-2 text-center font-mono text-sm font-bold">
-                    {formatSeconds(totalDurationForTask(t))}
-                  </div>
-                  <div className="mt-2">
-                    <button className="w-full rounded-lg bg-slate-100 py-1.5 text-[11px] font-semibold text-slate-400 cursor-not-allowed">
-                      Done
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {completedTasks.map((t) => {
+                const used = totalDurationForTask(t) || 0;
+                const planned =
+                  (typeof t.timeActuallySpent === "number" &&
+                  t.timeActuallySpent > 0
+                    ? t.timeActuallySpent
+                    : typeof t.timeSpent === "number" && t.timeSpent > 0
+                      ? t.timeSpent
+                      : 0) || 0;
+                return (
+                  <MiniTaskCard
+                    key={t.id}
+                    name={t.name}
+                    badge="Completed"
+                    time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
+                    running={Boolean(
+                      (t.sessions || []).some((s) => s.startedAt && !s.endedAt),
+                    )}
+                    leftText=""
+                    rightText="Done"
+                    rightDisabled
+                    rightClass="bg-slate-100 text-slate-400"
+                  />
+                );
+              })}
               {!completedTasks.length && (
                 <p className="text-xs text-slate-400">
                   No completed tasks yet.
