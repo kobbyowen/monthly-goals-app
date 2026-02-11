@@ -1,13 +1,10 @@
-// Small helper to ensure all client and server fetches
-// include the Next.js basePath (e.g. "/time-planner").
 
-// Import the same BASE_PATH that next.config.ts uses so
-// there is a single source of truth.
-import { BASE_PATH } from "../../config";
+import cfg from "../../config";
+const API_URL_BASE: string = cfg.API_URL_BASE || cfg.BASE_PATH || "";
 
 export function withBase(path: string): string {
   if (!path.startsWith("/")) path = "/" + path;
-  return `${BASE_PATH}${path}`;
+  return `${API_URL_BASE}${path}`;
 }
 
 export async function apiFetch(
