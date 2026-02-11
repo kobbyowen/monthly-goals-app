@@ -81,12 +81,6 @@ export default function LoginPage() {
               />
               Remember me
             </label>
-            <button
-              type="button"
-              className="font-medium text-emerald-600 hover:underline"
-            >
-              Forgot password?
-            </button>
           </div>
 
           {error && (

@@ -15,7 +15,7 @@ export default function MobileHeader() {
         <button
           aria-label="open sidebar"
           onClick={open}
-          className="p-2 rounded-md text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-transparent dark:text-slate-200"
+          className="py-1 px-4 rounded-md text-2xl text-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-transparent dark:text-slate-200"
         >
           ☰
         </button>
