@@ -41,4 +41,4 @@ echo "Starting app (production)..."
 # Start in production mode
 PORT=${SPRINT_APP_PORT:-2200}
 echo "Starting app (production) on port $PORT..."
-PORT="$SPRINT_APP_PORT" NODE_ENV=production npm run start
+PORT="$PORT" NODE_ENV=production npm run start
