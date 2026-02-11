@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Monthly Goals Planner",
   description: "Plan and track your monthly goals across weekly sprints.",
+  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({
