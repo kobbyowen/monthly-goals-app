@@ -13,7 +13,7 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-# Install dependencies
+# Do not set NODE_ENV=production yet — devDependencies are required for build
 echo "Installing dependencies..."
 echo "Cleaning previous build artifacts and local caches..."
 # remove Next.js build output and some common cache directories
@@ -29,16 +29,17 @@ npm install
 echo "Generating Prisma client..."
 npx prisma generate
 
-# Apply DB migrations (server/migrate.js will run all migrations)
+# Apply DB migrations (run with production config)
 echo "Applying SQL migrations..."
-node server/migrate.js
+NODE_ENV=production node server/migrate.js
 
-# Build Next.js app
+# Build Next.js app (use production config)
 echo "Building Next.js app..."
-npm run build
+NODE_ENV=production npm run build
 
 echo "Starting app (production)..."
 # Start in production mode
+export NODE_ENV=production
 PORT=${SPRINT_APP_PORT:-2200}
 echo "Starting app (production) on port $PORT..."
 PORT="$PORT" NODE_ENV=production npm run start

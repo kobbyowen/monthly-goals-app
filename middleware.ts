@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { basePath as configuredBasePath } from "./basePath";
+import { BASE_PATH as configuredBasePath } from "./config";
 
 const PUBLIC_PATHS = [
     "/auth/login",
