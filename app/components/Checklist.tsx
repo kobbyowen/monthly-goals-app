@@ -11,7 +11,13 @@ type Item = {
   completedAt?: string | null;
 };
 
-export default function Checklist({ taskId }: { taskId: string }) {
+export default function Checklist({
+  taskId,
+  compact = false,
+}: {
+  taskId: string;
+  compact?: boolean;
+}) {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -138,6 +144,59 @@ export default function Checklist({ taskId }: { taskId: string }) {
     }
   }
 
+  if (compact) {
+    return (
+      <div className="space-y-1">
+        {!loading && items.length === 0 && (
+          <div className="text-xs text-slate-400">No checklist items.</div>
+        )}
+        {!loading &&
+          items.map((it) => (
+            <label
+              key={it.id}
+              className="flex items-center gap-3 text-xs cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={!!it.completed}
+                onChange={() => toggle(it)}
+                className="peer hidden"
+              />
+
+              <div
+                className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition ${it.completed ? "border-emerald-600 bg-emerald-600" : "border-slate-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-600"}`}
+              >
+                <svg
+                  className={`${it.completed ? "h-3 w-3 text-white" : "hidden peer-checked:block h-3 w-3 text-white"}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+
+              <span
+                className={
+                  it.completed
+                    ? "text-slate-400 line-through"
+                    : "text-slate-800"
+                }
+              >
+                {it.title}
+              </span>
+            </label>
+          ))}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -159,9 +218,7 @@ export default function Checklist({ taskId }: { taskId: string }) {
       </div>
 
       <div className="mt-3 space-y-2">
-        {/* compact checklist box: scroll when many items */}
         <div className="mt-1">
-          {/* Indicators (kept small) */}
           {items.length > 0 && (
             <div className="mb-2 flex items-center gap-1">
               {items.map((it) => (
@@ -175,7 +232,6 @@ export default function Checklist({ taskId }: { taskId: string }) {
           )}
 
           <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
-            {/* add input (visible only when user clicks + Add Item) */}
             {showAdd && (
               <div className="flex gap-2 items-center">
                 <input
@@ -251,24 +307,23 @@ export default function Checklist({ taskId }: { taskId: string }) {
                   />
 
                   <div
+                    className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${it.completed ? "border-emerald-600 bg-emerald-600" : "border-slate-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-600"} transition cursor-pointer`}
                     onClick={() => toggle(it)}
-                    className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${it.completed ? "border-emerald-600 bg-emerald-600" : "border-slate-300"} transition cursor-pointer`}
                   >
-                    {it.completed ? (
-                      <svg
-                        className="h-3 w-3 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={3}
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    ) : null}
+                    <svg
+                      className={`${it.completed ? "h-3 w-3 text-white" : "hidden peer-checked:block h-3 w-3 text-white"}`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
                   </div>
 
                   <EditableTitle

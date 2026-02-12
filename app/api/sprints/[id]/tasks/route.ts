@@ -13,7 +13,9 @@ export async function POST(req: Request, ctx: any) {
         const p = await ctx.params;
         const sprintId = p?.id || getParamFromUrl(req, 'sprints');
         const created = await taskService.createTask(sprintId, body);
-        return NextResponse.json(created, { status: 201 });
+        // Return full task details (including sessions and checklists)
+        const full = await taskService.getTask(created.id);
+        return NextResponse.json(full || created, { status: 201 });
     } catch (err) {
         return NextResponse.json({ error: String(err) }, { status: 500 });
     }

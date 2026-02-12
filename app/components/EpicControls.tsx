@@ -8,139 +8,160 @@ import { toast, confirmDialog } from "../lib/ui";
 export default function EpicControls({
   epicId,
   epicName,
+  onEpicUpdated,
 }: {
   epicId: string;
   epicName?: string;
+  onEpicUpdated?: (epic: any) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(
-    epicName ? `${epicName} - Weekly Sprint` : "New Weekly Sprint",
-  );
-  const [tasks, setTasks] = useState<
-    Array<{ id: string; name: string; efforts: number }>
-  >([
-    {
-      id:
-        crypto && (crypto as any).randomUUID
-          ? (crypto as any).randomUUID()
-          : String(Date.now()),
-      name: "",
-      efforts: 1,
-    },
-  ]);
+  const [epic, setEpic] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [weekOfMonth, setWeekOfMonth] = useState<number>(1);
-  const [maxWeeks, setMaxWeeks] = useState<number>(5);
-  // load epic to determine its month/year and compute weeks
-  const [epicMeta, setEpicMeta] = useState<{
-    epicYear?: number;
-    epicMonth?: number;
-  } | null>(null);
+  const [showAddSprint, setShowAddSprint] = useState(false);
+
+  // Listen for a global event to open the epic settings modal
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const detail = (e && e.detail) || {};
+      if (!detail || !detail.epicId) return;
+      if (detail.epicId !== epicId) return;
+      setOpen(true);
+    };
+    window.addEventListener("openEpicSettings", handler as any);
+    return () => window.removeEventListener("openEpicSettings", handler as any);
+  }, [epicId]);
+
+  // load epic details when modal opens
   React.useEffect(() => {
     let mounted = true;
     async function load() {
-      if (!epicId) return;
+      if (!open || !epicId) return;
       try {
         const res = await fetch(withBase(`/api/epics/${epicId}`));
         if (!res.ok) return;
         const data = await res.json();
         if (!mounted) return;
-        setEpicMeta({ epicYear: data.epicYear, epicMonth: data.epicMonth });
-        if (data.epicYear && data.epicMonth) {
-          const mod = await import("../utils/date");
-          const w = mod.weeksInMonth(data.epicYear, data.epicMonth);
-          setMaxWeeks(w);
-          if (weekOfMonth > w) setWeekOfMonth(w);
-        }
-      } catch (e) {}
+        setEpic(data);
+        onEpicUpdated?.(data);
+      } catch (e) {
+        /* ignore */
+      }
     }
     load();
     return () => {
       mounted = false;
     };
-  }, [epicId]);
+  }, [open, epicId]);
 
-  function addTask() {
-    setTasks((t) => [
-      ...t,
-      {
-        id:
-          crypto && (crypto as any).randomUUID
-            ? (crypto as any).randomUUID()
-            : String(Date.now()),
-        name: "",
-        efforts: 1,
-      },
-    ]);
-  }
-
-  function updateTask(idx: number, field: string, value: any) {
-    setTasks((t) => {
-      const copy = [...t];
-      (copy[idx] as any)[field] = value;
-      return copy;
-    });
-  }
-
-  function removeTask(idx: number) {
-    setTasks((t) => t.filter((_, i) => i !== idx));
-  }
-
-  async function submit() {
-    if (!name || !weekOfMonth) return;
+  async function saveEpicName(newName: string) {
+    if (!epicId) return;
     setLoading(true);
     try {
-      const sprintId =
-        crypto && (crypto as any).randomUUID
-          ? (crypto as any).randomUUID()
-          : `sprint-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const mappedTasks = tasks.map((t) => ({
-        id:
-          t.id || `${sprintId}-task-${Math.random().toString(36).slice(2, 8)}`,
-        name: t.name || "Untitled",
-        plannedTime: Math.max(0, Number(t.efforts || 0)) * 3600,
-      }));
-      const plannedTime = mappedTasks.reduce(
-        (s, t) => s + (t.plannedTime || 0),
-        0,
-      );
+      const res = await fetch(withBase(`/api/epics/${epicId}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName }),
+      });
+      if (!res.ok) throw new Error("Failed to update epic");
+      const updated = await res.json();
+      // update local state and SWR caches optimistically
+      const nextEpic = {
+        ...(epic || {}),
+        ...(updated || {}),
+        name: (updated && updated.name) || newName,
+      };
+      setEpic(nextEpic);
+      onEpicUpdated?.(nextEpic);
+      mutate(withBase(`/api/epics/${epicId}`), (updated || {}), false);
+      mutate(withBase("/api/epics"), (list: any) => {
+        if (!Array.isArray(list)) return list;
+        return list.map((e: any) => (e.id === epicId ? { ...e, ...(updated || {}) } : e));
+      }, false);
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast("Could not update epic name", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
 
+  async function deleteSprintById(sprintId: string) {
+    if (
+      !(await confirmDialog(
+        "Delete this sprint and all its tasks/sessions? This cannot be undone.",
+      ))
+    )
+      return;
+    try {
+      const res = await fetch(withBase(`/api/sprints/${sprintId}`), {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete sprint");
+      // update local copy and notify parent
+      const current = epic || {};
+      const next = {
+        ...current,
+        sprints: (current.sprints || []).filter((sp: any) => sp.id !== sprintId),
+      };
+      setEpic(next);
+      onEpicUpdated?.(next);
+      // update SWR caches without a full refresh
+      mutate(withBase(`/api/epics/${epicId}`), undefined, true);
+      mutate(withBase("/api/epics"), undefined, true);
+    } catch (err) {
+      console.error(err);
+      toast("Could not delete sprint", "error");
+    }
+  }
+
+  // Minimal add-sprint flow as a modal that reuses existing API
+  const [newSprintName, setNewSprintName] = useState("Week 1");
+  const [creating, setCreating] = useState(false);
+
+  async function createSprint() {
+    if (!epicId || !newSprintName) return;
+    setCreating(true);
+    try {
+      const sprintId = `sprint-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const payload: any = {
         id: sprintId,
-        name,
-        plannedTime,
-        tasks: mappedTasks,
+        name: newSprintName,
+        tasks: [],
+        epicId,
       };
-      // attach this sprint to its parent epic
-      (payload as any).epicId = epicId;
-      (payload as any).weekOfMonth = weekOfMonth;
-
       const res = await fetch(withBase(`/api/sprints`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        let body = null;
-        try {
-          body = await res.json();
-        } catch (e) {}
-        const msg =
-          (body && (body.error || body.message)) ||
-          `${res.status} ${res.statusText}`;
-        throw new Error(msg);
-      }
-      setOpen(false);
-      // revalidate epics and the specific epic so the new sprint appears without a full refresh
-      mutate(withBase("/api/epics"));
-      if (epicId) mutate(withBase(`/api/epics/${epicId}`));
+      if (!res.ok) throw new Error("Failed to create sprint");
+      const created = await res.json();
+      // update local epic immediately and notify parent
+      const current = epic || {};
+      const next = {
+        ...current,
+        sprints: [...((current && current.sprints) || []), created],
+      };
+      setEpic(next);
+      onEpicUpdated?.(next);
+      // update SWR caches without full refresh
+      mutate(withBase(`/api/epics/${epicId}`), (prev: any) => {
+        if (!prev) return prev;
+        return { ...prev, sprints: [...(prev.sprints || []), created] };
+      }, false);
+      mutate(withBase("/api/epics"), (list: any) => {
+        if (!Array.isArray(list)) return list;
+        return list.map((e: any) => (e.id === epicId ? { ...e, sprints: [...(e.sprints || []), created] } : e));
+      }, false);
+      setShowAddSprint(false);
     } catch (err) {
       console.error(err);
       toast("Could not create sprint", "error");
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   }
 
@@ -168,141 +189,157 @@ export default function EpicControls({
     }
   }
 
-  const totalHours = tasks.reduce((s, t) => s + Number(t.efforts || 0), 0);
-
   return (
-    <div className="mt-2 flex flex-col sm:flex-row sm:justify-end gap-3 w-full">
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full sm:w-auto justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 flex"
-      >
-        Create New Weekly Sprint
-      </button>
-      <button
-        onClick={removeEpic}
-        disabled={deleting}
-        className="w-full sm:w-auto justify-center rounded-lg border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60 flex"
-      >
-        {deleting ? "Deleting..." : "Delete Monthly Epic"}
-      </button>
+    <>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black opacity-40"
-            onClick={() => setOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold">Create New Weekly Sprint</h3>
-            <div className="mt-4 space-y-3">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Epic Settings
+              </h2>
+              <button
+                className="text-slate-400 hover:text-slate-600"
+                onClick={() => setOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="px-5 py-5 space-y-6">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Weekly Sprint name
+                <label className="mb-1 block text-xs font-medium text-slate-500">
+                  Epic Name
                 </label>
                 <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  type="text"
+                  value={(epic && epic.name) || epicName || ""}
+                  onChange={(e) =>
+                    setEpic((p: any) => ({
+                      ...(p || {}),
+                      name: e.target.value,
+                    }))
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Week of month
-                </label>
-                <select
-                  value={weekOfMonth}
-                  onChange={(e) => setWeekOfMonth(Number(e.target.value))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  {Array.from({ length: maxWeeks }).map((_, i) => {
-                    const w = i + 1;
-                    return (
-                      <option key={w} value={w}>
-                        Week {w}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium">Tasks</label>
-                  <button onClick={addTask} className="text-sm text-indigo-600">
-                    + Add task
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Sprints
+                  </h3>
+                  <button
+                    onClick={() => {
+                      // close epic modal and open add sprint modal
+                      setOpen(false);
+                      // small timeout to ensure modal stacking behaves
+                      setTimeout(() => setShowAddSprint(true), 120);
+                    }}
+                    className="text-xs font-medium text-emerald-600 hover:underline"
+                  >
+                    + Add Sprint
                   </button>
                 </div>
 
-                <div className="mt-2 space-y-2">
-                  {tasks.map((t, idx) => (
-                    <div key={t.id} className="flex items-center gap-2">
-                      <input
-                        placeholder="Task name"
-                        value={t.name}
-                        onChange={(e) =>
-                          updateTask(idx, "name", e.target.value)
-                        }
-                        className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        value={t.efforts}
-                        onChange={(e) =>
-                          updateTask(idx, "efforts", Number(e.target.value))
-                        }
-                        className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-                        title="Effort in hours"
-                        aria-label="Effort in hours"
-                      />
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {(epic?.sprints || []).map((sp: any) => (
+                    <div
+                      key={sp.id}
+                      className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs"
+                    >
+                      <div>
+                        <div className="font-medium text-slate-800">
+                          {sp.sprintLabel || sp.name}
+                        </div>
+                        <div className="text-slate-500">
+                          {(sp.tasks || []).length} tasks ·{" "}
+                          {
+                            (sp.tasks || []).filter((t: any) => t.completed)
+                              .length
+                          }{" "}
+                          completed
+                        </div>
+                      </div>
                       <button
-                        onClick={() => removeTask(idx)}
-                        aria-label={`Remove task ${idx + 1}`}
-                        className="rounded-full p-1 text-red-600 hover:bg-red-50"
+                        onClick={() => deleteSprintById(sp.id)}
+                        className="text-slate-400 text-sm"
+                        aria-label={`Delete sprint ${sp.name}`}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
+                        🗑
                       </button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="text-sm text-gray-600">
-                Estimated total: {totalHours} hours
+              <div className="rounded-md border border-rose-200 bg-rose-50 p-3">
+                <p className="text-xs text-rose-700">
+                  Deleting this epic will remove all its sprints and tasks.
+                </p>
+                <button
+                  onClick={removeEpic}
+                  className="mt-2 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+                >
+                  Delete Epic
+                </button>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                className="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700"
               >
                 Cancel
               </button>
               <button
-                onClick={submit}
-                disabled={loading}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${loading ? "bg-emerald-600 opacity-60 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                onClick={() =>
+                  saveEpicName((epic && epic.name) || epicName || "")
+                }
+                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
               >
-                {loading ? "Creating..." : "Create"}
+                {loading ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {showAddSprint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6">
+            <h3 className="text-lg font-semibold">Add Sprint</h3>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Sprint name
+                </label>
+                <input
+                  value={newSprintName}
+                  onChange={(e) => setNewSprintName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setShowAddSprint(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createSprint}
+                disabled={creating}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${creating ? "bg-emerald-600 opacity-60 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"}`}
+              >
+                {creating ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

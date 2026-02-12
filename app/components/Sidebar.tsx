@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import CreateEpic from "./CreateEpic";
 import { useRouter } from "next/navigation";
@@ -68,6 +69,39 @@ function IconSprint() {
   );
 }
 
+function IconTasks() {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M4 6h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 12h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 18h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function Sidebar({
   sprints = [],
   onSelect,
@@ -80,6 +114,7 @@ export default function Sidebar({
   onCreated?: (epic: any) => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const handler = () => setOpen(true);
@@ -169,17 +204,36 @@ export default function Sidebar({
         </div>
       </div>
 
-      <nav className="mb-8">
+      <nav className="mb-6">
         <Link
           href={withBase("/")}
-          className="flex items-center gap-3 w-full text-left px-3 py-4 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
+          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${
+            pathname === withBase("/")
+              ? "bg-indigo-50 text-indigo-700"
+              : "hover:bg-gray-50 dark:hover:bg-gray-900"
+          }`}
         >
           <IconDashboard />
           <span>Dashboard</span>
         </Link>
         <Link
+          href={withBase("/tasks")}
+          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${
+            pathname?.startsWith(withBase("/tasks"))
+              ? "bg-indigo-50 text-indigo-700"
+              : "hover:bg-gray-50 dark:hover:bg-gray-900"
+          }`}
+        >
+          <IconTasks />
+          <span>All Tasks</span>
+        </Link>
+        <Link
           href={withBase("/analytics")}
-          className="flex items-center gap-3 w-full text-left px-3 py-4 rounded hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
+          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${
+            pathname?.startsWith(withBase("/analytics"))
+              ? "bg-indigo-50 text-indigo-700"
+              : "hover:bg-gray-50 dark:hover:bg-gray-900"
+          }`}
         >
           <IconAnalytics />
           <span>Analytics</span>

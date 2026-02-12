@@ -50,7 +50,9 @@ export async function POST(req: Request) {
             kind: 'sprint',
             userId: user.id,
         });
-        return NextResponse.json(created, { status: 201 });
+        // Return the full sprint with tasks, sessions, and checklists
+        const full = await sprintService.getSprint(created.id, user.id);
+        return NextResponse.json(full || created, { status: 201 });
     } catch (err) {
         return NextResponse.json({ error: String(err) }, { status: 500 });
     }

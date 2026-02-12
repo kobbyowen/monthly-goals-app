@@ -30,7 +30,9 @@ export async function POST(req: Request) {
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         const body = await req.json();
         const created = await sprintService.createSprint({ ...body, userId: user.id });
-        return NextResponse.json(created, { status: 201 });
+        // Always return the full epic shape (including child sprints, tasks, sessions, metrics)
+        const full = await sprintService.getSprint(created.id, user.id);
+        return NextResponse.json(full || created, { status: 201 });
     } catch (err) {
         return NextResponse.json({ error: String(err) }, { status: 500 });
     }

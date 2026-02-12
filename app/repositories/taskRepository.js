@@ -28,7 +28,7 @@ async function createTask(sprintId, task, userId) {
 async function getTask(id, userId) {
   const t = await prisma.task.findUnique({
     where: { id },
-    include: { sessions: true, sprint: true },
+    include: { sessions: true, sprint: true, checklists: true },
   });
   if (!t) return null;
   if (userId && t.sprint && t.sprint.userId && t.sprint.userId !== userId)
@@ -77,7 +77,7 @@ async function updateTask(id, data, userId) {
   return prisma.task.update({
     where: { id },
     data: payload,
-    include: { sessions: true },
+    include: { sessions: true, checklists: true },
   });
 }
 

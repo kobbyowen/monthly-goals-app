@@ -33,7 +33,9 @@ export async function PUT(req: Request, ctx: any) {
         const p = await ctx.params;
         const id = p?.id;
         const updated = await sprintService.createSprint({ id, ...body, userId: user.id });
-        return NextResponse.json(updated);
+        // Always return the full epic view (epic + child sprints + tasks + sessions + metrics)
+        const full = await sprintService.getSprint(id, user.id);
+        return NextResponse.json(full || updated);
     } catch (err) {
         return NextResponse.json({ error: String(err) }, { status: 500 });
     }

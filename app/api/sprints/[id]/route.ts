@@ -31,11 +31,12 @@ export async function PUT(req: Request, ctx: any) {
         const user = await auth.getUserFromToken(token);
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         const body = await req.json();
-        // Delegate to repo via service: fetch, update allowed fields
+        // Delegate to repo via service (upsert semantics); then reload full sprint
         const p = await ctx.params;
         const id = p?.id || getParamFromUrl(req, 'sprints');
         const updated = await sprintService.createSprint({ id, ...body, userId: user.id });
-        return NextResponse.json(updated);
+        const full = await sprintService.getSprint(id, user.id);
+        return NextResponse.json(full || updated);
     } catch (err) {
         return NextResponse.json({ error: String(err) }, { status: 500 });
     }

@@ -20,8 +20,10 @@ export async function PATCH(req: Request, ctx: any) {
         const body = await req.json();
         const p = await ctx.params;
         const id = p?.id || getParamFromUrl(req, 'tasks');
-        const updated = await taskService.updateTask(id, body);
-        return NextResponse.json(updated);
+        await taskService.updateTask(id, body);
+        // Always return the full task, including sessions and checklists
+        const full = await taskService.getTask(id);
+        return NextResponse.json(full);
     } catch (err) {
         return NextResponse.json({ error: String(err) }, { status: 500 });
     }
