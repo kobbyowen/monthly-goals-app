@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { withBase } from "@lib/api";
+import { login, withBase } from "@lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,15 +18,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(withBase("/api/auth/login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, remember }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Unable to sign in");
-      }
+      await login({ email, password, remember });
       router.push(withBase("/"));
       router.refresh();
     } catch (err: any) {

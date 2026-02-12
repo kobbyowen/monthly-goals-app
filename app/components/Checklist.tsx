@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { withBase } from "@lib/api";
 import { toast, confirmDialog } from "@lib/ui";
+import {
+  getChecklistsForTask,
+  createChecklistForTask,
+  updateChecklist,
+  deleteChecklist,
+} from "@lib/api/index";
+import type { Checklist as ApiChecklist, Session } from "@lib/api/types";
 
-type Item = {
-  id: string;
-  title: string;
-  completed: boolean;
-  completedAt?: string | null;
-};
+type Item = ApiChecklist;
 
 export default function Checklist({
   taskId,
@@ -30,11 +31,8 @@ export default function Checklist({
     async function load() {
       setLoading(true);
       try {
-        const res = await fetch(withBase(`/api/tasks/${taskId}/checklists`));
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted) setItems(Array.isArray(data) ? data : []);
-        }
+        const data = await getChecklistsForTask(taskId);
+        if (mounted) setItems(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error(e);
         toast("Could not load checklist", "error");
@@ -52,13 +50,7 @@ export default function Checklist({
     if (!newTitle || !newTitle.trim()) return toast("Title required", "error");
     setAdding(true);
     try {
-      const res = await fetch(withBase(`/api/tasks/${taskId}/checklists`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle.trim() }),
-      });
-      if (!res.ok) throw new Error("Create failed");
-      const created = await res.json();
+      const created = await createChecklistForTask(taskId, newTitle.trim());
       setItems((s) => [...s, created]);
       setNewTitle("");
       try {
@@ -78,13 +70,9 @@ export default function Checklist({
 
   async function toggle(item: Item) {
     try {
-      const res = await fetch(withBase(`/api/checklists/${item.id}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !item.completed }),
+      const updated = await updateChecklist(item.id, {
+        completed: !item.completed,
       });
-      if (!res.ok) throw new Error("Update failed");
-      const updated = await res.json();
       setItems((s) => s.map((it) => (it.id === updated.id ? updated : it)));
       try {
         window?.dispatchEvent?.(
@@ -102,10 +90,7 @@ export default function Checklist({
   async function remove(item: Item) {
     if (!(await confirmDialog("Delete checklist item?"))) return;
     try {
-      const res = await fetch(withBase(`/api/checklists/${item.id}`), {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Delete failed");
+      await deleteChecklist(item.id);
       setItems((s) => s.filter((it) => it.id !== item.id));
       try {
         window?.dispatchEvent?.(
@@ -123,13 +108,7 @@ export default function Checklist({
   async function rename(item: Item, title: string) {
     if (!title || !title.trim()) return toast("Title required", "error");
     try {
-      const res = await fetch(withBase(`/api/checklists/${item.id}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim() }),
-      });
-      if (!res.ok) throw new Error("Update failed");
-      const updated = await res.json();
+      const updated = await updateChecklist(item.id, { title: title.trim() });
       setItems((s) => s.map((it) => (it.id === updated.id ? updated : it)));
       try {
         window?.dispatchEvent?.(

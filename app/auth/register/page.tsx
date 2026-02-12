@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { withBase } from "@lib/api";
+import { register, withBase } from "@lib/api";
 import { toast } from "@lib/ui";
 
 export default function RegisterPage() {
@@ -32,16 +32,7 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch(withBase("/api/auth/register"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Unable to create account");
-      }
-      // show success toast, then redirect to login
+      await register({ name, email, password });
       if (typeof window !== "undefined") {
         toast("Account created successfully", "success");
       }

@@ -5,8 +5,29 @@ import Sidebar from "../components/Sidebar";
 import TaskDetails from "../components/TaskDetails";
 import Checklist from "../components/Checklist";
 import { useEpics } from "../hooks/useEpics";
-import { withBase } from "../lib/api";
+import { request, getTask, updateTask, updateSession } from "@lib/api/index";
 import { toast } from "../lib/ui";
+import type {
+  Epic,
+  Task as ApiTask,
+  Sprint,
+  Session,
+  Checklist as ApiChecklist,
+} from "@lib/api/types";
+
+type TaskUI = ApiTask & {
+  // UI-friendly aliases
+  name?: string;
+  plannedTime?: number | null;
+  sprint?: Sprint;
+  sprintLabel?: string | null;
+  sprintName?: string | null;
+  epicName?: string | null;
+  completed?: boolean;
+  // sessions/checklists may include legacy `duration` field
+  sessions?: (Session & { duration?: number })[];
+  checklists?: (ApiChecklist & { completed?: boolean })[];
+};
 
 export default function TasksPage() {
   const { epics, mutate } = useEpics();
@@ -22,25 +43,25 @@ export default function TasksPage() {
       setSelectedEpicId(epics[0].id);
   }, [epics, selectedEpicId]);
 
-  const selectedEpic = useMemo(
-    () => epics.find((e: any) => e.id === selectedEpicId) || null,
+  const selectedEpic: Epic | null = useMemo(
+    () => epics.find((e: Epic) => e.id === selectedEpicId) || null,
     [epics, selectedEpicId],
   );
 
   // Flatten tasks across epic + its child sprints
-  const tasks = useMemo(() => {
-    if (!selectedEpic) return [];
+  const tasks: TaskUI[] = useMemo(() => {
+    if (!selectedEpic) return [] as TaskUI[];
     // Copy epic-level tasks
-    const base = Array.isArray(selectedEpic.tasks)
-      ? selectedEpic.tasks.map((t: any) => ({
+    const base: TaskUI[] = Array.isArray(selectedEpic.tasks)
+      ? (selectedEpic.tasks.map((t) => ({
           ...(t || {}),
           sprint: undefined,
-        }))
+        })) as TaskUI[])
       : [];
 
     // If epic has child sprints, attach their tasks and mark sprint info
-    const childSprints = Array.isArray((selectedEpic as any).sprints)
-      ? (selectedEpic as any).sprints
+    const childSprints: Sprint[] = Array.isArray(selectedEpic.sprints)
+      ? selectedEpic.sprints
       : [];
     for (const s of childSprints) {
       if (Array.isArray(s.tasks)) {
@@ -49,7 +70,7 @@ export default function TasksPage() {
             ...(t || {}),
             sprint: s,
             sprintLabel: s.sprintLabel || s.name,
-          });
+          } as TaskUI);
         }
       }
     }
@@ -58,7 +79,7 @@ export default function TasksPage() {
     // look up the sprint from childSprints and attach its label.
     for (const t of base) {
       if (!t.sprintLabel && t.sprintId) {
-        const s = childSprints.find((cs: any) => cs.id === t.sprintId);
+        const s = childSprints.find((cs) => cs.id === t.sprintId);
         if (s) t.sprintLabel = s.sprintLabel || s.name;
       }
     }
@@ -66,17 +87,20 @@ export default function TasksPage() {
     return base;
   }, [selectedEpic]);
 
-  function getTaskUiMeta(task: any) {
-    const sessions = Array.isArray(task.sessions) ? task.sessions : [];
-    const hasOpen = sessions.some((s: any) => s.startedAt && !s.endedAt);
+  function getTaskUiMeta(task: TaskUI) {
+    const sessionsArr: (Session & { duration?: number })[] = Array.isArray(
+      task.sessions,
+    )
+      ? (task.sessions as (Session & { duration?: number })[])
+      : [];
+    const hasOpen = sessionsArr.some((s) => s.startedAt && !s.endedAt);
     const hasProgress =
-      hasOpen || sessions.some((s: any) => (s.duration || 0) > 0);
+      hasOpen || sessionsArr.some((s) => (s.seconds ?? s.duration ?? 0) > 0);
     const completed = !!task.completed;
     return { hasProgress, completed };
   }
 
-  function getSprintLabel(task: any) {
-    console.log({ task });
+  function getSprintLabel(task?: TaskUI | null) {
     if (!task) return "";
     return (
       task.sprintLabel ||
@@ -86,35 +110,37 @@ export default function TasksPage() {
     );
   }
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo<{
+    inProgress: TaskUI[];
+    todo: TaskUI[];
+    done: TaskUI[];
+  }>(() => {
     const q = search.trim().toLowerCase();
-    let list = tasks || [];
+    let list: TaskUI[] = tasks || [];
     if (q)
-      list = list.filter((t: any) => (t.name || "").toLowerCase().includes(q));
-    const inProgress = list.filter((t: any) => {
+      list = list.filter((t) =>
+        ((t.name ?? t.title) || "").toLowerCase().includes(q),
+      );
+    const inProgress = list.filter((t) => {
       const m = getTaskUiMeta(t);
       return !m.completed && m.hasProgress;
     });
-    const todo = list.filter((t: any) => {
+    const todo = list.filter((t) => {
       const m = getTaskUiMeta(t);
       return !m.completed && !m.hasProgress;
     });
-    const done = list.filter((t: any) => getTaskUiMeta(t).completed);
+    const done = list.filter((t) => getTaskUiMeta(t).completed);
     return { inProgress, todo, done };
   }, [tasks, search]);
 
   async function startTask(taskId: string) {
     try {
       const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const res = await fetch(withBase(`/api/tasks/${taskId}/sessions`), {
+      await request({
+        path: `/tasks/${encodeURIComponent(taskId)}/sessions`,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: sessionId,
-          startedAt: new Date().toISOString(),
-        }),
+        body: { id: sessionId, startedAt: new Date().toISOString() },
       });
-      if (!res.ok) throw new Error("Failed to start session");
       await mutate();
     } catch (err) {
       console.error(err);
@@ -124,21 +150,21 @@ export default function TasksPage() {
 
   async function stopTask(taskId: string) {
     try {
-      const taskRes = await fetch(withBase(`/api/tasks/${taskId}`));
-      if (!taskRes.ok) throw new Error("Failed to fetch task");
-      const task = await taskRes.json();
-      const sessions = Array.isArray(task.sessions) ? task.sessions : [];
-      const open = sessions.find((s: any) => s.startedAt && !s.endedAt);
+      const task = await getTask(taskId);
+      const sessionsArr: (Session & { duration?: number })[] = Array.isArray(
+        task.sessions,
+      )
+        ? (task.sessions as (Session & { duration?: number })[])
+        : [];
+      const open = sessionsArr.find((s) => s.startedAt && !s.endedAt);
       if (open) {
         const now = Date.now();
         const started = new Date(open.startedAt).getTime();
         const duration = Math.max(0, Math.floor((now - started) / 1000));
-        const res = await fetch(withBase(`/api/sessions/${open.id}`), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endedAt: new Date().toISOString(), duration }),
+        await updateSession(open.id, {
+          endedAt: new Date().toISOString(),
+          seconds: duration,
         });
-        if (!res.ok) throw new Error("Failed to end session");
       }
       await mutate();
     } catch (err) {
@@ -150,12 +176,7 @@ export default function TasksPage() {
   async function completeTask(taskId: string) {
     try {
       const now = new Date().toISOString();
-      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: true, endedAt: now }),
-      });
-      if (!res.ok) throw new Error("Failed to complete task");
+      await updateTask(taskId, { completed: true, endedAt: now });
       await mutate();
     } catch (err) {
       console.error(err);
@@ -171,8 +192,11 @@ export default function TasksPage() {
     <div className="min-h-screen flex bg-slate-100">
       <Sidebar
         sprints={epics}
-        onCreated={(created: any) =>
-          mutate((prev: any[] | undefined) => [created, ...(prev || [])], false)
+        onCreated={(created: Epic) =>
+          mutate(
+            (prev: Epic[] | undefined) => [created, ...(prev || [])],
+            false,
+          )
         }
       />
 
@@ -202,7 +226,7 @@ export default function TasksPage() {
                   value={selectedEpicId || ""}
                   onChange={(e) => setSelectedEpicId(e.target.value || null)}
                 >
-                  {epics.map((e: any) => (
+                  {epics.map((e) => (
                     <option key={e.id} value={e.id}>
                       {e.name}
                     </option>
@@ -231,17 +255,17 @@ export default function TasksPage() {
                     </div>
 
                     <div className="space-y-2">
-                      {filtered.inProgress.map((t: any) => {
+                      {filtered.inProgress.map((t) => {
                         const sessions = Array.isArray(t.sessions)
-                          ? t.sessions
+                          ? (t.sessions as (Session & { duration?: number })[])
                           : [];
                         const now = Date.now();
                         const base = sessions.reduce(
-                          (acc: number, s: any) => acc + (s.duration || 0),
+                          (acc, s) => acc + (s.seconds ?? s.duration ?? 0),
                           0,
                         );
                         const open = sessions.find(
-                          (s: any) => s.startedAt && !s.endedAt,
+                          (s) => s.startedAt && !s.endedAt,
                         );
                         const used = open
                           ? base +
@@ -253,18 +277,13 @@ export default function TasksPage() {
                               ),
                             )
                           : base;
-                        const est = t.plannedTime || 0;
-                        const checklistTotal = Array.isArray(
-                          (t as any).checklists,
-                        )
-                          ? (t as any).checklists.length
+                        const est = t.plannedTime ?? t.estimate ?? 0;
+                        const checklistTotal = Array.isArray(t.checklists)
+                          ? t.checklists.length
                           : 0;
-                        const checklistDone = Array.isArray(
-                          (t as any).checklists,
-                        )
-                          ? (t as any).checklists.filter(
-                              (c: any) => c.completed,
-                            ).length
+                        const checklistDone = Array.isArray(t.checklists)
+                          ? t.checklists.filter((c) => c.completed ?? c.done)
+                              .length
                           : 0;
 
                         const borderClass = "border-l-8 border-l-yellow-400";
@@ -380,26 +399,21 @@ export default function TasksPage() {
                     </div>
 
                     <div className="space-y-2">
-                      {filtered.todo.map((t: any) => {
+                      {filtered.todo.map((t) => {
                         const sessions = Array.isArray(t.sessions)
-                          ? t.sessions
+                          ? (t.sessions as (Session & { duration?: number })[])
                           : [];
                         const base = sessions.reduce(
-                          (acc: number, s: any) => acc + (s.duration || 0),
+                          (acc, s) => acc + (s.seconds ?? s.duration ?? 0),
                           0,
                         );
-                        const est = t.plannedTime || 0;
-                        const checklistTotal = Array.isArray(
-                          (t as any).checklists,
-                        )
-                          ? (t as any).checklists.length
+                        const est = t.plannedTime ?? t.estimate ?? 0;
+                        const checklistTotal = Array.isArray(t.checklists)
+                          ? t.checklists.length
                           : 0;
-                        const checklistDone = Array.isArray(
-                          (t as any).checklists,
-                        )
-                          ? (t as any).checklists.filter(
-                              (c: any) => c.completed,
-                            ).length
+                        const checklistDone = Array.isArray(t.checklists)
+                          ? t.checklists.filter((c) => c.completed ?? c.done)
+                              .length
                           : 0;
 
                         const borderClass = "border-l-8 border-l-slate-300";
@@ -490,26 +504,21 @@ export default function TasksPage() {
                     </div>
 
                     <div className="space-y-2">
-                      {filtered.done.map((t: any) => {
+                      {filtered.done.map((t) => {
                         const sessions = Array.isArray(t.sessions)
-                          ? t.sessions
+                          ? (t.sessions as (Session & { duration?: number })[])
                           : [];
                         const base = sessions.reduce(
-                          (acc: number, s: any) => acc + (s.duration || 0),
+                          (acc, s) => acc + (s.seconds ?? s.duration ?? 0),
                           0,
                         );
-                        const est = t.plannedTime || 0;
-                        const checklistTotal = Array.isArray(
-                          (t as any).checklists,
-                        )
-                          ? (t as any).checklists.length
+                        const est = t.plannedTime ?? t.estimate ?? 0;
+                        const checklistTotal = Array.isArray(t.checklists)
+                          ? t.checklists.length
                           : 0;
-                        const checklistDone = Array.isArray(
-                          (t as any).checklists,
-                        )
-                          ? (t as any).checklists.filter(
-                              (c: any) => c.completed,
-                            ).length
+                        const checklistDone = Array.isArray(t.checklists)
+                          ? t.checklists.filter((c) => c.completed ?? c.done)
+                              .length
                           : 0;
 
                         const borderClass = "border-l-8 border-l-emerald-400";

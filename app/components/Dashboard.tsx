@@ -4,35 +4,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { withBase } from "@lib/api";
 import MiniTaskCard from "@components/MiniTaskCard";
-
-type Session = {
-  id: string;
-  startedAt?: string | null;
-  endedAt?: string | null;
-  duration?: number | null;
-};
-
-type Task = {
-  id: string;
-  name: string;
-  completed?: boolean;
-  sessions?: Session[];
-  timeSpent?: number;
-  timeActuallySpent?: number;
-};
-
-type Epic = {
-  id: string;
-  name: string;
-  tasks?: Task[];
-  sprints?: { id: string; name: string; tasks?: Task[] }[];
-  metrics?: {
-    totalPlanned?: number;
-    totalUsed?: number;
-    checklistTotal?: number;
-    checklistCompleted?: number;
-  };
-};
+import type {
+  Epic as ApiEpic,
+  Task as ApiTask,
+  Session as ApiSession,
+} from "@lib/api/types";
 
 function formatSeconds(total: number) {
   const sec = Math.floor(total % 60);
@@ -41,7 +17,7 @@ function formatSeconds(total: number) {
   return [hrs, min, sec].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
-function totalDurationForTask(t: Task): number {
+function totalDurationForTask(t: ApiTask): number {
   const sessions = t.sessions || [];
   let base = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
   if ((base || 0) === 0 && t.completed) {
@@ -54,7 +30,7 @@ function totalDurationForTask(t: Task): number {
   return base;
 }
 
-export default function Dashboard({ epics }: { epics: Epic[] }) {
+export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
   const router = useRouter();
   const [selectedEpicId, setSelectedEpicId] = useState<string | null>(null);
 
@@ -75,8 +51,9 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
   );
 
   // Aggregate tasks from the epic itself and any child sprints
-  const tasks = ((selectedEpic?.tasks || []) as Task[]).concat(
-    ...(selectedEpic?.sprints?.map((sp) => (sp.tasks || []) as Task[]) || []),
+  const tasks = ((selectedEpic?.tasks || []) as ApiTask[]).concat(
+    ...(selectedEpic?.sprints?.map((sp) => (sp.tasks || []) as ApiTask[]) ||
+      []),
   );
 
   const completedTasks = tasks.filter((t) => t.completed);
@@ -95,7 +72,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
       colorClass: string;
     }[] = [];
 
-    const allSessions: { task: Task; session: Session }[] = [];
+    const allSessions: { task: ApiTask; session: ApiSession }[] = [];
     tasks.forEach((t) => {
       (t.sessions || []).forEach((s) => {
         if (s.startedAt) allSessions.push({ task: t, session: s });
@@ -135,7 +112,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
       entries.push({
         timeLabel,
         width: String(Math.round(ratio * 100)) + "%",
-        label: task.name,
+        label: task.name || task.title || "Task",
         colorClass,
       });
     });
@@ -217,7 +194,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             <p className="text-xs text-slate-500">Estimated Effort</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">
               {(() => {
-                const secs = selectedEpic?.metrics?.totalPlanned || 0;
+                const secs = Number(selectedEpic?.metrics?.totalPlanned ?? 0);
                 return `${Math.round(secs / 3600)}h`;
               })()}
             </p>
@@ -227,7 +204,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             <p className="text-xs text-slate-500">Effort Used</p>
             <p className="mt-1 text-2xl font-bold text-yellow-600">
               {(() => {
-                const secs = selectedEpic?.metrics?.totalUsed || 0;
+                const secs = Number(selectedEpic?.metrics?.totalUsed ?? 0);
                 return `${Math.round(secs / 3600)}h`;
               })()}
             </p>
@@ -237,8 +214,12 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             <p className="text-xs text-slate-500">Checklist</p>
             <p className="mt-1 text-2xl font-bold text-emerald-600">
               {(() => {
-                const total = selectedEpic?.metrics?.checklistTotal || 0;
-                const done = selectedEpic?.metrics?.checklistCompleted || 0;
+                const total = Number(
+                  selectedEpic?.metrics?.checklistTotal ?? 0,
+                );
+                const done = Number(
+                  selectedEpic?.metrics?.checklistCompleted ?? 0,
+                );
                 return `${done} / ${total}`;
               })()}
             </p>
@@ -248,8 +229,12 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
             <p className="text-xs text-slate-500">Completion</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">
               {(() => {
-                const total = selectedEpic?.metrics?.checklistTotal || 0;
-                const done = selectedEpic?.metrics?.checklistCompleted || 0;
+                const total = Number(
+                  selectedEpic?.metrics?.checklistTotal ?? 0,
+                );
+                const done = Number(
+                  selectedEpic?.metrics?.checklistCompleted ?? 0,
+                );
                 const pct = total === 0 ? 0 : Math.round((done / total) * 100);
                 return `${pct}%`;
               })()}
@@ -319,7 +304,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
                 return (
                   <MiniTaskCard
                     key={t.id}
-                    name={t.name}
+                    name={t.name || t.title || ""}
                     badge="Not Started"
                     time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
                     running={Boolean(
@@ -368,7 +353,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
                 return (
                   <MiniTaskCard
                     key={t.id}
-                    name={t.name}
+                    name={t.name || t.title || ""}
                     badge="In Progress"
                     time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
                     running={Boolean(
@@ -421,7 +406,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
                 return (
                   <MiniTaskCard
                     key={t.id}
-                    name={t.name}
+                    name={t.name || t.title || ""}
                     badge="Completed"
                     time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
                     running={Boolean(

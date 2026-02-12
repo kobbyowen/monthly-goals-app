@@ -6,7 +6,15 @@ import TaskCard from "./TaskCard";
 import { mutate } from "swr";
 import TaskDetails from "./TaskDetails";
 import { toast, confirmDialog } from "@lib/ui";
-import { withBase } from "@lib/api";
+import { getChecklistsForTask } from "@lib/api/checklists";
+import {
+  request,
+  getTask,
+  updateTask,
+  updateSession,
+  deleteSprint,
+  getSprint,
+} from "@lib/api/index";
 
 type Session = {
   id: string;
@@ -124,9 +132,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       await Promise.all(
         unique.map(async (id) => {
           try {
-            const res = await fetch(withBase(`/api/tasks/${id}/checklists`));
-            if (!res.ok) return;
-            const data = await res.json();
+            const data = await getChecklistsForTask(id);
             if (!mounted) return;
             setChecklistCounts((p) => ({
               ...p,
@@ -211,23 +217,13 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     // create a session on the server
     const sessionId = generateId("session");
     try {
-      const res = await fetch(withBase(`/api/tasks/${taskId}/sessions`), {
+      await request({
+        path: `/tasks/${taskId}/sessions`,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: sessionId,
-          startedAt: new Date(now).toISOString(),
-        }),
+        body: { id: sessionId, startedAt: new Date(now).toISOString() },
       });
-      if (!res.ok) throw new Error("Failed to create session");
-      await res.json();
-
-      // As requested: force a full browser reload so that
-      // the new session, In Progress status, and ticking timer
-      // are all reflected immediately without manual refresh.
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      }
+      // reload so UI reflects running session immediately
+      if (typeof window !== "undefined") window.location.reload();
     } catch (err) {
       console.error("Could not start session", err);
       toast("Could not start session", "error");
@@ -239,23 +235,18 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     try {
       // Look up the latest open session for this task from the server so we
       // never rely on client-only state for timing.
-      const taskRes = await fetch(withBase(`/api/tasks/${taskId}`));
-      if (!taskRes.ok) throw new Error("Failed to fetch task");
-      const task = await taskRes.json();
+      const task = await getTask(taskId);
       const sessions = Array.isArray(task.sessions) ? task.sessions : [];
-      const open = sessions.find((s: any) => s.startedAt && !s.endedAt);
+      const open = sessions.find(
+        (s: Session | any) => s.startedAt && !s.endedAt,
+      );
       if (open) {
         const started = new Date(open.startedAt).getTime();
         const duration = Math.max(0, Math.floor((now - started) / 1000));
-        const res = await fetch(withBase(`/api/sessions/${open.id}`), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            endedAt: new Date(now).toISOString(),
-            duration,
-          }),
+        await updateSession(open.id, {
+          endedAt: new Date(now).toISOString(),
+          seconds: duration,
         });
-        if (!res.ok) throw new Error("Failed to end session");
       }
       // Clear running state then reconcile with backend
       setState((prev) => ({ ...prev, running: undefined }));
@@ -280,20 +271,12 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       await stopTask(taskId);
     }
     try {
-      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          completed: true,
-          endedAt: new Date(now).toISOString(),
-        }),
+      await updateTask(taskId, {
+        completed: true,
+        endedAt: new Date(now).toISOString(),
       });
-      if (!res.ok) throw new Error("Failed to complete task");
       await syncTaskFromServer(taskId);
-
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      }
+      if (typeof window !== "undefined") window.location.reload();
     } catch (err) {
       console.error(err);
       toast("Could not complete task", "error");
@@ -302,12 +285,10 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
   async function syncTaskFromServer(taskId: string) {
     try {
-      const res = await fetch(withBase(`/api/tasks/${taskId}`));
-      if (!res.ok) throw new Error("Failed to fetch task");
-      const t = await res.json();
+      const t = await getTask(taskId);
       const sessions = Array.isArray(t.sessions) ? t.sessions : [];
       const baseElapsed = sessions.reduce(
-        (acc: number, s: any) => acc + (s.duration || 0),
+        (acc: number, s: any) => acc + (s.seconds ?? s.duration ?? 0),
         0,
       );
       const runningAdd =
@@ -338,17 +319,9 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
   async function uncompleteTask(taskId: string) {
     try {
-      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: false, endedAt: null }),
-      });
-      if (!res.ok) throw new Error("Failed to uncomplete task");
+      await updateTask(taskId, { completed: false, endedAt: null });
       await syncTaskFromServer(taskId);
-
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      }
+      if (typeof window !== "undefined") window.location.reload();
     } catch (err) {
       console.error(err);
       toast("Could not uncomplete task", "error");
@@ -363,19 +336,13 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
     )
       return;
     try {
-      const res = await fetch(withBase(`/api/sprints/${sprintId}`), {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete sprint");
+      await deleteSprint(sprintId);
       // update local view
       setLocalSprints((prev) =>
         (prev || []).filter((sp) => sp.id !== sprintId),
       );
       // refresh SWR caches
-      await Promise.all([
-        mutate(withBase("/api/epics")),
-        mutate(withBase(`/api/sprints/${sprintId}`)),
-      ]);
+      await Promise.all([mutate("/epics"), mutate(`/sprints/${sprintId}`)]);
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -955,25 +922,11 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                       if (lines.length) newTask.checklists = lines;
                     }
 
-                    const postRes = await fetch(
-                      withBase(`/api/sprints/${addTaskFor}/tasks`),
-                      {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(newTask),
-                      },
-                    );
-                    if (!postRes.ok) {
-                      let body = null;
-                      try {
-                        body = await postRes.json();
-                      } catch (e) {}
-                      const msg =
-                        (body && (body.error || body.message)) ||
-                        `${postRes.status} ${postRes.statusText}`;
-                      throw new Error(msg);
-                    }
-                    const created = await postRes.json();
+                    const created = await request<any>({
+                      path: `/sprints/${addTaskFor}/tasks`,
+                      method: "POST",
+                      body: newTask,
+                    });
 
                     // update local view immediately
                     setLocalSprints((prev) => {
@@ -989,22 +942,19 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
 
                     // refresh server caches used elsewhere: sprint detail and epics
                     await Promise.all([
-                      mutate(withBase(`/api/sprints/${addTaskFor}`)),
-                      mutate(withBase("/api/epics")),
+                      mutate(`/sprints/${addTaskFor}`),
+                      mutate(`/epics`),
                     ]);
 
                     // also try to refresh the parent epic so epic detail view updates
                     try {
-                      const sprintRes = await fetch(
-                        withBase(`/api/sprints/${addTaskFor}`),
-                      );
-                      if (sprintRes.ok) {
-                        const sprintData = await sprintRes.json();
+                      try {
+                        const sprintData = await getSprint(addTaskFor!);
                         if (sprintData && sprintData.epicId) {
-                          await mutate(
-                            withBase(`/api/epics/${sprintData.epicId}`),
-                          );
+                          await mutate(`/epics/${sprintData.epicId}`);
                         }
+                      } catch {
+                        /* ignore */
                       }
                     } catch (e) {
                       // ignore

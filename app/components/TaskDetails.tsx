@@ -3,15 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Checklist from "./Checklist";
 import { useRouter } from "next/navigation";
-import { withBase } from "@lib/api";
+import { getTask, updateTask, deleteTask, getSessionsForTask } from "@lib/api";
+import type { Task as ApiTask, Session as ApiSession } from "@lib/api";
 import { toast, confirmDialog } from "@lib/ui";
-
-type Session = {
-  id: string;
-  startedAt?: string;
-  endedAt?: string;
-  duration?: number;
-};
 
 export default function TaskDetails({
   taskId,
@@ -28,24 +22,21 @@ export default function TaskDetails({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [taskName, setTaskName] = useState("");
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [taskMeta, setTaskMeta] = useState<any>(null);
+  const [sessions, setSessions] = useState<ApiSession[]>([]);
+  const [taskMeta, setTaskMeta] = useState<ApiTask | null>(null);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
       setLoading(true);
       try {
-        const [tRes, sRes] = await Promise.all([
-          fetch(withBase(`/api/tasks/${taskId}`)),
-          fetch(withBase(`/api/tasks/${taskId}/sessions`)),
+        const [t, ss] = await Promise.all([
+          getTask(taskId),
+          getSessionsForTask(taskId),
         ]);
-        if (!tRes.ok) throw new Error("Failed to load task");
-        const t = await tRes.json();
-        const ss = sRes.ok ? await sRes.json() : [];
         if (!mounted) return;
         setTaskMeta(t);
-        setTaskName(t.name || "");
+        setTaskName(t.name || t.title || "");
         setSessions(Array.isArray(ss) ? ss : []);
       } catch (err) {
         console.error(err);
@@ -72,15 +63,12 @@ export default function TaskDetails({
     if (!taskName) return;
     setSaving(true);
     try {
-      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: taskName }),
-      });
-      if (!res.ok) throw new Error("Failed to save task");
-      const updated = await res.json();
+      const updated = await updateTask(taskId, { title: taskName });
       if (typeof onUpdated === "function") {
-        onUpdated({ id: updated.id || taskId, name: updated.name || taskName });
+        onUpdated({
+          id: updated.id || taskId,
+          name: updated.name || updated.title || taskName,
+        });
       }
       router.refresh();
       onClose();
@@ -157,10 +145,7 @@ export default function TaskDetails({
     if (!(await confirmDialog("Remove this task and all its sessions?")))
       return;
     try {
-      const res = await fetch(withBase(`/api/tasks/${taskId}`), {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete task");
+      await deleteTask(taskId);
       if (typeof onDeleted === "function") {
         onDeleted(taskId);
       }

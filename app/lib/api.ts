@@ -14,3 +14,7 @@ export async function apiFetch(
   const url = withBase(path);
   return fetch(url, init);
 }
+
+// Re-export the modular API helpers from `app/lib/api/*` so imports
+// using the `@lib/api` path can access typed helpers like `getTask`.
+export * from "./api/index";

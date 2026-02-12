@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { withBase } from "@lib/api";
+import { getChecklistsForTask } from "@lib/api";
 
 type Props = {
   id: string;
@@ -55,13 +55,13 @@ export default function TaskCard({
 
   async function fetchCounts() {
     try {
-      const res = await fetch(withBase(`/api/tasks/${id}/checklists`));
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setRemoteTotal(data.length);
-        setRemoteCompleted(data.filter((d: any) => d.completed).length);
-      }
+      const data = await getChecklistsForTask(id);
+      setRemoteTotal(data.length);
+      setRemoteCompleted(
+        data.filter((d) =>
+          typeof d.completed !== "undefined" ? d.completed : d.done,
+        ).length,
+      );
     } catch (e) {
       // ignore
     }
@@ -72,9 +72,9 @@ export default function TaskCard({
   }, [id, checklistTotal]);
 
   useEffect(() => {
-    function onChange(e: any) {
+    function onChange(e: Event) {
       try {
-        const detail = e?.detail;
+        const detail = (e as CustomEvent<{ taskId?: string }>)?.detail;
         if (!detail || detail.taskId === id) fetchCounts();
       } catch (err) {
         // ignore
@@ -94,12 +94,6 @@ export default function TaskCard({
     typeof checklistCompleted !== "undefined"
       ? checklistCompleted
       : remoteCompleted;
-  const [editing, setEditing] = useState(false);
-  const [nameValue, setNameValue] = useState(name);
-  const [saving, setSaving] = useState(false);
-
-  const hasProgress = !completed && (sessions || 0) > 0;
-  const pauseLabel = !running && hasProgress ? "Continue" : "Pause";
 
   function formatEstimate(seconds?: number) {
     if (!seconds || seconds <= 0) return "—";

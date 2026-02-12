@@ -6,3 +6,4 @@ export * from './tasks';
 export * from './sessions';
 export * from './checklists';
 export * from './dashboard';
+export * from './auth';

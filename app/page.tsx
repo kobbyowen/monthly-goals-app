@@ -2,9 +2,18 @@
 import React from "react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
-import { useEpics, fetcher } from "./hooks/useEpics";
+import { useEpics } from "./hooks/useEpics";
 import useSWR from "swr";
 import { withBase } from "./lib/api";
+
+const fetcherLocal = async (url: string) => {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `Failed to fetch ${url}`);
+  }
+  return res.json();
+};
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -15,7 +24,7 @@ export default function Home() {
     data: me,
     error: meError,
     isLoading: meLoading,
-  } = useSWR(withBase("/api/me"), fetcher);
+  } = useSWR(withBase("/api/me"), fetcherLocal);
 
   React.useEffect(() => {
     if (meError) {

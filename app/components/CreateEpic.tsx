@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { withBase } from "@lib/api";
+import { request } from "@lib/api";
+import type { Epic } from "@lib/api";
 import { toast } from "@lib/ui";
 
 export default function CreateEpic({
   onCreated,
 }: {
-  onCreated?: (epic: any) => void;
+  onCreated?: (epic: Epic) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -75,24 +76,11 @@ export default function CreateEpic({
         payload.epicYear = epicYear;
         payload.epicMonth = epicMonth;
       }
-      const res = await fetch(withBase(`/api/epics`), {
+      const created = await request<Epic>({
+        path: "/epics",
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: payload,
       });
-      let created: any = null;
-      try {
-        created = await res.json();
-      } catch (e) {
-        // ignore json parse errors
-      }
-      if (!res.ok) {
-        const msg =
-          (created && (created.error || created.message)) ||
-          `${res.status} ${res.statusText}`;
-        throw new Error(msg);
-      }
-      // inform parent about the new epic so UI lists can update without full reload
       try {
         if (onCreated) onCreated(created);
         else router.refresh();
@@ -100,8 +88,7 @@ export default function CreateEpic({
         // ignore callback errors
       }
       setOpen(false);
-      // navigate to the newly created epic using the id returned by the server
-      router.push(withBase(`/epics/${created.id}`));
+      router.push(`/epics/${created.id}`);
     } catch (err) {
       console.error("Create epic failed:", err);
       toast(

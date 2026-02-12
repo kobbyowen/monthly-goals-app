@@ -5,8 +5,17 @@ import Link from "next/link";
 import CreateEpic from "./CreateEpic";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { fetcher } from "@hooks/useEpics";
-import { withBase } from "@lib/api";
+import { logout, request, withBase } from "@lib/api";
+import type { Epic, AuthUser } from "@lib/api/types";
+
+const fetcherLocal = async (url: string) => {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `Failed to fetch ${url}`);
+  }
+  return res.json();
+};
 
 function IconDashboard() {
   return (
@@ -127,7 +136,9 @@ export default function Sidebar({
       }
     };
   }, []);
-  const { data: user } = useSWR(withBase("/api/me"), fetcher);
+  const { data: user } = useSWR<AuthUser>("/me", () =>
+    request<AuthUser>({ path: "/me", method: "GET" }),
+  );
   const [now, setNow] = React.useState(() => new Date());
   const curYear = now.getFullYear();
   const curMonth = now.getMonth() + 1;
@@ -146,7 +157,7 @@ export default function Sidebar({
     return () => clearTimeout(timer);
   }, [now]);
 
-  const epicsWithMonth = (sprints || []).map((e: any) => {
+  const epicsWithMonth = (sprints || []).map((e: Epic) => {
     const y = typeof e.epicYear === "number" ? e.epicYear : undefined;
     const m = typeof e.epicMonth === "number" ? e.epicMonth : undefined;
     const orderKey = y && m ? y * 12 + m : Number.POSITIVE_INFINITY;
@@ -160,9 +171,9 @@ export default function Sidebar({
 
   withMonth.sort((a, b) => (a._orderKey as number) - (b._orderKey as number));
 
-  const currentMonthEpics: any[] = [];
-  const futureEpics: any[] = [];
-  const pastEpicsWithMonth: any[] = [];
+  const currentMonthEpics: Epic[] = [];
+  const futureEpics: Epic[] = [];
+  const pastEpicsWithMonth: Epic[] = [];
 
   for (const e of withMonth) {
     const y = e._epicYear as number;
@@ -206,34 +217,22 @@ export default function Sidebar({
 
       <nav className="mb-6">
         <Link
-          href={withBase("/")}
-          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${
-            pathname === withBase("/")
-              ? "bg-indigo-50 text-indigo-700"
-              : "hover:bg-gray-50 dark:hover:bg-gray-900"
-          }`}
+          href="/"
+          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname === "/" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconDashboard />
           <span>Dashboard</span>
         </Link>
         <Link
-          href={withBase("/tasks")}
-          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${
-            pathname?.startsWith(withBase("/tasks"))
-              ? "bg-indigo-50 text-indigo-700"
-              : "hover:bg-gray-50 dark:hover:bg-gray-900"
-          }`}
+          href="/tasks"
+          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/tasks") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconTasks />
           <span>All Tasks</span>
         </Link>
         <Link
-          href={withBase("/analytics")}
-          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${
-            pathname?.startsWith(withBase("/analytics"))
-              ? "bg-indigo-50 text-indigo-700"
-              : "hover:bg-gray-50 dark:hover:bg-gray-900"
-          }`}
+          href="/analytics"
+          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/analytics") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconAnalytics />
           <span>Analytics</span>
@@ -247,10 +246,10 @@ export default function Sidebar({
           </div>
           <ul className="space-y-3">
             {currentEpics.length ? (
-              currentEpics.map((ep: any) => (
+              currentEpics.map((ep) => (
                 <li key={ep.id}>
                   <Link
-                    href={withBase(`/epics/${ep.id}`)}
+                    href={`/epics/${ep.id}`}
                     onClick={() => {
                       onSelect?.(ep.id);
                       if (closeOnSelect) setOpen(false);
@@ -280,15 +279,15 @@ export default function Sidebar({
           </div>
           <ul className="space-y-3">
             {pastEpics.length ? (
-              pastEpics.map((ep: any) => (
+              pastEpics.map((ep) => (
                 <li key={ep.id}>
                   <Link
-                    href={withBase(`/epics/${ep.id}`)}
+                    href={`/epics/${ep.id}`}
                     onClick={() => {
                       onSelect?.(ep.id);
                       if (closeOnSelect) setOpen(false);
                     }}
-                    className={`w-full flex items-center gap-2 text-left px-3 py-4 rounded cursor-pointer text-sm ${
+                    className={`w-full flex items-center gap-2 text-left px-2 py-4 rounded cursor-pointer text-sm ${
                       activeId === ep.id
                         ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-100"
                         : "hover:bg-gray-50 dark:hover:bg-gray-900"
@@ -327,9 +326,7 @@ export default function Sidebar({
           <button
             onClick={async () => {
               try {
-                await fetch(withBase("/api/auth/logout"), {
-                  method: "POST",
-                });
+                await logout();
               } catch {}
               router.push(withBase("/auth/login"));
             }}
@@ -372,9 +369,7 @@ export default function Sidebar({
             <button
               onClick={async () => {
                 try {
-                  await fetch(withBase("/api/auth/logout"), {
-                    method: "POST",
-                  });
+                  await logout();
                 } catch {}
                 router.push(withBase("/auth/login"));
                 setOpen(false);

@@ -2,8 +2,14 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
-import { withBase } from "@lib/api";
 import { toast, confirmDialog } from "@lib/ui";
+import {
+  getEpic,
+  updateEpic,
+  createSprint as apiCreateSprint,
+  deleteSprint,
+  deleteEpic,
+} from "@lib/api/index";
 import type { Epic, Sprint } from "@lib/api/types";
 
 export default function EpicControls({
@@ -41,9 +47,7 @@ export default function EpicControls({
     async function load() {
       if (!open || !epicId) return;
       try {
-        const res = await fetch(withBase(`/api/epics/${epicId}`));
-        if (!res.ok) return;
-        const data = (await res.json()) as Epic;
+        const data = await getEpic(epicId);
         if (!mounted) return;
         setEpic(data);
         onEpicUpdated?.(data);
@@ -61,24 +65,18 @@ export default function EpicControls({
     if (!epicId) return;
     setLoading(true);
     try {
-      const res = await fetch(withBase(`/api/epics/${epicId}`), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName }),
-      });
-      if (!res.ok) throw new Error("Failed to update epic");
-      const updated = await res.json();
+      const updated = await updateEpic(epicId, { name: newName });
       // update local state and SWR caches optimistically
       const nextEpic: Epic = {
         ...(epic || {}),
         ...(updated || {}),
-        name: (updated && (updated as Record<string, unknown>).name) || newName,
+        name: (updated && updated.name) || newName,
       } as Epic;
       setEpic(nextEpic);
       onEpicUpdated?.(nextEpic);
-      mutate(withBase(`/api/epics/${epicId}`), updated || {}, false);
+      mutate(`/epics/${epicId}`, updated || {}, false);
       mutate(
-        withBase("/api/epics"),
+        "/epics",
         (list: unknown) => {
           if (!Array.isArray(list)) return list;
           return (list as Epic[]).map((e) =>
@@ -104,10 +102,7 @@ export default function EpicControls({
     )
       return;
     try {
-      const res = await fetch(withBase(`/api/sprints/${sprintId}`), {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete sprint");
+      await deleteSprint(sprintId);
       // update local copy and notify parent
       const current = (epic || {}) as Epic;
       const next: Epic = {
@@ -117,8 +112,8 @@ export default function EpicControls({
       setEpic(next);
       onEpicUpdated?.(next);
       // update SWR caches without a full refresh
-      mutate(withBase(`/api/epics/${epicId}`), undefined, true);
-      mutate(withBase("/api/epics"), undefined, true);
+      mutate(`/epics/${epicId}`, undefined, true);
+      mutate("/epics", undefined, true);
     } catch (err) {
       console.error(err);
       toast("Could not delete sprint", "error");
@@ -140,13 +135,7 @@ export default function EpicControls({
         tasks: [],
         epicId,
       };
-      const res = await fetch(withBase(`/api/sprints`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to create sprint");
-      const created = (await res.json()) as Sprint;
+      const created = await apiCreateSprint({ epicId, name: newSprintName });
       // update local epic immediately and notify parent
       const current = (epic || {}) as Epic;
       const next: Epic = {
@@ -157,7 +146,7 @@ export default function EpicControls({
       onEpicUpdated?.(next);
       // update SWR caches without full refresh
       mutate(
-        withBase(`/api/epics/${epicId}`),
+        `/epics/${epicId}`,
         (prev: unknown) => {
           if (!prev) return prev;
           const p = prev as Epic;
@@ -166,7 +155,7 @@ export default function EpicControls({
         false,
       );
       mutate(
-        withBase("/api/epics"),
+        "/epics",
         (list: unknown) => {
           if (!Array.isArray(list)) return list;
           return (list as Epic[]).map((e) =>
@@ -196,12 +185,9 @@ export default function EpicControls({
       return;
     setDeleting(true);
     try {
-      const res = await fetch(withBase(`/api/epics/${epicId}`), {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete epic");
-      router.push(withBase("/"));
-      mutate(withBase("/api/epics"));
+      await deleteEpic(epicId);
+      router.push("/");
+      mutate("/epics");
     } catch (err) {
       console.error(err);
       toast("Could not delete epic", "error");

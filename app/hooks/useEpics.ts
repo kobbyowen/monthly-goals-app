@@ -1,24 +1,13 @@
 "use client";
 
 import useSWR from "swr";
-import { withBase } from "@lib/api";
-
-export const fetcher = async (url: string) => {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Failed to fetch ${url}`);
-    }
-    return res.json();
-};
+import { getEpics } from "@lib/api/index";
+import type { Epic } from "@lib/api/types";
 
 export function useEpics() {
-    const { data, error, isLoading, mutate } = useSWR(
-        withBase("/api/epics"),
-        fetcher,
-    );
+    const { data, error, isLoading, mutate } = useSWR("/epics", getEpics);
     return {
-        epics: (data as any[]) || [],
+        epics: (data as Epic[] | undefined) || [],
         isLoading,
         isError: !!error,
         mutate,
