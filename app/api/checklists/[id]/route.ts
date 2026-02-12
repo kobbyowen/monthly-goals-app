@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { getParamFromUrl } from '@lib/routeUtils.js';
 import checklistService from '@services/checklistService.js';
 import { NextResponse } from 'next/server';

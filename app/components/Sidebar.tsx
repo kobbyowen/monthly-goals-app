@@ -330,7 +330,7 @@ export default function Sidebar({
                 await fetch(withBase("/api/auth/logout"), {
                   method: "POST",
                 });
-              } catch (e) {}
+              } catch {}
               router.push(withBase("/auth/login"));
             }}
             className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
@@ -375,7 +375,7 @@ export default function Sidebar({
                   await fetch(withBase("/api/auth/logout"), {
                     method: "POST",
                   });
-                } catch (e) {}
+                } catch {}
                 router.push(withBase("/auth/login"));
                 setOpen(false);
               }}

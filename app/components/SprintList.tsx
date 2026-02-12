@@ -132,7 +132,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               ...p,
               [id]: Array.isArray(data) ? data.length : 0,
             }));
-          } catch (e) {
+          } catch {
             /* ignore */
           }
         }),

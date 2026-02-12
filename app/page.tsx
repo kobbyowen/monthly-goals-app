@@ -45,7 +45,7 @@ export default function Home() {
     <div className="min-h-screen flex bg-slate-100 dark:bg-black">
       <Sidebar
         sprints={epics}
-        onCreated={(created: any) =>
+        onCreated={(created) =>
           mutate((prev: any[] | undefined) => [created, ...(prev || [])], false)
         }
       />

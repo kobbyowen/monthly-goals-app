@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   BASE_PATH: "",
   DATABASE_URL: "/tmp/data.sqlite",
   API_URL_BASE: "/time-planner",

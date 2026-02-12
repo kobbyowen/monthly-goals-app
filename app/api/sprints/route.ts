@@ -1,5 +1,5 @@
 import { getParamFromUrl } from '@lib/routeUtils.js';
-import sprintService from '@services/sprintService.js';
+import * as sprintService from '@services/sprintService.js';
 import auth from '@lib/auth.js';
 import { NextResponse } from 'next/server';
 

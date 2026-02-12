@@ -1,2 +1,3 @@
-import ___app_lib_db from '../app/lib/db';
-export default require("../app/lib/db")
+import db from "../app/lib/db.js";
+
+export default db;

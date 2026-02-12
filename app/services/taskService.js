@@ -1,4 +1,4 @@
-import taskRepo from '@repositories/taskRepository.js';
+import * as taskRepo from "@repositories/taskRepository.js";
 
 async function createTask(sprintId, task, userId) {
   return taskRepo.createTask(sprintId, task, userId);
@@ -16,7 +16,4 @@ async function deleteTask(id, userId) {
   return taskRepo.deleteTask(id, userId);
 }
 
-export const createTask = createTask;
-export const getTask = getTask;
-export const updateTask = updateTask;
-export const deleteTask = deleteTask;
+export { createTask, getTask, updateTask, deleteTask };

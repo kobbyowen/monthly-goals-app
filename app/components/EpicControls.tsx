@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { mutate } from "swr";
 import { withBase } from "@lib/api";
 import { toast, confirmDialog } from "@lib/ui";
+import type { Epic, Sprint } from "@lib/api/types";
 
 export default function EpicControls({
   epicId,
@@ -12,25 +13,26 @@ export default function EpicControls({
 }: {
   epicId: string;
   epicName?: string;
-  onEpicUpdated?: (epic: any) => void;
+  onEpicUpdated?: (epic: Epic) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [epic, setEpic] = useState<any>(null);
+  const [epic, setEpic] = useState<Epic | null>(null);
   const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [, setDeleting] = useState(false);
   const [showAddSprint, setShowAddSprint] = useState(false);
 
   // Listen for a global event to open the epic settings modal
   React.useEffect(() => {
-    const handler = (e: any) => {
-      const detail = (e && e.detail) || {};
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail || {};
       if (!detail || !detail.epicId) return;
       if (detail.epicId !== epicId) return;
       setOpen(true);
     };
-    window.addEventListener("openEpicSettings", handler as any);
-    return () => window.removeEventListener("openEpicSettings", handler as any);
+    window.addEventListener("openEpicSettings", handler as EventListener);
+    return () =>
+      window.removeEventListener("openEpicSettings", handler as EventListener);
   }, [epicId]);
 
   // load epic details when modal opens
@@ -41,11 +43,11 @@ export default function EpicControls({
       try {
         const res = await fetch(withBase(`/api/epics/${epicId}`));
         if (!res.ok) return;
-        const data = await res.json();
+        const data = (await res.json()) as Epic;
         if (!mounted) return;
         setEpic(data);
         onEpicUpdated?.(data);
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }
@@ -67,18 +69,24 @@ export default function EpicControls({
       if (!res.ok) throw new Error("Failed to update epic");
       const updated = await res.json();
       // update local state and SWR caches optimistically
-      const nextEpic = {
+      const nextEpic: Epic = {
         ...(epic || {}),
         ...(updated || {}),
-        name: (updated && updated.name) || newName,
-      };
+        name: (updated && (updated as Record<string, unknown>).name) || newName,
+      } as Epic;
       setEpic(nextEpic);
       onEpicUpdated?.(nextEpic);
-      mutate(withBase(`/api/epics/${epicId}`), (updated || {}), false);
-      mutate(withBase("/api/epics"), (list: any) => {
-        if (!Array.isArray(list)) return list;
-        return list.map((e: any) => (e.id === epicId ? { ...e, ...(updated || {}) } : e));
-      }, false);
+      mutate(withBase(`/api/epics/${epicId}`), updated || {}, false);
+      mutate(
+        withBase("/api/epics"),
+        (list: unknown) => {
+          if (!Array.isArray(list)) return list;
+          return (list as Epic[]).map((e) =>
+            e.id === epicId ? { ...e, ...(updated || {}) } : e,
+          );
+        },
+        false,
+      );
       setOpen(false);
     } catch (err) {
       console.error(err);
@@ -101,11 +109,11 @@ export default function EpicControls({
       });
       if (!res.ok) throw new Error("Failed to delete sprint");
       // update local copy and notify parent
-      const current = epic || {};
-      const next = {
+      const current = (epic || {}) as Epic;
+      const next: Epic = {
         ...current,
-        sprints: (current.sprints || []).filter((sp: any) => sp.id !== sprintId),
-      };
+        sprints: (current.sprints || []).filter((sp) => sp.id !== sprintId),
+      } as Epic;
       setEpic(next);
       onEpicUpdated?.(next);
       // update SWR caches without a full refresh
@@ -126,7 +134,7 @@ export default function EpicControls({
     setCreating(true);
     try {
       const sprintId = `sprint-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const payload: any = {
+      const payload: Partial<Sprint> = {
         id: sprintId,
         name: newSprintName,
         tasks: [],
@@ -138,24 +146,37 @@ export default function EpicControls({
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to create sprint");
-      const created = await res.json();
+      const created = (await res.json()) as Sprint;
       // update local epic immediately and notify parent
-      const current = epic || {};
-      const next = {
+      const current = (epic || {}) as Epic;
+      const next: Epic = {
         ...current,
         sprints: [...((current && current.sprints) || []), created],
-      };
+      } as Epic;
       setEpic(next);
       onEpicUpdated?.(next);
       // update SWR caches without full refresh
-      mutate(withBase(`/api/epics/${epicId}`), (prev: any) => {
-        if (!prev) return prev;
-        return { ...prev, sprints: [...(prev.sprints || []), created] };
-      }, false);
-      mutate(withBase("/api/epics"), (list: any) => {
-        if (!Array.isArray(list)) return list;
-        return list.map((e: any) => (e.id === epicId ? { ...e, sprints: [...(e.sprints || []), created] } : e));
-      }, false);
+      mutate(
+        withBase(`/api/epics/${epicId}`),
+        (prev: unknown) => {
+          if (!prev) return prev;
+          const p = prev as Epic;
+          return { ...p, sprints: [...(p.sprints || []), created] };
+        },
+        false,
+      );
+      mutate(
+        withBase("/api/epics"),
+        (list: unknown) => {
+          if (!Array.isArray(list)) return list;
+          return (list as Epic[]).map((e) =>
+            e.id === epicId
+              ? { ...e, sprints: [...(e.sprints || []), created] }
+              : e,
+          );
+        },
+        false,
+      );
       setShowAddSprint(false);
     } catch (err) {
       console.error(err);
@@ -215,10 +236,13 @@ export default function EpicControls({
                   type="text"
                   value={(epic && epic.name) || epicName || ""}
                   onChange={(e) =>
-                    setEpic((p: any) => ({
-                      ...(p || {}),
-                      name: e.target.value,
-                    }))
+                    setEpic(
+                      (p) =>
+                        ({
+                          ...(p || {}),
+                          name: e.target.value,
+                        }) as Epic,
+                    )
                   }
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
@@ -243,20 +267,21 @@ export default function EpicControls({
                 </div>
 
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {(epic?.sprints || []).map((sp: any) => (
+                  {(epic?.sprints || []).map((sp) => (
                     <div
                       key={sp.id}
                       className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs"
                     >
                       <div>
                         <div className="font-medium text-slate-800">
-                          {sp.sprintLabel || sp.name}
+                          {(sp as any).sprintLabel || sp.name}
                         </div>
                         <div className="text-slate-500">
                           {(sp.tasks || []).length} tasks ·{" "}
                           {
-                            (sp.tasks || []).filter((t: any) => t.completed)
-                              .length
+                            (sp.tasks || []).filter(
+                              (t: any) => (t as any).completed,
+                            ).length
                           }{" "}
                           completed
                         </div>

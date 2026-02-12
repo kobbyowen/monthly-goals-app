@@ -1,8 +1,6 @@
-import path from 'path';
-import { PrismaClient } from '@prisma/client';
+import path from "path";
+import { PrismaClient } from "@prisma/client";
 
-// Ensure Prisma sees DATABASE_URL at runtime. Avoid static `require()` so Next's
-// bundler doesn't try to resolve project files during client-side build.
 function normalizeDbUrl(u) {
   if (!u || typeof u !== "string") return u;
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(u)) {
@@ -29,7 +27,7 @@ try {
   } else {
     process.env.DATABASE_URL = normalizeDbUrl(process.env.DATABASE_URL);
   }
-} catch (e) {
+} catch {
   // ignore if config isn't accessible during build/bundling
 }
 
@@ -39,4 +37,4 @@ if (!global.__prisma) {
 }
 prisma = global.__prisma;
 
-export default prisma
+export default prisma;

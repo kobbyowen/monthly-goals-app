@@ -1,4 +1,4 @@
-import sprintRepo from '@repositories/sprintRepository.js';
+import * as sprintRepo from "@repositories/sprintRepository.js";
 
 async function createSprint(payload) {
   return sprintRepo.createSprint(payload);
@@ -26,7 +26,4 @@ async function deleteSprint(id, userId) {
   return sprintRepo.deleteSprint(id, userId);
 }
 
-export const createSprint = createSprint;
-export const listSprints = listSprints;
-export const getSprint = getSprint;
-export const deleteSprint = deleteSprint;
+export { createSprint, listSprints, getSprint, deleteSprint };

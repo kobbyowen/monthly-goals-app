@@ -1,6 +1,6 @@
-import ___app_lib_prisma from '../app/lib/prisma';
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
+import Database from "better-sqlite3";
 
 const migrationsDir = path.join(__dirname, "migrations");
 
@@ -11,13 +11,13 @@ function getDatabaseUrlFromConfig() {
       const cfg = require(path.join(process.cwd(), "config.js"));
       dbUrl =
         cfg && (cfg.DATABASE_URL || (cfg.default && cfg.default.DATABASE_URL));
-    } catch (e) {
+    } catch {
       try {
         const cfg = require(path.join(process.cwd(), "config"));
         dbUrl =
           cfg &&
           (cfg.DATABASE_URL || (cfg.default && cfg.default.DATABASE_URL));
-      } catch (e2) {
+      } catch {
         dbUrl = null;
       }
     }
@@ -41,7 +41,7 @@ async function runMigrations() {
     try {
       if (!u) return u;
       return u.replace(/:\/\/([^:@\/]+):([^@]+)@/, "://$1:****@");
-    } catch (e) {
+    } catch {
       return u;
     }
   };
@@ -57,7 +57,6 @@ async function runMigrations() {
   }
 
   if (isSqliteUrl(dbUrl)) {
-    import Database from 'better-sqlite3';
     let dbPath;
     if (!dbUrl) dbPath = path.join(process.cwd(), "data", "sprint.db");
     else if (dbUrl.startsWith("file:")) {
@@ -168,13 +167,13 @@ async function runMigrations() {
         await prisma.$executeRawUnsafe("DELETE FROM auth_sessions;");
         await prisma.$executeRawUnsafe("DELETE FROM users;");
         console.log("Cleaned sample data from new database (empty on setup).");
-      } catch (e) {
+      } catch {
         // best-effort cleanup; ignore if tables don't exist yet
       }
     } finally {
       try {
         await prisma.$disconnect();
-      } catch (e) {}
+      } catch {}
     }
   }
 }

@@ -1,10 +1,10 @@
 import { getParamFromUrl } from '@lib/routeUtils.js';
-import taskService from '@services/taskService.js';
-import { NextResponse } from 'next/server';
+import * as taskService from '@services/taskService.js';
+import { NextRequest, NextResponse } from 'next/server';
 
 
 
-export async function GET(_req: Request, ctx: any) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id?: string }> }) {
     try {
         const p = await ctx.params;
         const id = p?.id || getParamFromUrl(_req, 'tasks');
@@ -16,7 +16,7 @@ export async function GET(_req: Request, ctx: any) {
     }
 }
 
-export async function PATCH(req: Request, ctx: any) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id?: string }> }) {
     try {
         const body = await req.json();
         const p = await ctx.params;
@@ -30,7 +30,7 @@ export async function PATCH(req: Request, ctx: any) {
     }
 }
 
-export async function DELETE(_req: Request, ctx: any) {
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id?: string }> }) {
     try {
         const p = await ctx.params;
         const id = p?.id || getParamFromUrl(_req, 'tasks');

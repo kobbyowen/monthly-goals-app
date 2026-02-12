@@ -8,11 +8,12 @@ import EditEpicName from "@components/EditEpicName";
 import EpicControls from "@components/EpicControls";
 import { useEpics } from "@hooks/useEpics";
 import { useEpic } from "@hooks/useEpic";
+import type { Sprint } from "@lib/api/types";
 
 export default function EpicPage() {
   const params = useParams();
-  const idParam = (params as any)?.id;
-  const epicId = Array.isArray(idParam) ? idParam[0] : String(idParam || "");
+  const rawId = (params as { id?: string | string[] })?.id;
+  const epicId = Array.isArray(rawId) ? rawId[0] : String(rawId || "");
 
   const { epics } = useEpics();
   const { epic } = useEpic(epicId);

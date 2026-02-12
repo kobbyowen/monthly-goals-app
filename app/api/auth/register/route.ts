@@ -1,4 +1,3 @@
-import prisma from '@lib/prisma.js';
 import auth from '@lib/auth.js';
 import { withBase } from "@/app/lib/api";
 import { NextResponse } from "next/server";

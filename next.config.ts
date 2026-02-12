@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   assetPrefix: ASSET_PREFIX,
   turbopack: {},
   webpack: (config) => {
-    if (!config.resolve) config.resolve = {} as any;
+    if (!config.resolve) config.resolve = {};
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       '@components': path.resolve(__dirname, 'app/components'),

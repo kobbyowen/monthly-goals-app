@@ -1,10 +1,10 @@
 import { getParamFromUrl } from '@lib/routeUtils.js';
-import taskService from '@services/taskService.js';
-import { NextResponse } from 'next/server';
+import * as taskService from '@services/taskService.js';
+import { NextRequest, NextResponse } from 'next/server';
 
 
 
-export async function POST(req: Request, ctx: any) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id?: string }> }) {
     try {
         const body = await req.json();
         if (!body.id || !body.name) return NextResponse.json({ error: 'Missing id or name' }, { status: 400 });

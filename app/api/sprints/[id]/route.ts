@@ -1,18 +1,18 @@
 import { getParamFromUrl } from '@lib/routeUtils.js';
-import sprintService from '@services/sprintService.js';
+import * as sprintService from '@services/sprintService.js';
 import auth from '@lib/auth.js';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 
 
 
-function getTokenFromHeaders(req: Request) {
+function getTokenFromHeaders(req: NextRequest) {
     const cookie = req.headers.get('cookie') || '';
     const match = cookie.match(/sessionToken=([^;]+)/);
     return match ? decodeURIComponent(match[1]) : undefined;
 }
 
-export async function GET(req: Request, ctx: any) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id?: string }> }) {
     try {
         const token = getTokenFromHeaders(req);
         const user = await auth.getUserFromToken(token);
@@ -27,7 +27,7 @@ export async function GET(req: Request, ctx: any) {
     }
 }
 
-export async function PUT(req: Request, ctx: any) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id?: string }> }) {
     try {
         const token = getTokenFromHeaders(req);
         const user = await auth.getUserFromToken(token);
@@ -44,7 +44,7 @@ export async function PUT(req: Request, ctx: any) {
     }
 }
 
-export async function DELETE(req: Request, ctx: any) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id?: string }> }) {
     try {
         const token = getTokenFromHeaders(req);
         const user = await auth.getUserFromToken(token);

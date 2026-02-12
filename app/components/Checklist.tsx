@@ -65,7 +65,7 @@ export default function Checklist({
         window?.dispatchEvent?.(
           new CustomEvent("checklist:changed", { detail: { taskId } }),
         );
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     } catch (e) {
@@ -90,7 +90,7 @@ export default function Checklist({
         window?.dispatchEvent?.(
           new CustomEvent("checklist:changed", { detail: { taskId } }),
         );
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     } catch (e) {
@@ -111,7 +111,7 @@ export default function Checklist({
         window?.dispatchEvent?.(
           new CustomEvent("checklist:changed", { detail: { taskId } }),
         );
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     } catch (e) {
@@ -135,7 +135,7 @@ export default function Checklist({
         window?.dispatchEvent?.(
           new CustomEvent("checklist:changed", { detail: { taskId } }),
         );
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     } catch (e) {

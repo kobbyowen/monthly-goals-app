@@ -1,4 +1,4 @@
-import prisma from '@lib/prisma.js';
+import prisma from "@lib/prisma.js";
 
 async function createSprint(payload) {
   const { tasks = [], sprints = [], ...s } = payload;
@@ -182,7 +182,4 @@ function convertTaskInput(t) {
   };
 }
 
-export const createSprint = createSprint;
-export const listSprints = listSprints;
-export const getSprint = getSprint;
-export const deleteSprint = deleteSprint;
+export { createSprint, listSprints, getSprint, deleteSprint };

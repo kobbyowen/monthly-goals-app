@@ -7,7 +7,7 @@ const DEFAULT_RETRIES = 1;
 export type RequestParams = {
     method?: string;
     path: string;
-    body?: any;
+    body?: unknown;
     baseUrl?: string;
     options?: ApiCallOptions;
 };
@@ -22,7 +22,7 @@ export async function request<T>({ method = 'GET', path, body, baseUrl = DEFAULT
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT;
 
     let attempt = 0;
-    let lastError: any;
+    let lastError: unknown;
 
     while (attempt <= retries) {
         const controller = new AbortController();
@@ -47,22 +47,25 @@ export async function request<T>({ method = 'GET', path, body, baseUrl = DEFAULT
             if (timer) clearTimeout(timer);
 
             const text = await res.text();
-            const data = text ? JSON.parse(text) : null;
+            const data: unknown = text ? JSON.parse(text) : null;
 
             if (!res.ok) {
+                const details = (data && typeof data === 'object') ? (data as Record<string, unknown>) : undefined;
+                const message = details && 'message' in details ? String((details as Record<string, unknown>)['message']) : res.statusText || 'Request failed';
                 const err: ApiError = {
-                    message: data?.message || res.statusText || 'Request failed',
+                    message,
                     status: res.status,
-                    details: data,
+                    details,
                 };
                 throw err;
             }
 
             return data as T;
-        } catch (err: any) {
+        } catch (err: unknown) {
             lastError = err;
             // don't retry on AbortError
-            if (err?.name === 'AbortError') throw err;
+            const name = (err && typeof err === 'object' && 'name' in err) ? (err as { name?: unknown }).name : undefined;
+            if (name === 'AbortError') throw err;
             attempt += 1;
             if (attempt > retries) break;
             // exponential backoff
