@@ -1,5 +1,6 @@
+import auth from '@lib/auth.js';
 import { NextResponse } from 'next/server';
-const auth = require('../../lib/auth.js');
+
 
 function getTokenFromHeaders(req: Request) {
     const cookie = req.headers.get('cookie') || '';

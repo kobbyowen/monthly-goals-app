@@ -1,9 +1,9 @@
 "use client";
 
-import SprintList from "../components/SprintList";
-import Sidebar from "../components/Sidebar";
-import CreateEpic from "../components/CreateEpic";
-import { useEpics } from "../hooks/useEpics";
+import SprintList from "@components/SprintList";
+import Sidebar from "@components/Sidebar";
+import CreateEpic from "@components/CreateEpic";
+import { useEpics } from "@hooks/useEpics";
 
 export default function Page() {
   const { epics } = useEpics();

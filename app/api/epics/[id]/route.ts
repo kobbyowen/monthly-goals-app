@@ -1,7 +1,8 @@
+import auth from '@lib/auth.js';
 import { NextResponse } from 'next/server';
 
-import sprintService from '../../../services/sprintService.js';
-const auth = require('../../../lib/auth.js');
+import sprintService from '@services/sprintService.js';
+
 
 function getTokenFromHeaders(req: Request) {
     const cookie = req.headers.get('cookie') || '';

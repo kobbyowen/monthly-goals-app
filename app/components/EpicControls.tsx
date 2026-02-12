@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
-import { withBase } from "../lib/api";
-import { toast, confirmDialog } from "../lib/ui";
+import { withBase } from "@lib/api";
+import { toast, confirmDialog } from "@lib/ui";
 
 export default function EpicControls({
   epicId,

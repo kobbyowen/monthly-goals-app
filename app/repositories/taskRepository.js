@@ -1,4 +1,4 @@
-const prisma = require("../lib/prisma.js");
+const prisma = require("@lib/prisma.js");
 
 async function createTask(sprintId, task, userId) {
   // ensure sprint belongs to user if userId provided

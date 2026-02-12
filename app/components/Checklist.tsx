@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { withBase } from "../lib/api";
-import { toast, confirmDialog } from "../lib/ui";
+import { withBase } from "@lib/api";
+import { toast, confirmDialog } from "@lib/ui";
 
 type Item = {
   id: string;

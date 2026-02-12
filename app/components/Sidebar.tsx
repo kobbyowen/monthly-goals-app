@@ -5,8 +5,8 @@ import Link from "next/link";
 import CreateEpic from "./CreateEpic";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { fetcher } from "../hooks/useEpics";
-import { withBase } from "../lib/api";
+import { fetcher } from "@hooks/useEpics";
+import { withBase } from "@lib/api";
 
 function IconDashboard() {
   return (

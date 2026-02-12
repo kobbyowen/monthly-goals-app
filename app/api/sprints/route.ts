@@ -1,8 +1,10 @@
+import { getParamFromUrl } from '@lib/routeUtils.js';
+import sprintService from '@services/sprintService.js';
+import auth from '@lib/auth.js';
 import { NextResponse } from 'next/server';
 
-const sprintService = require('../../services/sprintService.js');
-const { getParamFromUrl } = require('../../lib/routeUtils.js');
-const auth = require('../../lib/auth.js');
+
+
 
 function mapSprintRow(row: any) {
     return {

@@ -1,4 +1,4 @@
-const prisma = require("../lib/prisma.js");
+const prisma = require("@lib/prisma.js");
 
 async function createChecklist(taskId, item) {
   const now = new Date().toISOString();

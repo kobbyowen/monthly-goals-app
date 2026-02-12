@@ -1,4 +1,4 @@
-const taskRepo = require("../repositories/taskRepository.js");
+const taskRepo = require("@repositories/taskRepository.js");
 
 async function createTask(sprintId, task, userId) {
   return taskRepo.createTask(sprintId, task, userId);

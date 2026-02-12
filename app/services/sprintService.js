@@ -1,4 +1,4 @@
-const sprintRepo = require("../repositories/sprintRepository.js");
+const sprintRepo = require("@repositories/sprintRepository.js");
 
 async function createSprint(payload) {
   return sprintRepo.createSprint(payload);

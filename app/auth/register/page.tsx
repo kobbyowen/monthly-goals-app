@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { withBase } from "../../lib/api";
-import { toast } from "../../lib/ui";
+import { withBase } from "@lib/api";
+import { toast } from "@lib/ui";
 
 export default function RegisterPage() {
   const router = useRouter();

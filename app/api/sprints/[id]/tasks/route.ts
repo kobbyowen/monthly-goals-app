@@ -1,7 +1,8 @@
+import { getParamFromUrl } from '@lib/routeUtils.js';
+import taskService from '@services/taskService.js';
 import { NextResponse } from 'next/server';
 
-const taskService = require('../../../../services/taskService.js');
-const { getParamFromUrl } = require('../../../../lib/routeUtils.js');
+
 
 export async function POST(req: Request, ctx: any) {
     try {

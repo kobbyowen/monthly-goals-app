@@ -1,7 +1,7 @@
 "use client";
 
-import Sidebar from "../components/Sidebar";
-import { useEpics } from "../hooks/useEpics";
+import Sidebar from "@components/Sidebar";
+import { useEpics } from "@hooks/useEpics";
 
 export default function AnalyticsPage() {
   const { epics } = useEpics();

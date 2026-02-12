@@ -1,7 +1,7 @@
 import React from "react";
-import Sidebar from "../../components/Sidebar";
-import SprintList from "../../components/SprintList";
-import { withBase } from "../../lib/api";
+import Sidebar from "@components/Sidebar";
+import SprintList from "@components/SprintList";
+import { withBase } from "@lib/api";
 
 async function getSprint(id: string) {
   if (!id) return null;

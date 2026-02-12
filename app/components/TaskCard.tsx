@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { withBase } from "../lib/api";
+import { withBase } from "@lib/api";
 
 type Props = {
   id: string;

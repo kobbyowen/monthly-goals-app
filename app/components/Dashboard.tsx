@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { withBase } from "../lib/api";
-import MiniTaskCard from "../components/MiniTaskCard";
+import { withBase } from "@lib/api";
+import MiniTaskCard from "@components/MiniTaskCard";
 
 type Session = {
   id: string;

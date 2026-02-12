@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import TaskCard from "./TaskCard";
 import { mutate } from "swr";
 import TaskDetails from "./TaskDetails";
-import { toast, confirmDialog } from "../lib/ui";
-import { withBase } from "../lib/api";
+import { toast, confirmDialog } from "@lib/ui";
+import { withBase } from "@lib/api";
 
 type Session = {
   id: string;

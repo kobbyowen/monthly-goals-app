@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { withBase } from "../lib/api";
+import { withBase } from "@lib/api";
 
 export const fetcher = async (url: string) => {
     const res = await fetch(url, { cache: "no-store" });

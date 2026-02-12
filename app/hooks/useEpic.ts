@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { fetcher } from "./useEpics";
-import { withBase } from "../lib/api";
+import { withBase } from "@lib/api";
 
 export function useEpic(id?: string | null) {
     const shouldFetch = !!id;

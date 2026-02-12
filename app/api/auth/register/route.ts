@@ -1,7 +1,9 @@
+import prisma from '@lib/prisma.js';
+import auth from '@lib/auth.js';
 import { withBase } from "@/app/lib/api";
 import { NextResponse } from "next/server";
-const prisma = require("../../../lib/prisma.js");
-const auth = require("../../../lib/auth.js");
+
+
 
 export async function POST(req: Request) {
     try {

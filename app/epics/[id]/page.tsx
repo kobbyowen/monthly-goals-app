@@ -2,12 +2,12 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
-import Sidebar from "../../components/Sidebar";
-import SprintList from "../../components/SprintList";
-import EditEpicName from "../../components/EditEpicName";
-import EpicControls from "../../components/EpicControls";
-import { useEpics } from "../../hooks/useEpics";
-import { useEpic } from "../../hooks/useEpic";
+import Sidebar from "@components/Sidebar";
+import SprintList from "@components/SprintList";
+import EditEpicName from "@components/EditEpicName";
+import EpicControls from "@components/EpicControls";
+import { useEpics } from "@hooks/useEpics";
+import { useEpic } from "@hooks/useEpic";
 
 export default function EpicPage() {
   const params = useParams();

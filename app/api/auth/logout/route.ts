@@ -1,6 +1,6 @@
 import { withBase } from "@/app/lib/api";
 import { NextResponse } from "next/server";
-import auth from "../../../lib/auth.js";
+import auth from "@lib/auth.js";
 
 export async function POST(req: Request) {
     try {

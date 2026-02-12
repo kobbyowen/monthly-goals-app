@@ -1,5 +1,5 @@
-const checklistRepo = require("../repositories/checklistRepository.js");
-const prisma = require("../lib/prisma.js");
+const checklistRepo = require("@repositories/checklistRepository.js");
+const prisma = require("@lib/prisma.js");
 
 async function createChecklist(taskId, payload, userId) {
   if (!payload || !payload.title || !payload.title.trim()) {

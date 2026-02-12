@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { withBase } from "../lib/api";
-import { toast } from "../lib/ui";
+import { withBase } from "@lib/api";
+import { toast } from "@lib/ui";
 
 export default function CreateEpic({
   onCreated,
@@ -38,7 +38,7 @@ export default function CreateEpic({
     const y = meta?.year || currentYear;
     const m = meta?.month || 1;
     // compute weeks dynamically
-    import("../utils/date").then((mod) => {
+    import("@utils/date").then((mod) => {
       const w = mod.weeksInMonth(y, m);
       setSprintNames(
         Array.from({ length: w }).map((_, i) => `Week ${i + 1} Sprint`),

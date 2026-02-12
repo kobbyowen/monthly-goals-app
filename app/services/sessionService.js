@@ -1,5 +1,5 @@
-const sessionRepo = require("../repositories/sessionRepository.js");
-const auth = require("../lib/auth.js");
+const sessionRepo = require("@repositories/sessionRepository.js");
+const auth = require("@lib/auth.js");
 
 async function createSession(taskId, s, userToken) {
   const user = userToken ? await auth.getUserFromToken(userToken) : null;

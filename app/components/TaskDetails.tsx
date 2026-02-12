@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Checklist from "./Checklist";
 import { useRouter } from "next/navigation";
-import { withBase } from "../lib/api";
-import { toast, confirmDialog } from "../lib/ui";
+import { withBase } from "@lib/api";
+import { toast, confirmDialog } from "@lib/ui";
 
 type Session = {
   id: string;

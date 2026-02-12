@@ -1,8 +1,10 @@
+import sprintService from '@services/sprintService.js';
+import auth from '@lib/auth.js';
 import { NextResponse } from 'next/server';
 
 // Reuse existing sprint service for epic APIs (epic == sprint in storage)
-const sprintService = require('../../services/sprintService.js');
-const auth = require('../../lib/auth.js');
+
+
 
 function getTokenFromHeaders(req: Request) {
     const cookie = req.headers.get('cookie') || '';

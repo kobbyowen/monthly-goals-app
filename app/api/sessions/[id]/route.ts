@@ -1,7 +1,8 @@
+import { getParamFromUrl } from '@lib/routeUtils.js';
+import sessionService from '@services/sessionService.js';
 import { NextResponse } from 'next/server';
 
-const sessionService = require('../../../services/sessionService.js');
-const { getParamFromUrl } = require('../../../lib/routeUtils.js');
+
 
 export async function PATCH(req: Request, ctx: any) {
     try {

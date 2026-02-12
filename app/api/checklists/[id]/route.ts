@@ -1,7 +1,8 @@
+import { getParamFromUrl } from '@lib/routeUtils.js';
+import checklistService from '@services/checklistService.js';
 import { NextResponse } from 'next/server';
 
-const checklistService = require('../../../services/checklistService.js');
-const { getParamFromUrl } = require('../../../lib/routeUtils.js');
+
 
 export async function PATCH(req: Request, ctx: any) {
     try {
