@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Checklist from "./Checklist";
 import { useRouter } from "next/navigation";
 import { withBase } from "../lib/api";
 import { toast, confirmDialog } from "../lib/ui";
@@ -172,10 +173,13 @@ export default function TaskDetails({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 p-4">
-          <h2 className="text-sm font-semibold text-slate-900">Task Details</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-xl rounded-2xl bg-white shadow-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <h2 className="text-base font-semibold text-slate-900">
+            Task Details
+          </h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600"
@@ -185,7 +189,8 @@ export default function TaskDetails({
           </button>
         </div>
 
-        <div className="p-4 space-y-5">
+        {/* Body */}
+        <div className="px-6 py-5 space-y-6">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
               Task Name
@@ -198,10 +203,10 @@ export default function TaskDetails({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-xs">
+          <div className="grid grid-cols-2 gap-6 text-xs">
             <div>
-              <span className="text-slate-500">Status</span>
-              <div className="mt-1 inline-block rounded-full bg-yellow-100 px-2 py-0.5 font-medium text-yellow-700">
+              <div className="text-slate-500">Status</div>
+              <div className="mt-1 inline-flex rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-700">
                 {taskMeta?.completed
                   ? "Completed"
                   : taskMeta
@@ -211,56 +216,59 @@ export default function TaskDetails({
             </div>
 
             <div>
-              <span className="text-slate-500">Total Time</span>
-              <div className="mt-1 font-mono text-sm font-semibold text-slate-900">
+              <div className="text-slate-500">Total Time</div>
+              <div className="mt-1 font-mono text-base font-semibold text-slate-900">
                 {fmtSeconds(totalDurationSeconds)}
               </div>
             </div>
+          </div>
 
-            <div>
-              <span className="text-slate-500">Started On</span>
-              <div className="mt-1 text-slate-800">
-                {firstSessionStart
-                  ? firstSessionStart.toLocaleString()
-                  : taskMeta?.startedAt
-                    ? new Date(taskMeta.startedAt).toLocaleString()
-                    : "—"}
-              </div>
-            </div>
+          {/* Divider */}
+          <div className="border-t border-slate-100"></div>
 
-            <div>
-              <span className="text-slate-500">Sessions</span>
-              <div className="mt-1 text-slate-800">{sessions.length}</div>
+          {/* Checklist */}
+          <div>
+            <div className="flex items-center justify-between"></div>
+            <div className="mt-3">
+              <Checklist taskId={taskId} />
             </div>
           </div>
 
+          {/* Divider */}
+          <div className="border-t border-slate-100"></div>
+
+          {/* Sessions (accordion) */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold text-slate-700">
-              Sessions
-            </h3>
-            <div className="space-y-2">
-              {sessions.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                >
-                  <span className="font-mono text-slate-700">
-                    {s.startedAt
-                      ? new Date(s.startedAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "—"}
-                    {s.endedAt
-                      ? ` → ${new Date(s.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                      : ""}
-                  </span>
-                  <span className="text-slate-500">
-                    {s.duration ? Math.round(s.duration / 60) + " min" : "—"}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <details className="group">
+              <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Sessions
+                <span className="transition group-open:rotate-180">⌄</span>
+              </summary>
+
+              <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
+                {sessions.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs"
+                  >
+                    <span className="font-mono text-slate-700">
+                      {s.startedAt
+                        ? new Date(s.startedAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
+                      {s.endedAt
+                        ? ` → ${new Date(s.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                        : ""}
+                    </span>
+                    <span className="text-slate-500">
+                      {s.duration ? Math.round(s.duration / 60) + " min" : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
 
           <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">

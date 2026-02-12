@@ -70,6 +70,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
   const [addTaskFor, setAddTaskFor] = useState<string | null>(null);
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskEfforts, setNewTaskEfforts] = useState<number>(1);
+  const [newTaskChecklistText, setNewTaskChecklistText] = useState("");
   const [addingTask, setAddingTask] = useState(false);
   const [editingSprintId, setEditingSprintId] = useState<string | null>(null);
   const [editingSprintName, setEditingSprintName] = useState<string>("");
@@ -92,6 +93,57 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
       if (tickRef.current) window.clearInterval(tickRef.current);
     };
   }, []);
+
+  const [checklistCounts, setChecklistCounts] = useState<
+    Record<string, number>
+  >({});
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadForSprints() {
+      const source =
+        localSprints && localSprints.length ? localSprints : sprints;
+      if (!source) return;
+      const toFetch: string[] = [];
+      for (const sp of source) {
+        for (const t of sp.tasks as Task[]) {
+          if (Array.isArray((t as any).checklists)) {
+            // seed from payload
+            if (!(t.id in checklistCounts)) {
+              setChecklistCounts((p) => ({
+                ...p,
+                [t.id]: (t as any).checklists.length,
+              }));
+            }
+          } else {
+            if (!(t.id in checklistCounts)) toFetch.push(t.id);
+          }
+        }
+      }
+      const unique = Array.from(new Set(toFetch));
+      await Promise.all(
+        unique.map(async (id) => {
+          try {
+            const res = await fetch(withBase(`/api/tasks/${id}/checklists`));
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!mounted) return;
+            setChecklistCounts((p) => ({
+              ...p,
+              [id]: Array.isArray(data) ? data.length : 0,
+            }));
+          } catch (e) {
+            /* ignore */
+          }
+        }),
+      );
+    }
+    loadForSprints();
+    return () => {
+      mounted = false;
+    };
+    // intentionally not adding checklistCounts to deps to avoid loops
+  }, [localSprints, sprints]);
 
   // On initial load or when sprints change, detect any open session from the
   // server data and mark it as running so timers resume after refresh.
@@ -474,6 +526,20 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               ? Math.round((completedCount / totalTasks) * 100)
               : 0;
 
+          const totalPlannedSeconds = tasks.reduce(
+            (acc, t) => acc + (t.plannedTime || 0),
+            0,
+          );
+          const totalPlannedHours = Math.round(totalPlannedSeconds / 3600);
+          const totalChecklistCount = tasks.reduce(
+            (acc, t) =>
+              acc +
+              (Array.isArray((t as any).checklists)
+                ? (t as any).checklists.length
+                : 0),
+            0,
+          );
+
           const todo = tasks
             .filter((t) => {
               const meta = getTaskUiMeta(t);
@@ -530,7 +596,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               key={s.id}
               className="bg-white dark:bg-gray-950 rounded-2xl p-6 shadow-sm"
             >
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     {!editingSprintId || editingSprintId !== s.id ? (
@@ -560,9 +626,11 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                     />
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-600">
-                  <span>{progress}% complete</span>
-                  <span className="text-gray-400">{s.tasks.length} tasks</span>
+                <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-gray-600">
+                  <span className="font-medium">{progress}%</span>
+                  <span className="text-gray-500">{totalPlannedHours}h</span>
+                  <span className="text-gray-400">{totalTasks}T</span>
+                  <span className="text-gray-400">{totalChecklistCount}C</span>
                   {!editingSprintId || editingSprintId !== s.id ? (
                     <>
                       <button
@@ -644,7 +712,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                       setNewTaskName("");
                       setNewTaskEfforts(1);
                     }}
-                    className="rounded-lg px-4 py-1.5 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700"
+                    className="w-full md:w-auto rounded-lg px-4 py-1.5 text-xs md:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700"
                   >
                     Add New Task
                   </button>
@@ -678,6 +746,18 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                           sessions={meta.sessions || 0}
                           running={hasOpen}
                           completed={meta.completed}
+                          checklistTotal={
+                            Array.isArray((t as any).checklists)
+                              ? (t as any).checklists.length
+                              : undefined
+                          }
+                          checklistCompleted={
+                            Array.isArray((t as any).checklists)
+                              ? (t as any).checklists.filter(
+                                  (c: any) => c.completed,
+                                ).length
+                              : undefined
+                          }
                           onStart={startTask}
                           onPause={stopTask}
                           onEnd={completeTask}
@@ -716,6 +796,18 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                           sessions={meta.sessions || 0}
                           running={hasOpen}
                           completed={meta.completed}
+                          checklistTotal={
+                            Array.isArray((t as any).checklists)
+                              ? (t as any).checklists.length
+                              : undefined
+                          }
+                          checklistCompleted={
+                            Array.isArray((t as any).checklists)
+                              ? (t as any).checklists.filter(
+                                  (c: any) => c.completed,
+                                ).length
+                              : undefined
+                          }
                           onStart={startTask}
                           onPause={stopTask}
                           onEnd={completeTask}
@@ -746,6 +838,18 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                           sessions={meta.sessions || 0}
                           running={false}
                           completed={meta.completed}
+                          checklistTotal={
+                            Array.isArray((t as any).checklists)
+                              ? (t as any).checklists.length
+                              : undefined
+                          }
+                          checklistCompleted={
+                            Array.isArray((t as any).checklists)
+                              ? (t as any).checklists.filter(
+                                  (c: any) => c.completed,
+                                ).length
+                              : undefined
+                          }
                           onStart={startTask}
                           onPause={stopTask}
                           onEnd={completeTask}
@@ -783,7 +887,8 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Efforts (each unit effort = 2 hours)
+                  Effort (hours). Estimate wisely — cannot be edited after
+                  estimation
                 </label>
                 <input
                   type="number"
@@ -792,6 +897,18 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   value={newTaskEfforts}
                   onChange={(e) => setNewTaskEfforts(Number(e.target.value))}
                   className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Checklist (one per line, optional)
+                </label>
+                <textarea
+                  value={newTaskChecklistText}
+                  onChange={(e) => setNewTaskChecklistText(e.target.value)}
+                  placeholder="Define sprint scope\nGather requirements"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  rows={3}
                 />
               </div>
             </div>
@@ -820,13 +937,23 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   setAddingTask(true);
                   try {
                     const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-                    const plannedTime =
-                      Math.max(0, Number(newTaskEfforts || 0)) * 2 * 3600;
+                    const plannedTime = Math.round(
+                      Math.max(0, Number(newTaskEfforts || 0)) * 3600,
+                    );
                     const newTask: any = {
                       id: taskId,
                       name: newTaskName.trim(),
                       plannedTime,
                     };
+
+                    if (newTaskChecklistText && newTaskChecklistText.trim()) {
+                      const lines = newTaskChecklistText
+                        .split(/\r?\n/)
+                        .map((l) => l.trim())
+                        .filter(Boolean)
+                        .map((title, idx) => ({ title, position: idx }));
+                      if (lines.length) newTask.checklists = lines;
+                    }
 
                     const postRes = await fetch(
                       withBase(`/api/sprints/${addTaskFor}/tasks`),

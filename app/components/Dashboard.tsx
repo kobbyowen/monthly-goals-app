@@ -26,6 +26,12 @@ type Epic = {
   name: string;
   tasks?: Task[];
   sprints?: { id: string; name: string; tasks?: Task[] }[];
+  metrics?: {
+    totalPlanned?: number;
+    totalUsed?: number;
+    checklistTotal?: number;
+    checklistCompleted?: number;
+  };
 };
 
 function formatSeconds(total: number) {
@@ -171,21 +177,86 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
         <h1 className="text-xl font-bold text-slate-900">
           Time Management Dashboard
         </h1>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Monthly Epic</span>
-          <select
-            value={selectedEpicId || ""}
-            onChange={(e) => setSelectedEpicId(e.target.value || null)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs sm:text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          >
-            {epics.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
+        <div className="w-full sm:w-56">
+          <div className="relative">
+            <select
+              value={selectedEpicId || ""}
+              onChange={(e) => setSelectedEpicId(e.target.value || null)}
+              className="w-full appearance-none rounded-md border border-slate-300 bg-white px-3 py-2 pr-8 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+            >
+              {epics.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 9l6 6 6-6"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* MONTHLY STATS */}
+      <section>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs text-slate-500">Estimated Effort</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              {(() => {
+                const secs = selectedEpic?.metrics?.totalPlanned || 0;
+                return `${Math.round(secs / 3600)}h`;
+              })()}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-yellow-300 bg-white p-4 shadow-sm">
+            <p className="text-xs text-slate-500">Effort Used</p>
+            <p className="mt-1 text-2xl font-bold text-yellow-600">
+              {(() => {
+                const secs = selectedEpic?.metrics?.totalUsed || 0;
+                return `${Math.round(secs / 3600)}h`;
+              })()}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-300 bg-white p-4 shadow-sm">
+            <p className="text-xs text-slate-500">Checklist</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-600">
+              {(() => {
+                const total = selectedEpic?.metrics?.checklistTotal || 0;
+                const done = selectedEpic?.metrics?.checklistCompleted || 0;
+                return `${done} / ${total}`;
+              })()}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs text-slate-500">Completion</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              {(() => {
+                const total = selectedEpic?.metrics?.checklistTotal || 0;
+                const done = selectedEpic?.metrics?.checklistCompleted || 0;
+                const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+                return `${pct}%`;
+              })()}
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* ANALYTICS SUMMARY */}
       <section>
@@ -408,24 +479,6 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
           Timeline highlights how work is distributed across this monthly epic.
         </p>
       </section>
-
-      {/* Floating logout button at bottom of dashboard */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await fetch(withBase("/api/auth/logout"), { method: "POST" });
-            } catch (e) {}
-            router.push(withBase("/auth/login"));
-            router.refresh();
-          }}
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-slate-700 shadow-md ring-1 ring-slate-200 hover:bg-slate-50"
-        >
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span>Logout</span>
-        </button>
-      </div>
     </div>
   );
 }

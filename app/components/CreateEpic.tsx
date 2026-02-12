@@ -12,6 +12,7 @@ export default function CreateEpic({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [nameDirty, setNameDirty] = useState(false);
   const now = new Date();
   const currentYear = now.getFullYear();
   const monthOptions = Array.from({ length: 12 }).map((_, idx) => {
@@ -44,6 +45,19 @@ export default function CreateEpic({
       );
     });
   }, [selectedMonthKey]);
+
+  // when modal opens, prefill name with "<Month> Epic" and allow user to edit
+  useEffect(() => {
+    if (!open) return;
+    const meta = monthOptions.find((m) => m.key === selectedMonthKey);
+    const monthName = new Date(
+      meta?.year || currentYear,
+      (meta?.month || 1) - 1,
+      1,
+    ).toLocaleString(undefined, { month: "long" });
+    setName(`${monthName} Epic`);
+    setNameDirty(false);
+  }, [open, selectedMonthKey]);
   const [loading, setLoading] = useState(false);
 
   async function create() {
@@ -103,7 +117,7 @@ export default function CreateEpic({
     <div>
       <button
         onClick={() => setOpen(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition"
+        className="w-full justify-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition"
       >
         New Monthly Epic
       </button>
@@ -139,7 +153,10 @@ export default function CreateEpic({
               <input
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameDirty(true);
+                }}
               />
             </div>
             <div className="mt-4">

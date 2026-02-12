@@ -8,6 +8,14 @@ type Props = {
   // expected formats: "2m / 10m", "1:30 / 2:00", or single value "2m" (used)
   time?: string;
   running?: boolean;
+  leftText?: string;
+  rightText?: string;
+  onLeft?: (() => void) | null;
+  onRight?: (() => void) | null;
+  leftClass?: string;
+  rightClass?: string;
+  leftDisabled?: boolean;
+  rightDisabled?: boolean;
 };
 
 function parseTimeToSeconds(str: string | undefined): number | null {
@@ -65,7 +73,20 @@ function formatEstimate(seconds?: number | null) {
   return `${mins}m`;
 }
 
-export default function MiniTaskCard({ name, badge, time, running }: Props) {
+export default function MiniTaskCard({
+  name,
+  badge,
+  time,
+  running,
+  leftText,
+  rightText,
+  onLeft,
+  onRight,
+  leftClass,
+  rightClass,
+  leftDisabled,
+  rightDisabled,
+}: Props) {
   const parsed = useMemo(() => {
     if (!time) return { usedSec: 0, plannedSec: 0, percent: 0 };
     const parts = time.split("/");
@@ -124,16 +145,7 @@ export default function MiniTaskCard({ name, badge, time, running }: Props) {
           </span>
         </div>
 
-        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-200">
-          <div
-            className="h-1.5 rounded-full bg-rose-600"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-
-        <div className="mt-1 text-right text-[11px] text-slate-600">
-          {percent}%
-        </div>
+        {/* progress bar and action buttons intentionally removed for mini view */}
       </div>
     </div>
   );

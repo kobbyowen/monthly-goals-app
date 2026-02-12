@@ -43,6 +43,7 @@ model Task {
   completed         Boolean  @default(false)
   sprint            Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
   sessions          Session[]
+  checklists        TaskChecklist[]
   @@map("tasks")
 }
 
@@ -76,4 +77,18 @@ model AuthSession {
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("auth_sessions")
+}
+
+model TaskChecklist {
+  id          String  @id @default(uuid())
+  taskId      String
+  title       String
+  completed   Boolean @default(false)
+  completedAt String?
+  createdAt   String?
+  updatedAt   String?
+  position    Int?
+  task        Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_checklists")
 }

@@ -100,7 +100,7 @@ export default function EpicControls({
         id:
           t.id || `${sprintId}-task-${Math.random().toString(36).slice(2, 8)}`,
         name: t.name || "Untitled",
-        plannedTime: Math.max(0, Number(t.efforts || 0)) * 2 * 3600,
+        plannedTime: Math.max(0, Number(t.efforts || 0)) * 3600,
       }));
       const plannedTime = mappedTasks.reduce(
         (s, t) => s + (t.plannedTime || 0),
@@ -168,7 +168,7 @@ export default function EpicControls({
     }
   }
 
-  const totalHours = tasks.reduce((s, t) => s + Number(t.efforts || 0) * 2, 0);
+  const totalHours = tasks.reduce((s, t) => s + Number(t.efforts || 0), 0);
 
   return (
     <div className="mt-2 flex flex-col sm:flex-row sm:justify-end gap-3 w-full">
@@ -252,13 +252,28 @@ export default function EpicControls({
                           updateTask(idx, "efforts", Number(e.target.value))
                         }
                         className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
-                        title="Number of efforts (each effort = 2 hours)"
+                        title="Effort in hours"
+                        aria-label="Effort in hours"
                       />
                       <button
                         onClick={() => removeTask(idx)}
-                        className="text-sm text-red-600"
+                        aria-label={`Remove task ${idx + 1}`}
+                        className="rounded-full p-1 text-red-600 hover:bg-red-50"
                       >
-                        Remove
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
                       </button>
                     </div>
                   ))}

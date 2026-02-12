@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { withBase } from "../lib/api";
 
 type Props = {
   id: string;
@@ -18,6 +19,8 @@ type Props = {
   onEnd?: (id: string) => void;
   onUncomplete?: (id: string) => void;
   onOpen?: (id: string) => void;
+  checklistTotal?: number;
+  checklistCompleted?: number;
 };
 
 function fmtDate(ts?: number) {
@@ -41,8 +44,56 @@ export default function TaskCard({
   onEnd,
   onUncomplete,
   onOpen,
+  checklistTotal,
+  checklistCompleted,
 }: Props) {
   const router = useRouter();
+  const [remoteTotal, setRemoteTotal] = useState<number | undefined>(undefined);
+  const [remoteCompleted, setRemoteCompleted] = useState<number | undefined>(
+    undefined,
+  );
+
+  async function fetchCounts() {
+    try {
+      const res = await fetch(withBase(`/api/tasks/${id}/checklists`));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setRemoteTotal(data.length);
+        setRemoteCompleted(data.filter((d: any) => d.completed).length);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    if (typeof checklistTotal === "undefined") fetchCounts();
+  }, [id, checklistTotal]);
+
+  useEffect(() => {
+    function onChange(e: any) {
+      try {
+        const detail = e?.detail;
+        if (!detail || detail.taskId === id) fetchCounts();
+      } catch (err) {
+        // ignore
+      }
+    }
+    window.addEventListener("checklist:changed", onChange as EventListener);
+    return () =>
+      window.removeEventListener(
+        "checklist:changed",
+        onChange as EventListener,
+      );
+  }, [id]);
+
+  const totalToShow =
+    typeof checklistTotal !== "undefined" ? checklistTotal : remoteTotal;
+  const completedToShow =
+    typeof checklistCompleted !== "undefined"
+      ? checklistCompleted
+      : remoteCompleted;
   const [editing, setEditing] = useState(false);
   const [nameValue, setNameValue] = useState(name);
   const [saving, setSaving] = useState(false);
@@ -103,19 +154,30 @@ export default function TaskCard({
       className="w-full max-w-xs rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition cursor-pointer"
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-900 truncate">{name}</h3>
+        <div className="flex flex-col flex-1 min-w-0">
+          <h3 className="text-sm font-bold text-slate-900 truncate">{name}</h3>
+          {/* indicators removed; showing compact fraction only */}
+        </div>
 
-        <span
-          className={`rounded-full px-2 py-0.5 text-[9px] font-medium ${
-            completed
-              ? "bg-green-100 text-green-700"
-              : running
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-blue-100 text-blue-700"
-          }`}
-        >
-          {completed ? "Done" : running ? "Running" : "Idle"}
-        </span>
+        <div className="flex items-center gap-2">
+          {typeof totalToShow !== "undefined" && totalToShow > 0 && (
+            <span className="text-xs text-slate-500">
+              {completedToShow || 0}/{totalToShow}
+            </span>
+          )}
+
+          <span
+            className={`rounded-full px-2 py-0.5 text-[9px] font-medium ${
+              completed
+                ? "bg-green-100 text-green-700"
+                : running
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-blue-100 text-blue-700"
+            }`}
+          >
+            {completed ? "Done" : running ? "Running" : "Idle"}
+          </span>
+        </div>
       </div>
 
       <div className="mt-2">

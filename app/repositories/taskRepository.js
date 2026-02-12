@@ -11,7 +11,18 @@ async function createTask(sprintId, task, userId) {
   const t = { ...task };
   if (t.startedAt) t.startedAt = new Date(t.startedAt).toISOString();
   if (t.endedAt) t.endedAt = new Date(t.endedAt).toISOString();
-  return prisma.task.create({ data: { ...t, sprintId } });
+  const data = { ...t, sprintId };
+  // support nested checklist creation if provided as array of { title, position }
+  if (Array.isArray(t.checklists) && t.checklists.length > 0) {
+    data.checklists = {
+      create: t.checklists.map((it) => ({
+        title: it.title,
+        completed: !!it.completed,
+        position: typeof it.position === "number" ? it.position : null,
+      })),
+    };
+  }
+  return prisma.task.create({ data });
 }
 
 async function getTask(id, userId) {

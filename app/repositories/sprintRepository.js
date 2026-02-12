@@ -73,7 +73,7 @@ async function listSprints(userId, kind) {
   if (kind) where.kind = kind;
   return prisma.sprint.findMany({
     where,
-    include: { tasks: { include: { sessions: true } } },
+    include: { tasks: { include: { sessions: true, checklists: true } } },
   });
 }
 
@@ -81,16 +81,59 @@ async function getSprint(id, userId) {
   const where = userId ? { id, userId } : { id };
   const sprint = await prisma.sprint.findFirst({
     where,
-    include: { tasks: { include: { sessions: true } } },
+    include: { tasks: { include: { sessions: true, checklists: true } } },
   });
   if (!sprint) return null;
   // If this row represents an epic, also load its child sprints (kind='sprint')
   if (sprint.kind === "epic") {
     const children = await prisma.sprint.findMany({
       where: { epicId: sprint.id },
-      include: { tasks: { include: { sessions: true } } },
+      include: { tasks: { include: { sessions: true, checklists: true } } },
     });
-    return { ...sprint, sprints: children };
+    // compute aggregated metrics across epic + children
+    const allTasks = [...(sprint.tasks || [])];
+    for (const c of children) {
+      (c.tasks || []).forEach((t) => allTasks.push(t));
+    }
+
+    let totalPlanned = 0;
+    let totalUsed = 0;
+    let checklistTotal = 0;
+    let checklistCompleted = 0;
+
+    for (const t of allTasks) {
+      totalPlanned += typeof t.plannedTime === "number" ? t.plannedTime : 0;
+      const sessions = t.sessions || [];
+      const sessSum = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+
+      // Effort used: completed tasks should contribute their total effort
+      // (prefer session sums or recorded actuals, fallback to plannedTime).
+      // In-progress tasks only contribute their current session durations.
+      if (t.completed) {
+        if (sessSum > 0) totalUsed += sessSum;
+        else if (
+          typeof t.timeActuallySpent === "number" &&
+          t.timeActuallySpent > 0
+        )
+          totalUsed += t.timeActuallySpent;
+        else if (typeof t.timeSpent === "number" && t.timeSpent > 0)
+          totalUsed += t.timeSpent;
+        else totalUsed += typeof t.plannedTime === "number" ? t.plannedTime : 0;
+      } else {
+        // not completed: count only sessions (in-progress work)
+        if (sessSum > 0) totalUsed += sessSum;
+      }
+
+      const cls = t.checklists || [];
+      checklistTotal += cls.length;
+      checklistCompleted += cls.filter((c) => c.completed).length;
+    }
+
+    return {
+      ...sprint,
+      sprints: children,
+      metrics: { totalPlanned, totalUsed, checklistTotal, checklistCompleted },
+    };
   }
   return sprint;
 }
