@@ -185,7 +185,7 @@ export default function TasksPage() {
               </h1>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <label className="sr-only">Search</label>
               <input
                 type="text"

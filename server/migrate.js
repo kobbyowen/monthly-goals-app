@@ -133,6 +133,7 @@ async function runMigrations() {
         try {
           await prisma.$disconnect();
         } catch (e) {}
+        console.error({ e });
         process.exit(1);
       }
 

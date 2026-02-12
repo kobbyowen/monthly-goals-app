@@ -607,7 +607,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                       <input
                         value={editingSprintName}
                         onChange={(e) => setEditingSprintName(e.target.value)}
-                        className="text-lg font-semibold rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="text-lg font-semibold rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
                     )}
                     <span className="text-xs sm:text-sm text-gray-500">
@@ -720,7 +720,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-[220px] flex flex-col gap-3">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-55 flex flex-col gap-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-sm font-semibold">To Do</div>
                     <div className="text-xs text-gray-400">{todo.length}</div>
@@ -768,7 +768,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-[220px] flex flex-col gap-3">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-55 flex flex-col gap-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-sm font-semibold">In Progress</div>
                     <div className="text-xs text-gray-400">
@@ -818,7 +818,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-[220px] flex flex-col gap-3">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-55 flex flex-col gap-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-sm font-semibold">Done</div>
                     <div className="text-xs text-gray-400">{done.length}</div>

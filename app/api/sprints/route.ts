@@ -1,4 +1,3 @@
-import { getParamFromUrl } from '@lib/routeUtils.js';
 import * as sprintService from '@services/sprintService.js';
 import auth from '@lib/auth.js';
 import { NextResponse } from 'next/server';
@@ -6,20 +5,6 @@ import { NextResponse } from 'next/server';
 
 
 
-function mapSprintRow(row: any) {
-    return {
-        id: row.id,
-        name: row.name,
-        dateExpectedToStart: row.dateExpectedToStart,
-        dateExpectedToEnd: row.dateExpectedToEnd,
-        dateStarted: row.dateStarted,
-        dateEnded: row.dateEnded,
-        status: row.status,
-        plannedTime: row.plannedTime,
-        actualTimeSpent: row.actualTimeSpent,
-        tasks: [] as any[],
-    };
-}
 
 function getTokenFromHeaders(req: Request) {
     const cookie = req.headers.get('cookie') || '';

@@ -192,8 +192,8 @@ export default function Sidebar({
 
   const renderBody = (closeOnSelect: boolean) => (
     <>
-      <div className="mb-8 flex items-center gap-3 hidden md:flex">
-        <div className="h-10 w-10 rounded-md bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
+      <div className="mb-8 items-center gap-3 hidden md:flex">
+        <div className="h-10 w-10 rounded-md bg-linear-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
           SA
         </div>
         <div>
@@ -341,10 +341,10 @@ export default function Sidebar({
       </aside>
       {/* Mobile / tablet slide-in sidebar */}
       {open && (
-        <aside className="lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between pt-5 h-[100vh]">
+        <aside className="lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between pt-5 h-screen">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-md bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
+              <div className="h-8 w-8 rounded-md bg-linear-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
                 SA
               </div>
               <div>

@@ -296,7 +296,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Not Started */}
-          <div className="min-w-[240px] rounded-xl border border-slate-200 bg-white p-4">
+          <div className="min-w-60 rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900">
                 Not Started
@@ -345,7 +345,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
           </div>
 
           {/* In Progress */}
-          <div className="min-w-[240px] rounded-xl border border-yellow-300 bg-white p-4">
+          <div className="min-w-60 rounded-xl border border-yellow-300 bg-white p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900">
                 In Progress
@@ -398,7 +398,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
           </div>
 
           {/* Completed */}
-          <div className="min-w-[240px] rounded-xl border border-emerald-300 bg-white p-4">
+          <div className="min-w-60 rounded-xl border border-emerald-300 bg-white p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900">
                 Completed
@@ -451,7 +451,7 @@ export default function Dashboard({ epics }: { epics: Epic[] }) {
         </h2>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 overflow-x-auto">
-          <div className="space-y-3 min-w-[280px]">
+          <div className="space-y-3 min-w-70">
             {timelineItems.length ? (
               timelineItems.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-3">
