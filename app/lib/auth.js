@@ -1,5 +1,5 @@
-const crypto = require("crypto");
-const prisma = require("./prisma.js");
+import crypto from 'crypto';
+import prisma from './prisma.js';
 
 function generateId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -76,7 +76,7 @@ async function getUserFromToken(token) {
   return session?.user || null;
 }
 
-module.exports = {
+export default {
   generateId,
   hashPassword,
   verifyPassword,

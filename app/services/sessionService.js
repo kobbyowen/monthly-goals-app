@@ -1,5 +1,5 @@
-const sessionRepo = require("@repositories/sessionRepository.js");
-const auth = require("@lib/auth.js");
+import sessionRepo from '@repositories/sessionRepository.js';
+import auth from '@lib/auth.js';
 
 async function createSession(taskId, s, userToken) {
   const user = userToken ? await auth.getUserFromToken(userToken) : null;
@@ -25,7 +25,7 @@ async function deleteSession(id, userToken) {
   return sessionRepo.deleteSession(id, userId);
 }
 
-module.exports = {
+export default {
   createSession,
   listSessionsForTask,
   updateSession,

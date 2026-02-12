@@ -1,5 +1,5 @@
-const path = require("path");
-const { PrismaClient } = require("@prisma/client");
+import path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 // Ensure Prisma sees DATABASE_URL at runtime. Avoid static `require()` so Next's
 // bundler doesn't try to resolve project files during client-side build.
@@ -39,4 +39,4 @@ if (!global.__prisma) {
 }
 prisma = global.__prisma;
 
-module.exports = prisma;
+export default prisma

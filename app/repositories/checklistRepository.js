@@ -1,4 +1,4 @@
-const prisma = require("@lib/prisma.js");
+import prisma from '@lib/prisma.js';
 
 async function createChecklist(taskId, item) {
   const now = new Date().toISOString();
@@ -45,7 +45,7 @@ async function deleteChecklist(id) {
   return prisma.taskChecklist.delete({ where: { id } });
 }
 
-module.exports = {
+export default {
   createChecklist,
   getChecklistsForTask,
   getChecklist,

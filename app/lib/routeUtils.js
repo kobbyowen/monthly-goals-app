@@ -10,4 +10,4 @@ function getParamFromUrl(req, segmentName) {
   return undefined;
 }
 
-module.exports = { getParamFromUrl };
+export const getParamFromUrl = getParamFromUrl;

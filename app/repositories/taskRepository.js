@@ -1,4 +1,4 @@
-const prisma = require("@lib/prisma.js");
+import prisma from '@lib/prisma.js';
 
 async function createTask(sprintId, task, userId) {
   // ensure sprint belongs to user if userId provided
@@ -98,4 +98,7 @@ async function deleteTask(id, userId) {
   return prisma.task.delete({ where: { id } });
 }
 
-module.exports = { createTask, getTask, updateTask, deleteTask };
+export const createTask = createTask;
+export const getTask = getTask;
+export const updateTask = updateTask;
+export const deleteTask = deleteTask;

@@ -1,5 +1,6 @@
-const fs = require("fs");
-const path = require("path");
+import ___app_lib_prisma from '../app/lib/prisma';
+import fs from 'fs';
+import path from 'path';
 
 const migrationsDir = path.join(__dirname, "migrations");
 
@@ -56,7 +57,7 @@ async function runMigrations() {
   }
 
   if (isSqliteUrl(dbUrl)) {
-    const Database = require("better-sqlite3");
+    import Database from 'better-sqlite3';
     let dbPath;
     if (!dbUrl) dbPath = path.join(process.cwd(), "data", "sprint.db");
     else if (dbUrl.startsWith("file:")) {

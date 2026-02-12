@@ -1,1 +1,2 @@
-module.exports = require("../app/lib/db");
+import ___app_lib_db from '../app/lib/db';
+export default require("../app/lib/db")

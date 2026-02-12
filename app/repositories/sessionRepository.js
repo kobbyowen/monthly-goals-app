@@ -1,4 +1,4 @@
-const prisma = require("@lib/prisma.js");
+import prisma from '@lib/prisma.js';
 
 async function createSession(taskId, s, userId) {
   // verify task belongs to user
@@ -122,7 +122,7 @@ async function deleteSession(id, userId) {
   return prisma.session.delete({ where: { id } });
 }
 
-module.exports = {
+export default {
   createSession,
   getSessionsForTask,
   updateSession,

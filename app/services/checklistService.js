@@ -1,5 +1,5 @@
-const checklistRepo = require("@repositories/checklistRepository.js");
-const prisma = require("@lib/prisma.js");
+import checklistRepo from '@repositories/checklistRepository.js';
+import prisma from '@lib/prisma.js';
 
 async function createChecklist(taskId, payload, userId) {
   if (!payload || !payload.title || !payload.title.trim()) {
@@ -60,7 +60,7 @@ async function deleteChecklist(id, userId) {
   return checklistRepo.deleteChecklist(id);
 }
 
-module.exports = {
+export default {
   createChecklist,
   getChecklistsForTask,
   updateChecklist,
