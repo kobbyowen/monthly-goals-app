@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BASE_PATH as configuredBasePath } from "./config";
+import { API_URL_BASE, BASE_PATH as configuredBasePath } from "./config";
 
 const PUBLIC_PATHS = [
     "/auth/login",
@@ -41,7 +41,7 @@ export function middleware(req: NextRequest) {
         }
         const loginUrl = req.nextUrl.clone();
         // place login under basePath (if any) so redirects keep subpath context
-        loginUrl.pathname = `${basePath || ""}/auth/login`;
+        loginUrl.pathname = `${API_URL_BASE || ""}/auth/login`;
         loginUrl.searchParams.set("from", pathname);
         return NextResponse.redirect(loginUrl);
     }
