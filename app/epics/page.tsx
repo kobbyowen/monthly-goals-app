@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import SprintList from "@components/SprintList";
 import Sidebar from "@components/Sidebar";
 import CreateEpic from "@components/CreateEpic";
@@ -7,16 +8,29 @@ import { useRootEpicStore } from "@stores";
 import { useShallow } from "zustand/shallow";
 
 export default function Page() {
-  const epics = useRootEpicStore(
-    useShallow((s) => s.epics.allIds.map((id) => s.epics.byId[id])),
+  const { epicsAllIds, epicsById, sprintsAllIds, sprintsById, tasksById } =
+    useRootEpicStore(
+      useShallow((s) => ({
+        epicsAllIds: s.epics.allIds,
+        epicsById: s.epics.byId,
+        sprintsAllIds: s.sprints.allIds,
+        sprintsById: s.sprints.byId,
+        tasksById: s.tasks.byId,
+      })),
+    );
+
+  const epics = React.useMemo(
+    () => (epicsAllIds || []).map((id) => epicsById[id]).filter(Boolean),
+    [epicsAllIds, epicsById],
   );
 
-  const sprintsForView = useRootEpicStore(
-    useShallow((s) =>
-      s.sprints.allIds.map((id) => {
-        const sp = s.sprints.byId[id];
+  const sprintsForView = React.useMemo(() => {
+    return (sprintsAllIds || [])
+      .map((id) => {
+        const sp = sprintsById[id];
+        if (!sp) return null;
         const tasks = (sp.taskIds || [])
-          .map((tid) => s.tasks.byId[tid])
+          .map((tid) => tasksById[tid])
           .filter(Boolean);
         return {
           id: sp.id,
@@ -26,9 +40,9 @@ export default function Page() {
           end: sp.end ?? "",
           tasks,
         } as any;
-      }),
-    ),
-  );
+      })
+      .filter(Boolean);
+  }, [sprintsAllIds, sprintsById, tasksById]);
 
   const sprintView = sprintsForView.map((e) => ({
     ...e,
