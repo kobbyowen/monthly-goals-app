@@ -1,11 +1,11 @@
 export type ID = string;
 
 export interface Checklist {
+    position?: number;
     id: ID;
     taskId: ID;
     title: string;
     done: boolean;
-    // UI sometimes expects `completed` instead of `done`
     completed?: boolean;
     createdAt: string;
     updatedAt: string;
@@ -49,6 +49,10 @@ export interface Sprint {
     id: ID;
     epicId?: ID | null;
     name: string;
+    dateExpectedToStart?: string | null;
+    dateExpectedToEnd?: string | null;
+    dateStarted?: string | null;
+    dateEnded?: string | null;
     kind?: string | null;
     label?: string | null;
     sprintLabel?: string | null;
@@ -60,6 +64,7 @@ export interface Sprint {
 export interface Epic {
     id: ID;
     name: string;
+    description?: string | null;
     sprints?: Sprint[];
     tasks?: Task[];
     metrics?: Record<string, unknown>;

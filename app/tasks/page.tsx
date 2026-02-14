@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import TaskDetails from "../components/TaskDetails";
-import Checklist from "../components/Checklist";
+import TaskDetails from "../components/TaskDetailsModal";
+import Checklist from "../components/CheckList";
 import { useEpics } from "../hooks/useEpics";
 import { request, getTask, updateTask, updateSession } from "@lib/api/index";
 import { toast } from "../lib/ui";

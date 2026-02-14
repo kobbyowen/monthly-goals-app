@@ -3,11 +3,34 @@
 import SprintList from "@components/SprintList";
 import Sidebar from "@components/Sidebar";
 import CreateEpic from "@components/CreateEpic";
-import { useEpics } from "@hooks/useEpics";
+import { useRootEpicStore } from "@stores";
+import { useShallow } from "zustand/shallow";
 
 export default function Page() {
-  const { epics } = useEpics();
-  const sprintView = (epics || []).map((e: any) => ({
+  const epics = useRootEpicStore(
+    useShallow((s) => s.epics.allIds.map((id) => s.epics.byId[id])),
+  );
+
+  const sprintsForView = useRootEpicStore(
+    useShallow((s) =>
+      s.sprints.allIds.map((id) => {
+        const sp = s.sprints.byId[id];
+        const tasks = (sp.taskIds || [])
+          .map((tid) => s.tasks.byId[tid])
+          .filter(Boolean);
+        return {
+          id: sp.id,
+          name: sp.name,
+          sprintLabel: sp.sprintLabel,
+          start: sp.start ?? "",
+          end: sp.end ?? "",
+          tasks,
+        } as any;
+      }),
+    ),
+  );
+
+  const sprintView = sprintsForView.map((e) => ({
     ...e,
     name: e.sprintLabel || e.name,
   }));

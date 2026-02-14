@@ -7,3 +7,4 @@ export * from './sessions';
 export * from './checklists';
 export * from './dashboard';
 export * from './auth';
+export * from './user';

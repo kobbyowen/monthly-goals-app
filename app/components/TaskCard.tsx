@@ -1,234 +1,305 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getChecklistsForTask } from "@lib/api";
+import { useRootEpicStore } from "../stores";
+import { useShallow } from "zustand/shallow";
+import { FiPlay, FiCheck, FiPause, FiRotateCcw } from "react-icons/fi";
+import { toast } from "../lib/ui";
+import TaskModal from "./TaskDetailsModal";
+import {
+  createSession,
+  updateSession as apiUpdateSession,
+} from "@api/sessions";
+import { updateTask as apiUpdateTask } from "@api/tasks";
 
-type Props = {
-  id: string;
-  name: string;
-  formattedElapsed: string;
-  plannedTimeSeconds?: number;
-  firstStarted?: number;
-  completedAt?: number;
-  sessions?: number;
-  running?: boolean;
-  completed?: boolean;
-  onStart?: (id: string) => void;
-  onPause?: (id: string) => void;
-  onEnd?: (id: string) => void;
-  onUncomplete?: (id: string) => void;
-  onOpen?: (id: string) => void;
-  checklistTotal?: number;
-  checklistCompleted?: number;
-};
+type Status = "todo" | "running" | "completed";
 
-function fmtDate(ts?: number) {
-  if (!ts) return "";
-  const d = new Date(ts);
-  return d.toLocaleDateString();
+/* ---------------- Utils ---------------- */
+
+function formatHMS(totalSeconds: number) {
+  const sec = totalSeconds % 60;
+  const min = Math.floor((totalSeconds / 60) % 60);
+  const hrs = Math.floor(totalSeconds / 3600);
+  return [hrs, min, sec].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
-export default function TaskCard({
-  id,
-  name,
-  formattedElapsed,
-  plannedTimeSeconds,
-  firstStarted,
-  completedAt,
-  sessions,
-  running,
-  completed,
-  onStart,
-  onPause,
-  onEnd,
-  onUncomplete,
-  onOpen,
-  checklistTotal,
-  checklistCompleted,
-}: Props) {
-  const router = useRouter();
-  const [remoteTotal, setRemoteTotal] = useState<number | undefined>(undefined);
-  const [remoteCompleted, setRemoteCompleted] = useState<number | undefined>(
-    undefined,
-  );
+function formatEstimate(seconds?: number) {
+  if (!seconds || seconds <= 0) return "—";
+  const minsTotal = Math.round(seconds / 60);
+  const hrs = Math.floor(minsTotal / 60);
+  const mins = minsTotal % 60;
+  if (hrs && mins) return `${hrs}h ${mins}m`;
+  if (hrs) return `${hrs}h`;
+  return `${mins}m`;
+}
 
-  async function fetchCounts() {
-    try {
-      const data = await getChecklistsForTask(id);
-      setRemoteTotal(data.length);
-      setRemoteCompleted(
-        data.filter((d) =>
-          typeof d.completed !== "undefined" ? d.completed : d.done,
-        ).length,
-      );
-    } catch (e) {
-      // ignore
-    }
-  }
+/* ---------------- Button ---------------- */
 
-  useEffect(() => {
-    if (typeof checklistTotal === "undefined") fetchCounts();
-  }, [id, checklistTotal]);
-
-  useEffect(() => {
-    function onChange(e: Event) {
-      try {
-        const detail = (e as CustomEvent<{ taskId?: string }>)?.detail;
-        if (!detail || detail.taskId === id) fetchCounts();
-      } catch (err) {
-        // ignore
-      }
-    }
-    window.addEventListener("checklist:changed", onChange as EventListener);
-    return () =>
-      window.removeEventListener(
-        "checklist:changed",
-        onChange as EventListener,
-      );
-  }, [id]);
-
-  const totalToShow =
-    typeof checklistTotal !== "undefined" ? checklistTotal : remoteTotal;
-  const completedToShow =
-    typeof checklistCompleted !== "undefined"
-      ? checklistCompleted
-      : remoteCompleted;
-
-  function formatEstimate(seconds?: number) {
-    if (!seconds || seconds <= 0) return "—";
-    const minsTotal = Math.round(seconds / 60);
-    const hrs = Math.floor(minsTotal / 60);
-    const mins = minsTotal % 60;
-    if (hrs && mins) return `${hrs}h ${mins}m`;
-    if (hrs) return `${hrs}h`;
-    return `${mins}m`;
-  }
-
-  function parseFormattedElapsed(str?: string) {
-    if (!str) return 0;
-    const parts = str.split(":").map((p) => parseInt(p, 10) || 0);
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    if (parts.length === 2) return parts[0] * 60 + parts[1];
-    if (parts.length === 1) return parts[0];
-    return 0;
-  }
-
-  function fmtHumanShort(s?: number) {
-    if (!s || s <= 0) return "0m";
-    const mins = Math.floor(s / 60);
-    if (mins < 60) return `${mins}m`;
-    const hrs = Math.floor(mins / 60);
-    const rem = mins % 60;
-    if (rem === 0) return `${hrs}h`;
-    return `${hrs}h ${rem}m`;
-  }
-
-  const [localElapsed, setLocalElapsed] = useState(() =>
-    parseFormattedElapsed(formattedElapsed),
-  );
-
-  useEffect(() => {
-    setLocalElapsed(parseFormattedElapsed(formattedElapsed));
-  }, [formattedElapsed]);
-
-  useEffect(() => {
-    if (!running) return undefined;
-    const t = setInterval(() => setLocalElapsed((v) => v + 1), 1000);
-    return () => clearInterval(t);
-  }, [running]);
-
-  const percent =
-    plannedTimeSeconds && plannedTimeSeconds > 0
-      ? Math.min(1, localElapsed / plannedTimeSeconds)
-      : 0;
+function ActionButton({
+  children,
+  color,
+  onClick,
+  ariaLabel,
+}: {
+  children: React.ReactNode;
+  color: string;
+  onClick?: React.MouseEventHandler;
+  ariaLabel: string;
+}) {
   return (
-    <div
-      onClick={() => onOpen && onOpen(id)}
-      className="w-full max-w-xs rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition cursor-pointer"
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+      aria-label={ariaLabel}
+      className={`p-2 rounded-lg text-white active:scale-95 transition ${color}`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-col flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-slate-900 truncate">{name}</h3>
-          {/* indicators removed; showing compact fraction only */}
-        </div>
+      {children}
+    </button>
+  );
+}
 
-        <div className="flex items-center gap-2">
-          {typeof totalToShow !== "undefined" && totalToShow > 0 && (
-            <span className="text-xs text-slate-500">
-              {completedToShow || 0}/{totalToShow}
-            </span>
-          )}
+/* ---------------- Component ---------------- */
 
-          <span
-            className={`rounded-full px-2 py-0.5 text-[9px] font-medium ${
-              completed
-                ? "bg-green-100 text-green-700"
-                : running
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-blue-100 text-blue-700"
-            }`}
-          >
-            {completed ? "Done" : running ? "Running" : "Idle"}
-          </span>
-        </div>
-      </div>
+export default function TaskCard({ taskId }: { taskId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
 
-      <div className="mt-2">
-        <div className="flex items-center justify-between text-[10px] text-slate-500">
-          <span>{fmtHumanShort(localElapsed)}</span>
-          <span>
-            Est.{" "}
-            <span className="text-slate-700 font-medium">
-              {formatEstimate(plannedTimeSeconds)}
-            </span>
-          </span>
-        </div>
+  const [task, sessions, checklists] = useRootEpicStore(
+    useShallow((s) => [
+      s.tasks.byId[taskId],
+      s.getSessionsByTask(taskId),
+      s.getChecklistsByTask(taskId),
+    ]),
+  );
 
-        <div className="mt-1 h-1.5 w-full rounded-full bg-slate-200">
-          <div
-            className="h-1.5 rounded-full bg-yellow-500 transition-all"
-            style={{ width: `${Math.round(percent * 100)}%` }}
-          />
-        </div>
-      </div>
+  const title = task?.title ?? "Untitled";
+  const completed = !!task?.completed;
+  const plannedTimeSeconds = task?.plannedTime;
 
-      <div className="mt-3 flex gap-2">
-        {!completed ? (
+  /* ---------- Status ---------- */
+
+  const isRunning = !!sessions?.find((s) => !s.endedAt);
+
+  const status: Status = completed
+    ? "completed"
+    : isRunning
+      ? "running"
+      : "todo";
+
+  /* ---------- Elapsed ---------- */
+
+  const baseElapsed = useMemo(() => {
+    if (!sessions?.length) return 0;
+
+    let total = sessions.reduce((acc, s) => acc + (s.seconds ?? 0), 0);
+
+    const running = sessions.find((s) => !s.endedAt);
+    if (running) {
+      const started = new Date(running.startedAt).getTime();
+      total += Math.floor((Date.now() - started) / 1000);
+    }
+
+    return total;
+  }, [sessions]);
+
+  const [elapsed, setElapsed] = useState(baseElapsed);
+
+  useEffect(() => {
+    setElapsed(baseElapsed);
+  }, [baseElapsed]);
+
+  useEffect(() => {
+    if (status !== "running") return;
+    const t = setInterval(() => setElapsed((v) => v + 1), 1000);
+    return () => clearInterval(t);
+  }, [status]);
+
+  /* ---------- Checklist ---------- */
+
+  const checklistTotal = checklists?.length ?? 0;
+  const checklistCompleted = checklists?.filter((c) => c.done).length ?? 0;
+
+  /* ---------- Styles by Status ---------- */
+
+  const styles = {
+    todo: {
+      border: "border-gray-200",
+      dot: "bg-gray-400",
+      timer: "text-gray-400",
+    },
+    running: {
+      border: "border-yellow-200",
+      dot: "bg-yellow-500",
+      timer: "text-yellow-600",
+    },
+    completed: {
+      border: "border-green-200 opacity-90",
+      dot: "bg-green-500",
+      timer: "text-green-600",
+    },
+  }[status];
+
+  /* ---------- Actions ---------- */
+
+  function renderActions() {
+    switch (status) {
+      case "todo":
+        return (
           <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (running) onPause && onPause(id);
-                else onStart && onStart(id);
-              }}
-              className="flex-1 rounded-md bg-rose-600 py-1 text-[11px] font-semibold text-white hover:bg-rose-700"
+            <ActionButton
+              color="bg-indigo-600 hover:bg-indigo-700"
+              ariaLabel="start"
+              onClick={handleStart}
             >
-              {running ? "Stop" : "Start"}
-            </button>
+              <FiPlay size={16} />
+            </ActionButton>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEnd && onEnd(id);
-              }}
-              className="flex-1 rounded-md bg-emerald-600 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
+            <ActionButton
+              color="bg-green-600 hover:bg-green-700"
+              ariaLabel="complete"
+              onClick={handleComplete}
             >
-              Done
-            </button>
+              <FiCheck size={16} />
+            </ActionButton>
           </>
-        ) : (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onUncomplete && onUncomplete(id);
-            }}
-            className="flex-1 rounded-md bg-yellow-500 py-1 text-[11px] font-semibold text-white hover:bg-yellow-600"
+        );
+
+      case "running":
+        return (
+          <>
+            <ActionButton
+              color="bg-yellow-500 hover:bg-yellow-600"
+              ariaLabel="pause"
+              onClick={handlePause}
+            >
+              <FiPause size={16} />
+            </ActionButton>
+
+            <ActionButton
+              color="bg-green-600 hover:bg-green-700"
+              ariaLabel="complete"
+              onClick={handleComplete}
+            >
+              <FiCheck size={16} />
+            </ActionButton>
+          </>
+        );
+
+      case "completed":
+        return (
+          <ActionButton
+            color="bg-gray-700 hover:bg-gray-800"
+            ariaLabel="reopen"
+            onClick={handleReopen}
           >
-            Uncomplete
-          </button>
-        )}
+            <FiRotateCcw size={16} />
+          </ActionButton>
+        );
+    }
+  }
+
+  /* ---------- API / Store wiring ---------- */
+
+  const [addSessionToStore, storeUpdateSession, storeUpdateTask] =
+    useRootEpicStore(
+      useShallow((s) => [s.addSession, s.updateSession, s.updateTask]),
+    );
+
+  async function handleStart(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    try {
+      const created = await createSession({
+        taskId,
+        startedAt: new Date().toISOString(),
+      });
+      addSessionToStore(created);
+      const existing = task?.sessionIds ?? [];
+      storeUpdateTask(taskId, {
+        sessionIds: Array.from(new Set([...existing, created.id])),
+      });
+    } catch (err) {
+      toast("session failed", "error");
+    }
+  }
+
+  async function handlePause(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    const running = sessions?.find((s) => !s.endedAt);
+    if (!running) return;
+    try {
+      const updated = await apiUpdateSession(running.id, {
+        endedAt: new Date().toISOString(),
+      });
+      storeUpdateSession(updated.id, updated);
+    } catch (err) {
+      toast("session failed", "error");
+    }
+  }
+
+  async function handleComplete(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    try {
+      const updated = await apiUpdateTask(taskId, { completed: true });
+      storeUpdateTask(updated.id, updated);
+    } catch (err) {
+      toast("task failed", "error");
+    }
+  }
+
+  async function handleReopen(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    try {
+      const updated = await apiUpdateTask(taskId, { completed: false });
+      storeUpdateTask(updated.id, updated);
+    } catch (err) {
+      toast("task failed", "error");
+    }
+  }
+
+  /* ---------- Render ---------- */
+
+  return (
+    <>
+      <div
+        onClick={() => setOpen(true)}
+        className={`bg-white rounded-2xl border ${styles.border} p-4 shadow-sm cursor-pointer`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          {/* Left */}
+          <div className="flex items-start gap-3 flex-1">
+            <span className={`mt-1 w-2.5 h-2.5 rounded-full ${styles.dot}`} />
+
+            <div className="flex-1">
+              <p
+                className={`${status === "completed" ? "text-gray-700" : "text-gray-900"} text-sm font-semibold`}
+              >
+                {title}
+              </p>
+
+              <p className="text-xs text-gray-400 mt-1">
+                {status === "completed"
+                  ? `Completed • ${formatHMS(elapsed)}`
+                  : `${checklistCompleted}/${checklistTotal} checklist • ${formatEstimate(
+                      plannedTimeSeconds as number,
+                    )}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-3">
+            <span className={`text-xs font-semibold ${styles.timer}`}>
+              {formatHMS(elapsed)}
+            </span>
+
+            <div className="flex items-center gap-2">{renderActions()}</div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {open && <TaskModal taskId={taskId} onClose={() => setOpen(false)} />}
+    </>
   );
 }

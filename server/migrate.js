@@ -1,6 +1,6 @@
-import fs from "fs";
-import path from "path";
-import Database from "better-sqlite3";
+const fs = require("fs");
+const path = require("path");
+const Database = require("better-sqlite3");
 
 const migrationsDir = path.join(__dirname, "migrations");
 

@@ -4,9 +4,11 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import CreateEpic from "./CreateEpic";
 import { useRouter } from "next/navigation";
-import useSWR from "swr";
-import { logout, request, withBase } from "@lib/api";
-import type { Epic, AuthUser } from "@lib/api/types";
+import { useUserStore, useAuthStore } from "@stores";
+import { useRootEpicStore } from "@stores";
+import { getEpics } from "@lib/api";
+import { logout, getMe, withBase } from "@lib/api";
+import type { Epic } from "@lib/api/types";
 
 const fetcherLocal = async (url: string) => {
   const res = await fetch(url, { cache: "no-store" });
@@ -136,9 +138,45 @@ export default function Sidebar({
       }
     };
   }, []);
-  const { data: user } = useSWR<AuthUser>("/me", () =>
-    request<AuthUser>({ path: "/me", method: "GET" }),
-  );
+  const user = useUserStore((s) => s.user);
+  const setUser = useUserStore((s) => s.setUser);
+  const authClear = useAuthStore((s) => s.clearToken);
+
+  useEffect(() => {
+    // if user not yet loaded, fetch /me once and hydrate the user store
+    if (!user) {
+      let mounted = true;
+      getMe()
+        .then((u) => {
+          if (mounted && u) setUser(u);
+        })
+        .catch(() => {});
+      return () => {
+        mounted = false;
+      };
+    }
+    // if user exists but epics store is empty (e.g., after full page refresh), hydrate epics
+    if (user) {
+      try {
+        const epicsLen = useRootEpicStore.getState().epics.allIds.length;
+        if (epicsLen === 0) {
+          let mounted2 = true;
+          void getEpics()
+            .then((epics) => {
+              if (!mounted2) return;
+              try {
+                useRootEpicStore.getState().addEpicsFromApi(epics);
+              } catch (_e) {}
+            })
+            .catch(() => {});
+          return () => {
+            mounted2 = false;
+          };
+        }
+      } catch (_e) {}
+    }
+    return;
+  }, [user, setUser]);
   const [now, setNow] = React.useState(() => new Date());
   const curYear = now.getFullYear();
   const curMonth = now.getMonth() + 1;
@@ -328,6 +366,9 @@ export default function Sidebar({
               try {
                 await logout();
               } catch {}
+              // clear local auth/user state
+              authClear();
+              useUserStore.getState().clearUser();
               router.push(withBase("/auth/login"));
             }}
             className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
@@ -371,6 +412,8 @@ export default function Sidebar({
                 try {
                   await logout();
                 } catch {}
+                authClear();
+                useUserStore.getState().clearUser();
                 router.push(withBase("/auth/login"));
                 setOpen(false);
               }}

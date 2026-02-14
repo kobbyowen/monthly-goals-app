@@ -3,8 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { register, withBase } from "@lib/api";
+import { register, withBase, getMe } from "@lib/api";
+import { useUserStore, useAuthStore } from "@stores";
 import { toast } from "@lib/ui";
+import { useRequest } from "../../hooks/useRequest";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,38 +14,47 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { loading, data, error, run } = useRequest(
+    async (payload: { name: string; email: string; password: string }) =>
+      register(payload),
+    {
+      onSuccess: (user) => {
+        const setUser = useUserStore.getState().setUser;
+        const setAuthenticated = useAuthStore.getState().setAuthenticated;
+        setUser(user);
+        setAuthenticated(true);
+        if (typeof window !== "undefined") {
+          toast("Account created successfully", "success");
+        }
+        void getMe().catch(() => {});
+        setTimeout(() => {
+          router.push(withBase("/"));
+          router.refresh();
+        }, 400);
+      },
+    },
+  );
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setValidationError(null);
     if (!name.trim()) {
-      setError("Full name is required");
+      setValidationError("Full name is required");
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match");
+      setValidationError("Passwords do not match");
       return;
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setValidationError("Password must be at least 8 characters");
       return;
     }
-    setLoading(true);
     try {
-      await register({ name, email, password });
-      if (typeof window !== "undefined") {
-        toast("Account created successfully", "success");
-      }
-      setTimeout(() => {
-        router.push(withBase("/auth/login"));
-        router.refresh();
-      }, 1100);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
+      await run({ name, email, password });
+    } catch (err) {
+      // errors handled by hook callbacks and `error` value
     }
   }
 
@@ -111,11 +122,20 @@ export default function RegisterPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-xs text-rose-600" role="alert">
-              {error}
-            </p>
-          )}
+          {(() => {
+            const errMsg = validationError
+              ? validationError
+              : error
+                ? error instanceof Error
+                  ? error.message
+                  : String(error)
+                : null;
+            return errMsg ? (
+              <p className="text-xs text-rose-600" role="alert">
+                {errMsg}
+              </p>
+            ) : null;
+          })()}
 
           <button
             type="submit"

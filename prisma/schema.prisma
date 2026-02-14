@@ -9,6 +9,7 @@ datasource db {
 
 model Sprint {
   id                 String   @id
+  description        String?
   name               String
   sprintLabel        String?
   userId             String?

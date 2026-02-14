@@ -1,452 +1,126 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { toast, confirmDialog } from "@lib/ui";
+import React, { useCallback, useState } from "react";
+import CheckListRow from "./CheckListRow";
+import { useRootEpicStore } from "../stores";
+import { useShallow } from "zustand/shallow";
 import {
-  getChecklistsForTask,
   createChecklistForTask,
-  updateChecklist,
-  deleteChecklist,
-} from "@lib/api/index";
-import type { Checklist as ApiChecklist, Session } from "@lib/api/types";
+  updateChecklist as apiUpdateChecklist,
+  deleteChecklist as apiDeleteChecklist,
+} from "@api/checklists";
+import { toast } from "../lib/ui";
 
-type Item = ApiChecklist;
-
-export default function Checklist({
-  taskId,
-  compact = false,
-}: {
+type Props = {
   taskId: string;
   compact?: boolean;
-}) {
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
+};
+
+export default function CheckList({ taskId, compact }: Props) {
+  const [items, addChecklist, updateChecklist, removeChecklist] =
+    useRootEpicStore(
+      useShallow((s) => [
+        s.getChecklistsByTask(taskId),
+        s.addChecklist,
+        s.updateChecklist,
+        s.removeChecklist,
+      ]),
+    );
+
+  const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [showAdd, setShowAdd] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      try {
-        const data = await getChecklistsForTask(taskId);
-        if (mounted) setItems(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error(e);
-        toast("Could not load checklist", "error");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [taskId]);
-
-  async function addItem() {
-    if (!newTitle || !newTitle.trim()) return toast("Title required", "error");
-    setAdding(true);
+  const handleCreate = useCallback(async () => {
+    const title = newTitle.trim();
+    if (!title) return;
+    setCreating(true);
     try {
-      const created = await createChecklistForTask(taskId, newTitle.trim());
-      setItems((s) => [...s, created]);
+      const created = await createChecklistForTask(taskId, title);
+      // normalize API shape: server may return `completed` — store uses `done`
+      addChecklist({ ...created, done: created.completed ?? created.done });
       setNewTitle("");
-      try {
-        window?.dispatchEvent?.(
-          new CustomEvent("checklist:changed", { detail: { taskId } }),
-        );
-      } catch {
-        /* ignore */
-      }
-    } catch (e) {
-      console.error(e);
-      toast("Could not add item", "error");
+    } catch (err) {
+      toast("checklist failed", "error");
     } finally {
-      setAdding(false);
+      setCreating(false);
     }
-  }
+  }, [newTitle, taskId, addChecklist]);
 
-  async function toggle(item: Item) {
-    try {
-      const updated = await updateChecklist(item.id, {
-        completed: !item.completed,
-      });
-      setItems((s) => s.map((it) => (it.id === updated.id ? updated : it)));
+  const handleComplete = useCallback(
+    async (id: string) => {
       try {
-        window?.dispatchEvent?.(
-          new CustomEvent("checklist:changed", { detail: { taskId } }),
-        );
-      } catch {
-        /* ignore */
+        const updated = await apiUpdateChecklist(id, { completed: true });
+        updateChecklist(updated.id, {
+          ...updated,
+          done: updated.completed ?? updated.done,
+        });
+      } catch (err) {
+        toast("checklist failed", "error");
       }
-    } catch (e) {
-      console.error(e);
-      toast("Could not update item", "error");
-    }
-  }
-
-  async function remove(item: Item) {
-    if (!(await confirmDialog("Delete checklist item?"))) return;
-    try {
-      await deleteChecklist(item.id);
-      setItems((s) => s.filter((it) => it.id !== item.id));
-      try {
-        window?.dispatchEvent?.(
-          new CustomEvent("checklist:changed", { detail: { taskId } }),
-        );
-      } catch {
-        /* ignore */
-      }
-    } catch (e) {
-      console.error(e);
-      toast("Could not delete item", "error");
-    }
-  }
-
-  async function rename(item: Item, title: string) {
-    if (!title || !title.trim()) return toast("Title required", "error");
-    try {
-      const updated = await updateChecklist(item.id, { title: title.trim() });
-      setItems((s) => s.map((it) => (it.id === updated.id ? updated : it)));
-      try {
-        window?.dispatchEvent?.(
-          new CustomEvent("checklist:changed", { detail: { taskId } }),
-        );
-      } catch {
-        /* ignore */
-      }
-    } catch (e) {
-      console.error(e);
-      toast("Could not rename item", "error");
-    }
-  }
-
-  if (compact) {
-    return (
-      <div className="space-y-1">
-        {!loading && items.length === 0 && (
-          <div className="text-xs text-slate-400">No checklist items.</div>
-        )}
-        {!loading &&
-          items.map((it) => (
-            <label
-              key={it.id}
-              className="flex items-center gap-3 text-xs cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                checked={!!it.completed}
-                onChange={() => toggle(it)}
-                className="peer hidden"
-              />
-
-              <div
-                className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition ${it.completed ? "border-emerald-600 bg-emerald-600" : "border-slate-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-600"}`}
-              >
-                <svg
-                  className={`${it.completed ? "h-3 w-3 text-white" : "hidden peer-checked:block h-3 w-3 text-white"}`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                  viewBox="0 0 24 24"
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-
-              <span
-                className={
-                  it.completed
-                    ? "text-slate-400 line-through"
-                    : "text-slate-800"
-                }
-              >
-                {it.title}
-              </span>
-            </label>
-          ))}
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Checklist
-        </h3>
-        <button
-          className="text-xs font-medium text-emerald-600 hover:underline"
-          onClick={() => {
-            setShowAdd((s) => {
-              const next = !s;
-              if (!s) setTimeout(() => inputRef.current?.focus(), 50);
-              return next;
-            });
-          }}
-        >
-          + Add Item
-        </button>
-      </div>
-
-      <div className="mt-3 space-y-2">
-        <div className="mt-1">
-          {items.length > 0 && (
-            <div className="mb-2 flex items-center gap-1">
-              {items.map((it) => (
-                <div
-                  key={`ind-${it.id}`}
-                  className={`h-2 w-2 rounded-full ${it.completed ? "bg-emerald-500" : "bg-slate-300"}`}
-                  aria-hidden
-                />
-              ))}
-            </div>
-          )}
-
-          <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
-            {showAdd && (
-              <div className="flex gap-2 items-center">
-                <input
-                  ref={inputRef}
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Add checklist item"
-                  className="flex-1 rounded-md border border-slate-200 px-2 py-1 text-sm"
-                />
-                <button
-                  onClick={addItem}
-                  disabled={adding}
-                  aria-label="Add checklist item"
-                  className={`h-7 w-7 rounded-full inline-flex items-center justify-center text-white ${adding ? "bg-emerald-600 opacity-60" : "bg-emerald-600 hover:bg-emerald-700"}`}
-                >
-                  <svg
-                    className="h-3 w-3"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowAdd(false);
-                    setNewTitle("");
-                  }}
-                  disabled={adding}
-                  aria-label="Cancel adding checklist item"
-                  className="h-7 w-7 rounded-full inline-flex items-center justify-center text-rose-600 bg-white ring-1 ring-slate-200 hover:bg-slate-50"
-                >
-                  <svg
-                    className="h-3 w-3"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M19 7L7 19M7 7l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )}
-
-            {loading && <div className="text-xs text-slate-400">Loading…</div>}
-
-            {!loading && items.length === 0 && (
-              <div className="text-xs text-slate-400">No checklist items.</div>
-            )}
-
-            {!loading &&
-              items.map((it) => (
-                <div
-                  key={it.id}
-                  className="flex items-center gap-2 rounded-md border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50 transition"
-                >
-                  <input
-                    id={`chk-${it.id}`}
-                    type="checkbox"
-                    checked={!!it.completed}
-                    onChange={() => toggle(it)}
-                    className="peer hidden"
-                  />
-
-                  <div
-                    className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${it.completed ? "border-emerald-600 bg-emerald-600" : "border-slate-300 peer-checked:border-emerald-600 peer-checked:bg-emerald-600"} transition cursor-pointer`}
-                    onClick={() => toggle(it)}
-                  >
-                    <svg
-                      className={`${it.completed ? "h-3 w-3 text-white" : "hidden peer-checked:block h-3 w-3 text-white"}`}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                      viewBox="0 0 24 24"
-                      aria-hidden
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-
-                  <EditableTitle
-                    initial={it.title}
-                    onSave={(t) => rename(it, t)}
-                    completed={!!it.completed}
-                  />
-
-                  <div className="flex-1" />
-
-                  <button
-                    onClick={() => remove(it)}
-                    className="h-7 w-7 rounded-full inline-flex items-center justify-center text-rose-600 bg-white ring-1 ring-slate-200 hover:scale-105"
-                    aria-label="Delete checklist item"
-                  >
-                    <svg
-                      className="h-3 w-3"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
-                    >
-                      <path d="M3 6h18M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6M10 6V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    },
+    [updateChecklist],
   );
-}
 
-function EditableTitle({
-  initial,
-  onSave,
-  completed,
-}: {
-  initial: string;
-  onSave: (s: string) => void;
-  completed: boolean;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (!editing) setVal(initial);
-  }, [initial, editing]);
-
-  useEffect(() => {
-    if (!editing) return;
-    if (val.trim() === initial.trim()) {
-      setSaving(false);
-      return;
-    }
-    setSaving(true);
-    const t = setTimeout(async () => {
+  const handleUncomplete = useCallback(
+    async (id: string) => {
       try {
-        await onSave(val.trim());
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setSaving(false);
+        const updated = await apiUpdateChecklist(id, { completed: false });
+        updateChecklist(updated.id, {
+          ...updated,
+          done: updated.completed ?? updated.done,
+        });
+      } catch (err) {
+        toast("checklist failed", "error");
       }
-    }, 700);
-    return () => clearTimeout(t);
-  }, [val, editing, initial, onSave]);
+    },
+    [updateChecklist],
+  );
 
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
+  const handleRename = useCallback(
+    async (id: string, title: string) => {
+      try {
+        const updated = await apiUpdateChecklist(id, { title });
+        updateChecklist(updated.id, {
+          ...updated,
+          done: updated.completed ?? updated.done,
+        });
+      } catch (err) {
+        toast("checklist failed", "error");
+      }
+    },
+    [updateChecklist],
+  );
 
-  if (!editing) {
-    return (
-      <span
-        className={`text-slate-800 ${completed ? "text-slate-400 line-through" : ""} ${completed ? "cursor-default" : "cursor-text"}`}
-        onClick={() => {
-          if (!completed) setEditing(true);
-        }}
-        role={completed ? undefined : "button"}
-        tabIndex={completed ? -1 : 0}
-        onKeyDown={(e) => {
-          if (!completed && e.key === "Enter") setEditing(true);
-        }}
-      >
-        {initial}
-      </span>
-    );
-  }
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        await apiDeleteChecklist(id);
+        removeChecklist(id);
+      } catch (err) {
+        toast("checklist failed", "error");
+      }
+    },
+    [removeChecklist],
+  );
 
   return (
-    <div className="flex w-full items-center gap-2">
-      <input
-        ref={inputRef}
-        className="flex-1 bg-transparent border-0 px-0 py-0 text-sm outline-none"
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onKeyDown={async (e) => {
-          if (e.key === "Enter") {
-            e.currentTarget.blur();
-          }
-          if (e.key === "Escape") {
-            setVal(initial);
-            setEditing(false);
-          }
-        }}
-        onBlur={async () => {
-          if (val.trim() && val.trim() !== initial.trim()) {
-            setSaving(true);
-            try {
-              await onSave(val.trim());
-            } catch (e) {
-              console.error(e);
-            } finally {
-              setSaving(false);
-            }
-          }
-          setEditing(false);
-        }}
-      />
-      <div className="flex items-center gap-2">
-        {saving ? (
-          <span className="text-xs text-slate-400">Saving…</span>
-        ) : (
-          <svg
-            className="h-4 w-4 text-emerald-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </div>
+    <div className={`space-y-2 ${compact ? "text-sm" : ""}`}>
+      {items.length === 0 ? (
+        <div className="rounded-md border border-slate-200 bg-white/50 px-3 py-3 text-sm text-slate-500">
+          No checklist items.
+        </div>
+      ) : (
+        items.map((item) => (
+          <CheckListRow
+            key={item.id}
+            item={item}
+            onComplete={handleComplete}
+            onUncomplete={handleUncomplete}
+            onRename={handleRename}
+            onDelete={handleDelete}
+          />
+        ))
+      )}
     </div>
   );
 }

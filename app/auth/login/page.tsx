@@ -3,29 +3,59 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { login, withBase } from "@lib/api";
+import { login, withBase, getMe, getEpics } from "@lib/api";
+import {
+  useUserStore,
+  useAuthStore,
+  useRootEpicStore,
+  Epic as StoreEpic,
+} from "@stores";
+import { useRequest } from "../../hooks/useRequest";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const setUser = useUserStore((s) => s.setUser);
+  const setAuthenticated = useAuthStore((s) => s.setAuthenticated);
+  const { addEpicsFromApi } = useRootEpicStore.getState();
+
+  const {
+    loading,
+    error,
+    run: loginUser,
+  } = useRequest(
+    async (payload: { email: string; password: string; remember?: boolean }) =>
+      login(payload),
+    {
+      onSuccess: (user) => {
+        setUser(user);
+        setAuthenticated(true);
+        void getMe().catch(() => {});
+        void getEpics()
+          .then((epics) => {
+            console.log({ epics });
+            addEpicsFromApi(epics);
+            // sanity check: log store population immediately
+            console.log(
+              "store.epics.ids",
+              useRootEpicStore.getState().epics.allIds.length,
+              useRootEpicStore.getState().epics.allIds.slice(0, 10),
+            );
+          })
+          .catch(() => {});
+        router.push(withBase("/"));
+        router.refresh();
+      },
+    },
+  );
+
+  const errMsg = (error as any)?.details?.error || "";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await login({ email, password, remember });
-      router.push(withBase("/"));
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
+    await loginUser({ email, password, remember });
   }
 
   return (
@@ -74,10 +104,9 @@ export default function LoginPage() {
               Remember me
             </label>
           </div>
-
-          {error && (
+          {errMsg && (
             <p className="text-xs text-rose-600" role="alert">
-              {error}
+              {errMsg}
             </p>
           )}
 
