@@ -256,21 +256,21 @@ export default function Sidebar({
 
       <nav className="mb-6">
         <Link
-          href="/"
+          href={withBase("/")}
           className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname === "/" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconDashboard />
           <span>Dashboard</span>
         </Link>
         <Link
-          href="/tasks"
+          href={withBase("/tasks")}
           className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/tasks") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconTasks />
           <span>All Tasks</span>
         </Link>
         <Link
-          href="/analytics"
+          href={withBase("/analytics")}
           className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/analytics") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconAnalytics />
