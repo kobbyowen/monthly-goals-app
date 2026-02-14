@@ -1,8 +1,11 @@
 
+import { API_URL_BASE } from '@/config';
 import type { ApiCallOptions, ApiError } from './types';
-import { withBase as _prependConfigBase } from '../api';
 
-const DEFAULT_BASE = _prependConfigBase('/api');
+// Default API base for client requests. Avoid importing from the `app/api` route
+// directory here to prevent circular imports during build/runtime.
+
+const DEFAULT_BASE = API_URL_BASE + '/api';
 const DEFAULT_TIMEOUT = 15000;
 const DEFAULT_RETRIES = 1;
 

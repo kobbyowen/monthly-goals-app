@@ -103,6 +103,7 @@ export default function SemiMiniTaskCard({
       addSession: s.addSession,
       updateSession: s.updateSession,
       updateTask: s.updateTask,
+      updateChecklist: s.updateChecklist,
     })),
   );
 
