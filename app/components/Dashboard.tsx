@@ -4,6 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { withBase } from "@lib/api";
 import MiniTaskCard from "@components/MiniTaskCard";
+import Card from "@components/Card";
+import Timeline from "@components/Timeline";
+import computeEpicMetrics from "@lib/epicMetrics";
 import type {
   Epic as ApiEpic,
   Task as ApiTask,
@@ -48,6 +51,11 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
   const selectedEpic = useMemo(
     () => epics.find((e) => e.id === selectedEpicId) || null,
     [epics, selectedEpicId],
+  );
+
+  const metrics = useMemo(
+    () => computeEpicMetrics(selectedEpic),
+    [selectedEpic],
   );
 
   // Aggregate tasks from the epic itself and any child sprints
@@ -190,56 +198,43 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
       {/* MONTHLY STATS */}
       <section>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <Card className="border-slate-200">
             <p className="text-xs text-slate-500">Estimated Effort</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">
               {(() => {
-                const secs = Number(selectedEpic?.metrics?.totalPlanned ?? 0);
+                const secs = Number(metrics.totalPlanned ?? 0);
                 return `${Math.round(secs / 3600)}h`;
               })()}
             </p>
-          </div>
+          </Card>
 
-          <div className="rounded-xl border border-yellow-300 bg-white p-4 shadow-sm">
+          <Card className="border-yellow-300">
             <p className="text-xs text-slate-500">Effort Used</p>
             <p className="mt-1 text-2xl font-bold text-yellow-600">
               {(() => {
-                const secs = Number(selectedEpic?.metrics?.totalUsed ?? 0);
+                const secs = Number(metrics.totalUsed ?? 0);
                 return `${Math.round(secs / 3600)}h`;
               })()}
             </p>
-          </div>
+          </Card>
 
-          <div className="rounded-xl border border-emerald-300 bg-white p-4 shadow-sm">
+          <Card className="border-emerald-300">
             <p className="text-xs text-slate-500">Checklist</p>
             <p className="mt-1 text-2xl font-bold text-emerald-600">
               {(() => {
-                const total = Number(
-                  selectedEpic?.metrics?.checklistTotal ?? 0,
-                );
-                const done = Number(
-                  selectedEpic?.metrics?.checklistCompleted ?? 0,
-                );
+                const total = Number(metrics.checklistTotal ?? 0);
+                const done = Number(metrics.checklistCompleted ?? 0);
                 return `${done} / ${total}`;
               })()}
             </p>
-          </div>
+          </Card>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <Card className="border-slate-200">
             <p className="text-xs text-slate-500">Completion</p>
             <p className="mt-1 text-2xl font-bold text-slate-900">
-              {(() => {
-                const total = Number(
-                  selectedEpic?.metrics?.checklistTotal ?? 0,
-                );
-                const done = Number(
-                  selectedEpic?.metrics?.checklistCompleted ?? 0,
-                );
-                const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-                return `${pct}%`;
-              })()}
+              {metrics.completionPercent + "%"}
             </p>
-          </div>
+          </Card>
         </div>
       </section>
 
@@ -283,9 +278,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
           {/* Not Started */}
           <div className="min-w-60 rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">
-                Not Started
-              </h3>
+              <h3 className="text-sm font-semibold text-slate-900">To DO</h3>
               <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-700">
                 {notStartedTasks.length} tasks
               </span>
@@ -295,18 +288,21 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
               {notStartedTasks.map((t) => {
                 const used = totalDurationForTask(t) || 0;
                 const planned =
-                  (typeof t.timeActuallySpent === "number" &&
-                  t.timeActuallySpent > 0
-                    ? t.timeActuallySpent
-                    : typeof t.timeSpent === "number" && t.timeSpent > 0
-                      ? t.timeSpent
-                      : 0) || 0;
+                  (typeof t.plannedTime === "number" && t.plannedTime > 0
+                    ? t.plannedTime
+                    : typeof t.timeActuallySpent === "number" &&
+                        t.timeActuallySpent > 0
+                      ? t.timeActuallySpent
+                      : typeof t.timeSpent === "number" && t.timeSpent > 0
+                        ? t.timeSpent
+                        : 0) || 0;
                 return (
                   <MiniTaskCard
                     key={t.id}
                     name={t.name || t.title || ""}
-                    badge="Not Started"
-                    time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
+                    badge="Pending"
+                    usedSec={used}
+                    plannedSec={planned}
                     running={Boolean(
                       (t.sessions || []).some((s) => s.startedAt && !s.endedAt),
                     )}
@@ -344,18 +340,21 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
               {inProgressTasks.map((t) => {
                 const used = totalDurationForTask(t) || 0;
                 const planned =
-                  (typeof t.timeActuallySpent === "number" &&
-                  t.timeActuallySpent > 0
-                    ? t.timeActuallySpent
-                    : typeof t.timeSpent === "number" && t.timeSpent > 0
-                      ? t.timeSpent
-                      : 0) || 0;
+                  (typeof t.plannedTime === "number" && t.plannedTime > 0
+                    ? t.plannedTime
+                    : typeof t.timeActuallySpent === "number" &&
+                        t.timeActuallySpent > 0
+                      ? t.timeActuallySpent
+                      : typeof t.timeSpent === "number" && t.timeSpent > 0
+                        ? t.timeSpent
+                        : 0) || 0;
                 return (
                   <MiniTaskCard
                     key={t.id}
                     name={t.name || t.title || ""}
                     badge="In Progress"
-                    time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
+                    usedSec={used}
+                    plannedSec={planned}
                     running={Boolean(
                       (t.sessions || []).some((s) => s.startedAt && !s.endedAt),
                     )}
@@ -397,18 +396,21 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
               {completedTasks.map((t) => {
                 const used = totalDurationForTask(t) || 0;
                 const planned =
-                  (typeof t.timeActuallySpent === "number" &&
-                  t.timeActuallySpent > 0
-                    ? t.timeActuallySpent
-                    : typeof t.timeSpent === "number" && t.timeSpent > 0
-                      ? t.timeSpent
-                      : 0) || 0;
+                  (typeof t.plannedTime === "number" && t.plannedTime > 0
+                    ? t.plannedTime
+                    : typeof t.timeActuallySpent === "number" &&
+                        t.timeActuallySpent > 0
+                      ? t.timeActuallySpent
+                      : typeof t.timeSpent === "number" && t.timeSpent > 0
+                        ? t.timeSpent
+                        : 0) || 0;
                 return (
                   <MiniTaskCard
                     key={t.id}
                     name={t.name || t.title || ""}
                     badge="Completed"
-                    time={`${formatSeconds(used)} / ${formatSeconds(planned)}`}
+                    usedSec={used}
+                    plannedSec={planned}
                     running={Boolean(
                       (t.sessions || []).some((s) => s.startedAt && !s.endedAt),
                     )}
@@ -435,30 +437,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
           Monthly Epic Timeline
         </h2>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-4 overflow-x-auto">
-          <div className="space-y-3 min-w-70">
-            {timelineItems.length ? (
-              timelineItems.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3">
-                  <span className="w-14 text-xs text-slate-500">
-                    {item.timeLabel}
-                  </span>
-                  <div className="flex-1 h-3 rounded bg-slate-200">
-                    <div
-                      className={"h-3 rounded " + item.colorClass}
-                      style={{ width: item.width }}
-                    />
-                  </div>
-                  <span className="text-xs truncate">{item.label}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-slate-400">
-                No sessions recorded yet for this monthly epic.
-              </p>
-            )}
-          </div>
-        </div>
+        <Timeline items={timelineItems} />
 
         <p className="mt-2 text-xs text-slate-500">
           Timeline highlights how work is distributed across this monthly epic.

@@ -75,7 +75,8 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
         // determine running by checking sessions for this task
         const sessions = getSessionsByTask(task.id) ?? [];
         const isRunning = sessions.some((s) => !s.endedAt);
-        if (isRunning) {
+        // If there are any sessions at all (even closed), treat as in-progress
+        if (isRunning || (Array.isArray(sessions) && sessions.length > 0)) {
           running.push(task.id);
         } else {
           todo.push(task.id);

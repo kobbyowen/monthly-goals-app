@@ -7,6 +7,8 @@ type Props = {
   badge?: string;
   // expected formats: "2m / 10m", "1:30 / 2:00", or single value "2m" (used)
   time?: string;
+  usedSec?: number;
+  plannedSec?: number;
   running?: boolean;
   leftText?: string;
   rightText?: string;
@@ -77,6 +79,8 @@ export default function MiniTaskCard({
   name,
   badge,
   time,
+  usedSec: usedSecProp,
+  plannedSec: plannedSecProp,
   running,
   leftText,
   rightText,
@@ -88,6 +92,15 @@ export default function MiniTaskCard({
   rightDisabled,
 }: Props) {
   const parsed = useMemo(() => {
+    if (typeof usedSecProp === "number" || typeof plannedSecProp === "number") {
+      const used = Number(usedSecProp || 0);
+      const planned = Number(plannedSecProp || 0);
+      const pct =
+        planned > 0
+          ? Math.max(0, Math.min(100, Math.round((used / planned) * 100)))
+          : 0;
+      return { usedSec: used, plannedSec: planned, percent: pct };
+    }
     if (!time) return { usedSec: 0, plannedSec: 0, percent: 0 };
     const parts = time.split("/");
     const left = parts[0]?.trim();
@@ -99,7 +112,7 @@ export default function MiniTaskCard({
         ? Math.max(0, Math.min(100, Math.round((used / planned) * 100)))
         : 0;
     return { usedSec: used, plannedSec: planned, percent: pct };
-  }, [time]);
+  }, [time, usedSecProp, plannedSecProp]);
 
   const [localUsed, setLocalUsed] = useState<number>(parsed.usedSec);
 

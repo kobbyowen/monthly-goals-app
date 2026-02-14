@@ -5,8 +5,8 @@ import ReactDOM from "react-dom";
 type ContextType = {
   open: boolean;
   setOpen: (v: boolean) => void;
-  buttonRef: React.RefObject<HTMLElement>;
-  panelRef: React.RefObject<HTMLElement>;
+  buttonRef: React.RefObject<HTMLElement | null>;
+  panelRef: React.RefObject<HTMLElement | null>;
   id: string;
 };
 
@@ -114,7 +114,9 @@ export function PopoverPanel({
 }) {
   const { open, panelRef, buttonRef } = usePopoverContext();
   if (!open) return null;
-  const [style, setStyle] = React.useState<React.CSSProperties | undefined>(undefined);
+  const [style, setStyle] = React.useState<React.CSSProperties | undefined>(
+    undefined,
+  );
 
   React.useEffect(() => {
     function update() {
@@ -131,7 +133,13 @@ export function PopoverPanel({
       if (vw <= 640) {
         const left = 8;
         const width = Math.max(240, vw - 16);
-        setStyle({ position: "fixed", left, top: rect.bottom + 8, width, zIndex: 60 });
+        setStyle({
+          position: "fixed",
+          left,
+          top: rect.bottom + 8,
+          width,
+          zIndex: 60,
+        });
         return;
       }
 

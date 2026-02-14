@@ -112,10 +112,10 @@ export default function TaskCard({ taskId }: { taskId: string }) {
   }, [baseElapsed]);
 
   useEffect(() => {
-    if (status !== "running") return;
+    if (!isRunning) return;
     const t = setInterval(() => setElapsed((v) => v + 1), 1000);
     return () => clearInterval(t);
-  }, [status]);
+  }, [isRunning]);
 
   /* ---------- Checklist ---------- */
 
@@ -230,8 +230,14 @@ export default function TaskCard({ taskId }: { taskId: string }) {
     const running = sessions?.find((s) => !s.endedAt);
     if (!running) return;
     try {
+      const now = Date.now();
+      const started = running.startedAt
+        ? new Date(running.startedAt).getTime()
+        : now;
+      const duration = Math.max(0, Math.floor((now - started) / 1000));
       const updated = await apiUpdateSession(running.id, {
         endedAt: new Date().toISOString(),
+        duration,
       });
       storeUpdateSession(updated.id, updated);
     } catch (err) {
