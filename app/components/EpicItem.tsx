@@ -7,6 +7,7 @@ import { deleteSprint } from "@lib/api/sprints";
 import Popover, { PopoverButton, PopoverPanel } from "./Popover";
 import { useRouter, usePathname } from "next/navigation";
 import { useRootEpicStore } from "@stores";
+import { withBase } from "../lib/api";
 
 function IconSprint() {
   return (
@@ -95,7 +96,7 @@ export default function EpicItem({
       }`}
     >
       <Link
-        href={`/epics/${id}`}
+        href={withBase(`/epics/${id}`)}
         onClick={() => {
           onSelect?.(id);
           if (closeOnSelect) onClose?.();

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { request } from "@lib/api";
+import { request, withBase } from "@lib/api";
 import type { Epic } from "@lib/api";
 import { toast } from "@lib/ui";
 
@@ -88,7 +88,7 @@ export default function CreateEpic({
         // ignore callback errors
       }
       setOpen(false);
-      router.push(`/epics/${created.id}`);
+      router.push(withBase(`/epics/${created.id}`));
     } catch (err) {
       console.error("Create epic failed:", err);
       toast(

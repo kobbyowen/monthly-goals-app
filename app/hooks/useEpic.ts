@@ -3,11 +3,12 @@
 import useSWR from "swr";
 import { getEpic } from "@lib/api/index";
 import type { Epic } from "@lib/api/types";
+import { withBase } from "../lib/api";
 
 export function useEpic(id?: string | null) {
     const shouldFetch = !!id;
     const { data, error, isLoading, mutate } = useSWR(
-        shouldFetch ? `/epics/${id}` : null,
+        shouldFetch ? withBase(`/epics/${id}`) : null,
         async () => getEpic(String(id)),
     );
     return {

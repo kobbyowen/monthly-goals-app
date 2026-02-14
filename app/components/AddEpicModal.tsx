@@ -7,6 +7,7 @@ import { toast } from "../lib/ui";
 import { useRootEpicStore } from "../stores";
 import { useShallow } from "zustand/shallow";
 import { weeksInMonth } from "../utils/date";
+import { withBase } from "../lib/api";
 
 export default function AddEpicModal({
   onCreated,
@@ -107,7 +108,7 @@ export default function AddEpicModal({
       if (onCreated) onCreated(created);
       onClose();
       // navigate to epic page
-      router.push(`/epics/${created.id}`);
+      router.push(withBase(`/epics/${created.id}`));
     } catch (err) {
       console.error("Create epic failed:", err);
       toast(

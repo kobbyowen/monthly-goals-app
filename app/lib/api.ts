@@ -7,6 +7,11 @@ export function withBase(path: string): string {
   return `${API_URL_BASE}${path}`;
 }
 
+export function withFEBase(path: string): string {
+  if (!path.startsWith("/")) path = "/" + path;
+  return `${API_URL_BASE}${path}`;
+}
+
 export async function apiFetch(
   path: string,
   init?: RequestInit,
