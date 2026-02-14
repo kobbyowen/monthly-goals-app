@@ -14,9 +14,13 @@ import { toast } from "../lib/ui";
 type Props = {
   taskId: string;
   compact?: boolean;
+  hideEmptyWhenAdding?: boolean;
 };
-
-export default function CheckList({ taskId, compact }: Props) {
+export default function CheckList({
+  taskId,
+  compact,
+  hideEmptyWhenAdding = false,
+}: Props) {
   const [items, addChecklist, updateChecklist, removeChecklist] =
     useRootEpicStore(
       useShallow((s) => [
@@ -105,11 +109,11 @@ export default function CheckList({ taskId, compact }: Props) {
 
   return (
     <div className={`space-y-2 ${compact ? "text-sm" : ""}`}>
-      {items.length === 0 ? (
+      {items.length === 0 && !hideEmptyWhenAdding ? (
         <div className="rounded-md border border-slate-200 bg-white/50 px-3 py-3 text-sm text-slate-500">
           No checklist items.
         </div>
-      ) : (
+      ) : items.length === 0 && hideEmptyWhenAdding ? null : (
         items.map((item) => (
           <CheckListRow
             key={item.id}

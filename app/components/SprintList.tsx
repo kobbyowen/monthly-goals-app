@@ -40,10 +40,21 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
   }
 
   return (
-    <div className="space-y-6">
-      {effective.map((sp) => (
-        <SprintItem key={sp.id} sprintId={sp.id} />
-      ))}
+    <div>
+      <div className="max-w-6xl mx-0 p-0 md:p-4 mb-3">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase text-center md:text-left">
+          SPRINTS
+        </h3>
+        <div className="mt-2 h-[1px] bg-slate-200 w-full" />
+      </div>
+
+      <div className="divide-y divide-slate-200">
+        {effective.map((sp) => (
+          <div key={sp.id} className="py-4">
+            <SprintItem sprintId={sp.id} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

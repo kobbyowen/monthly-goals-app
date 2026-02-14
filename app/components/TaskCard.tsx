@@ -75,7 +75,9 @@ export default function TaskCard({ taskId }: { taskId: string }) {
     ]),
   );
 
-  const title = task?.title ?? "Untitled";
+  console.log({ task });
+
+  const name = task?.name ?? "Untitled";
   const completed = !!task?.completed;
   const plannedTimeSeconds = task?.plannedTime;
 
@@ -275,8 +277,16 @@ export default function TaskCard({ taskId }: { taskId: string }) {
             <div className="flex-1">
               <p
                 className={`${status === "completed" ? "text-gray-700" : "text-gray-900"} text-sm font-semibold`}
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  wordBreak: "break-all",
+                  overflowWrap: "anywhere",
+                }}
               >
-                {title}
+                {name}
               </p>
 
               <p className="text-xs text-gray-400 mt-1">

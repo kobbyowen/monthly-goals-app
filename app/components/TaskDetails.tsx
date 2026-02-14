@@ -5,13 +5,13 @@ import React, { useEffect, useMemo, useState } from "react";
 type TaskStatus = "todo" | "running" | "completed";
 
 type Props = {
-  title: string;
+  name: string;
   status: TaskStatus;
   totalSeconds: number;
   estimatedSeconds?: number;
   checklistTotal: number;
   checklistCompleted: number;
-  onRename?: (newTitle: string) => void;
+  onRename?: (newName: string) => void;
 };
 
 function formatHMS(totalSeconds: number) {
@@ -22,7 +22,7 @@ function formatHMS(totalSeconds: number) {
 }
 
 export default function TaskDetails({
-  title,
+  name,
   status,
   totalSeconds,
   estimatedSeconds,
@@ -30,25 +30,25 @@ export default function TaskDetails({
   checklistCompleted,
   onRename,
 }: Props) {
-  const [value, setValue] = useState(title);
+  const [value, setValue] = useState(name);
 
-  // keep local value in sync when title prop changes
+  // keep local value in sync when name prop changes
   useEffect(() => {
-    setValue(title);
-  }, [title]);
+    setValue(name);
+  }, [name]);
 
   // debounce onRename as the user types
   useEffect(() => {
     const trimmed = value.trim();
     if (!onRename) return;
-    // if same as incoming title, skip
-    if (trimmed === title) return;
+    // if same as incoming name, skip
+    if (trimmed === name) return;
     const id = setTimeout(() => {
       if (!trimmed) return;
       onRename(trimmed);
     }, 700);
     return () => clearTimeout(id);
-  }, [value, onRename, title]);
+  }, [value, onRename, name]);
 
   const badge = useMemo(() => {
     switch (status) {
@@ -72,7 +72,7 @@ export default function TaskDetails({
 
   function handleRename() {
     const trimmed = value.trim();
-    if (!trimmed || trimmed === title) return;
+    if (!trimmed || trimmed === name) return;
     onRename?.(trimmed);
   }
 
@@ -87,10 +87,11 @@ export default function TaskDetails({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          maxLength={128}
           onBlur={handleRename}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleRename();
-            if (e.key === "Escape") setValue(title);
+            if (e.key === "Escape") setValue(name);
           }}
           className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
         />

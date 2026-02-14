@@ -154,14 +154,14 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
   }
 
   return (
-    <div className="max-w-6xl mx-0 p-0 md:p-6 mb-4 md:mb-6">
+    <div className="max-w-6xl mx-0 p-0 md:p-4 mb-6 md:mb-4">
       {/* Sprint Card */}
       <section
-        className={`bg-transparent md:bg-white rounded-none md:rounded-2xl shadow-none md:shadow-sm border-0 md:border border-gray-200 ${collapsed ? "px-0 pt-0 pb-0 md:px-6 md:pt-6" : "p-0 md:p-6"} space-y-4 md:space-y-6`}
+        className={`bg-transparent rounded-none ${collapsed ? "px-0 pt-0 pb-0 md:px-4 md:pt-4" : "p-0 md:p-4"} space-y-3 md:space-y-4`}
       >
         {/* Header (click anywhere to toggle collapse) */}
         <div
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 cursor-pointer"
+          className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-3 md:gap-4 cursor-pointer"
           role="button"
           tabIndex={0}
           aria-expanded={!collapsed}
@@ -170,15 +170,11 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
             if (e.key === "Enter" || e.key === " ") setCollapsed((c) => !c);
           }}
         >
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 flex-wrap">
+          <div className="space-y-2 text-center md:text-left md:pl-6">
+            <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
               <h2 className="text-xl font-semibold text-gray-900">
                 {sprint.name}
               </h2>
-
-              <span className="text-xs text-gray-500">
-                {sprint.start} — {sprint.end}
-              </span>
 
               <span
                 className={`px-3 py-1 text-xs font-medium rounded-full ${statusStyles}`}
@@ -202,7 +198,7 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
 
           {/* Stats (stop header toggle when interacting with controls) */}
           <div
-            className="flex items-center gap-4 text-sm text-gray-600"
+            className="flex items-center gap-6 md:gap-4 text-sm text-gray-600 w-full md:w-auto justify-center md:justify-end"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
@@ -277,7 +273,7 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
             transition: "max-height 320ms ease, opacity 220ms ease",
           }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             {/* To Do */}
             <div className="bg-transparent md:bg-gray-50 rounded-none md:rounded-xl p-0 md:p-4 space-y-3 md:space-y-4">
               <div className="flex justify-between items-center">

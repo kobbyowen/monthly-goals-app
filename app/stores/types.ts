@@ -4,6 +4,8 @@ export interface Epic {
     id: ID;
     name: string;
     description?: string | null;
+    epicYear?: number;
+    epicMonth?: number;
     sprintIds: ID[];
     taskIds?: ID[];
     metrics?: Record<string, unknown>;
@@ -27,7 +29,7 @@ export interface Task {
     id: ID;
     sprintId?: ID | null;
     epicId?: ID | null;
-    title: string;
+    name: string;
     description?: string | null;
     completed?: boolean;
     plannedTime?: number | null;

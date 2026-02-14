@@ -148,6 +148,19 @@ async function deleteSprint(id, userId) {
 
 function convertSprintInput(s) {
   const out = { ...s };
+  // map legacy client fields to Prisma model fields
+  if (out.label !== undefined) {
+    out.sprintLabel = out.label;
+    delete out.label;
+  }
+  if (out.start !== undefined) {
+    out.dateExpectedToStart = out.start;
+    delete out.start;
+  }
+  if (out.end !== undefined) {
+    out.dateExpectedToEnd = out.end;
+    delete out.end;
+  }
   // Prisma expects Date objects for DateTime fields
   [
     "dateExpectedToStart",

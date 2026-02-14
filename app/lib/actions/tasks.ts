@@ -29,5 +29,5 @@ export async function promptCreateTaskForSprint(
 ) {
     const title = window.prompt("Task title", "New task")?.trim();
     if (!title) return null;
-    return createTaskForSprint(sprintId, title, helpers, currentSprint);
+    return createTaskForSprint(sprintId, title.slice(0, 128), helpers, currentSprint);
 }

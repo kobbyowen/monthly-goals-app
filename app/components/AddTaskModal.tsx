@@ -65,9 +65,10 @@ export default function AddTaskModal({
     const checklistItems = parseChecklist(checklistText);
 
     try {
+      const trimmed = title.trim().slice(0, 128);
       const created = await createTask({
         sprintId: selectedSprintId,
-        title: title.trim(),
+        title: trimmed,
       });
       const resolvedSprintId = created.sprintId ?? selectedSprintId;
       const resolvedEpicId =
@@ -122,6 +123,7 @@ export default function AddTaskModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter task title..."
+              maxLength={128}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             />
           </div>
@@ -142,22 +144,28 @@ export default function AddTaskModal({
             />
           </div>
 
-          {/* Sprint Dropdown */}
+          {/* Sprint (when modal is opened with a sprintId we hide the dropdown) */}
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
               Assign to Sprint
             </label>
-            <select
-              value={selectedSprintId}
-              onChange={(e) => setSelectedSprintId(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white focus:border-indigo-500 focus:outline-none"
-            >
-              {sprints.map((sp) => (
-                <option key={sp.id} value={sp.id}>
-                  {sp.name}
-                </option>
-              ))}
-            </select>
+            {sprintId ? (
+              <div className="mt-2 text-sm text-slate-700">
+                {sprintsById[selectedSprintId]?.name ?? "Sprint"}
+              </div>
+            ) : (
+              <select
+                value={selectedSprintId}
+                onChange={(e) => setSelectedSprintId(e.target.value)}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white focus:border-indigo-500 focus:outline-none"
+              >
+                {sprints.map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Checklist */}

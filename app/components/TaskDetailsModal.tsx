@@ -8,7 +8,7 @@ import {
   deleteTask as apiDeleteTask,
 } from "@api/tasks";
 import { createChecklistForTask as apiCreateChecklistForTask } from "@api/checklists";
-import { toast } from "../lib/ui";
+import { toast, confirmDialog } from "../lib/ui";
 import TaskDetails from "./TaskDetails";
 import CheckList from "./CheckList";
 import AddChecklistItem from "./AddChecklistItem";
@@ -43,7 +43,8 @@ export default function TaskModal({
   // action handlers (API -> store)
   async function handleRenameTask(newTitle: string) {
     try {
-      const updated = await apiUpdateTask(taskId, { name: newTitle } as any);
+      const safe = (newTitle || "").slice(0, 128);
+      const updated = await apiUpdateTask(taskId, { name: safe } as any);
       storeUpdateTask(updated.id, updated);
       if (onUpdated) onUpdated();
     } catch (err) {
@@ -103,7 +104,7 @@ export default function TaskModal({
         <div className="overflow-y-auto px-5 py-5 space-y-6">
           {/* Task Details */}
           <TaskDetails
-            title={task.title}
+            name={task.name}
             status={status}
             totalSeconds={totalSeconds}
             estimatedSeconds={task.plannedTime as number}
@@ -121,14 +122,14 @@ export default function TaskModal({
 
               <button
                 onClick={() => setShowAddItem(true)}
-                disabled={showAddItem}
-                className={`text-xs font-medium text-emerald-600 hover:underline ${showAddItem ? "opacity-50 cursor-default" : ""}`}
+                disabled={showAddItem || completed}
+                className={`text-xs font-medium text-emerald-600 hover:underline ${showAddItem || completed ? "opacity-50 cursor-default" : ""}`}
               >
                 + Add Item
               </button>
             </div>
 
-            {showAddItem && (
+            {showAddItem && !completed && (
               <div className="mb-3">
                 <AddChecklistItem
                   taskId={taskId}
@@ -137,7 +138,7 @@ export default function TaskModal({
               </div>
             )}
 
-            <CheckList taskId={taskId} />
+            <CheckList taskId={taskId} hideEmptyWhenAdding={showAddItem} />
           </div>
 
           {/* Sessions Section */}
@@ -169,7 +170,13 @@ export default function TaskModal({
               checklist items.
             </p>
             <button
-              onClick={handleDeleteTask}
+              onClick={async () => {
+                const ok = await confirmDialog(
+                  "Are you sure you want to delete this task? This will permanently remove all sessions and checklist items.",
+                );
+                if (!ok) return;
+                handleDeleteTask();
+              }}
               className="mt-2 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
             >
               Delete Task
