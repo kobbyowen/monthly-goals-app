@@ -1,6 +1,8 @@
-import type { ApiCallOptions, ApiError } from './types';
 
-const DEFAULT_BASE = '/api';
+import type { ApiCallOptions, ApiError } from './types';
+import { withBase as _prependConfigBase } from '../api';
+
+const DEFAULT_BASE = _prependConfigBase('/api');
 const DEFAULT_TIMEOUT = 15000;
 const DEFAULT_RETRIES = 1;
 

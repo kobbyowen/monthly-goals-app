@@ -242,7 +242,7 @@ export default function Sidebar({
 
   const renderBody = (closeOnSelect: boolean) => (
     <>
-      <div className="mb-8 items-center gap-3 hidden md:flex">
+      <div className="mb-8 items-center gap-3 hidden lg:flex">
         <div className="h-10 w-10 rounded-md bg-linear-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
           SA
         </div>

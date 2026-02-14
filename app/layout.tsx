@@ -38,7 +38,7 @@ export default function RootLayout({
         <MobileHeader />
         <ToastProvider />
         <ConfirmProvider />
-        <div className="pt-16 md:pt-0">{children}</div>
+        <div className="pt-16 lg:pt-0">{children}</div>
       </body>
     </html>
   );
