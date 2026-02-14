@@ -3,9 +3,9 @@ export function toast(message: string, type: "info" | "success" | "error" = "inf
     window.dispatchEvent(new CustomEvent("app:toast", { detail: { message, type, ttl } }));
 }
 
-export function confirmDialog(message: string): Promise<boolean> {
+export function confirmDialog(message: string, confirmLabel: string = "Delete"): Promise<boolean> {
     if (typeof window === "undefined") return Promise.resolve(false);
     return new Promise((resolve) => {
-        window.dispatchEvent(new CustomEvent("app:confirm", { detail: { message, resolve } }));
+        window.dispatchEvent(new CustomEvent("app:confirm", { detail: { message, resolve, confirmLabel } }));
     });
 }

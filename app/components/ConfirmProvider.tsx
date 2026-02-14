@@ -5,6 +5,7 @@ import React from "react";
 export default function ConfirmProvider() {
   const [open, setOpen] = React.useState(false);
   const [message, setMessage] = React.useState("");
+  const [confirmLabel, setConfirmLabel] = React.useState("Delete");
   const resolverRef = React.useRef<((v: boolean) => void) | null>(null);
 
   React.useEffect(() => {
@@ -12,6 +13,7 @@ export default function ConfirmProvider() {
       const detail = e?.detail || {};
       setMessage(detail.message || "Are you sure?");
       resolverRef.current = detail.resolve || null;
+      setConfirmLabel(detail.confirmLabel || "Delete");
       setOpen(true);
     }
 
@@ -46,9 +48,14 @@ export default function ConfirmProvider() {
           </button>
           <button
             onClick={() => doClose(true)}
-            className="rounded-lg bg-rose-600 px-3 py-1.5 text-white"
+            className={`rounded-lg px-3 py-1.5 text-white ${
+              confirmLabel &&
+              String(confirmLabel).toLowerCase().includes("delete")
+                ? "bg-rose-600 hover:bg-rose-700"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
           >
-            Delete
+            {confirmLabel}
           </button>
         </div>
       </div>

@@ -2,8 +2,14 @@
 
 import React, { useMemo, useState } from "react";
 import useRootEpicStore from "@stores/rootEpicStore";
-import { request, getTask, updateTask, updateSession } from "@lib/api/index";
-import { toast } from "../lib/ui";
+import {
+  request,
+  getTask,
+  updateTask,
+  updateSession,
+  updateChecklist as apiUpdateChecklist,
+} from "@lib/api/index";
+import { toast, confirmDialog } from "../lib/ui";
 import TaskModal from "./TaskDetailsModal";
 import { useShallow } from "zustand/shallow";
 
@@ -78,6 +84,7 @@ export default function SemiMiniTaskCard({
     addSession: addSessionInStore,
     updateSession: updateSessionInStore,
     updateTask: updateTaskInStore,
+    updateChecklist: updateChecklistInStore,
   } = useRootEpicStore(
     useShallow((s) => ({
       task: s.tasks.byId[taskId],
@@ -203,6 +210,35 @@ export default function SemiMiniTaskCard({
   async function completeTask() {
     setLoading(true);
     try {
+      const unchecked = (Array.isArray(checklists) ? checklists : []).filter(
+        (c) => !((c as any).completed ?? (c as any).done),
+      );
+      if (unchecked.length > 0) {
+        const ok = await confirmDialog(
+          `This task has ${unchecked.length} uncompleted checklists. The checklists will be completed, do you want to proceed?`,
+          "Complete",
+        );
+        if (!ok) {
+          setLoading(false);
+          return;
+        }
+
+        for (const item of unchecked) {
+          try {
+            const updated = await apiUpdateChecklist(item.id, {
+              completed: true,
+            });
+            updateChecklistInStore(updated.id, {
+              ...updated,
+              done: updated.completed ?? updated.done,
+            });
+          } catch (err) {
+            console.error(err);
+            toast("checklist failed", "error");
+          }
+        }
+      }
+
       const now = new Date().toISOString();
       await updateTask(taskId, { completed: true, endedAt: now });
       updateTaskInStore(taskId, { completed: true, endedAt: now } as any);

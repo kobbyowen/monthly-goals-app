@@ -12,6 +12,8 @@ import {
   updateSession as apiUpdateSession,
 } from "@api/sessions";
 import { updateTask as apiUpdateTask } from "@api/tasks";
+import { updateChecklist as apiUpdateChecklist } from "@api/checklists";
+import { confirmDialog } from "../lib/ui";
 
 type Status = "todo" | "running" | "completed";
 
@@ -203,10 +205,19 @@ export default function TaskCard({ taskId }: { taskId: string }) {
 
   /* ---------- API / Store wiring ---------- */
 
-  const [addSessionToStore, storeUpdateSession, storeUpdateTask] =
-    useRootEpicStore(
-      useShallow((s) => [s.addSession, s.updateSession, s.updateTask]),
-    );
+  const [
+    addSessionToStore,
+    storeUpdateSession,
+    storeUpdateTask,
+    storeUpdateChecklist,
+  ] = useRootEpicStore(
+    useShallow((s) => [
+      s.addSession,
+      s.updateSession,
+      s.updateTask,
+      s.updateChecklist,
+    ]),
+  );
 
   async function handleStart(e?: React.MouseEvent) {
     e?.stopPropagation();
@@ -247,6 +258,33 @@ export default function TaskCard({ taskId }: { taskId: string }) {
 
   async function handleComplete(e?: React.MouseEvent) {
     e?.stopPropagation();
+    // if there are uncompleted checklist items, confirm and complete them first
+    const unchecked = (Array.isArray(checklists) ? checklists : []).filter(
+      (c) => !((c as any).completed ?? (c as any).done),
+    );
+    if (unchecked.length > 0) {
+      const ok = await confirmDialog(
+        `This task has ${unchecked.length} uncompleted checklists. The checklists will be completed, do you want to proceed?`,
+        "Complete",
+      );
+      if (!ok) return;
+
+      for (const item of unchecked) {
+        try {
+          const updated = await apiUpdateChecklist(item.id, {
+            completed: true,
+          });
+          storeUpdateChecklist(updated.id, {
+            ...updated,
+            done: updated.completed ?? updated.done,
+          });
+        } catch (err) {
+          console.error(err);
+          toast("checklist failed", "error");
+        }
+      }
+    }
+
     try {
       const updated = await apiUpdateTask(taskId, { completed: true });
       storeUpdateTask(updated.id, updated);
