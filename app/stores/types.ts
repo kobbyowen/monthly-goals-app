@@ -19,6 +19,7 @@ export interface Sprint {
     name: string;
     sprintLabel?: string | null;
     start?: string | null;
+    weekOfMonth?: number;
     end?: string | null;
     taskIds: ID[];
     createdAt?: string;

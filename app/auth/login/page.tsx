@@ -35,15 +35,10 @@ export default function LoginPage() {
         void getMe().catch(() => {});
         void getEpics()
           .then((epics) => {
-            console.log({ epics });
             addEpicsFromApi(epics);
-            // sanity check: log store population immediately
-            console.log(
-              "store.epics.ids",
-              useRootEpicStore.getState().epics.allIds.length,
-              useRootEpicStore.getState().epics.allIds.slice(0, 10),
-            );
           })
+          // sanity check: log store population immediately
+
           .catch(() => {});
         router.push(withBase("/"));
         router.refresh();

@@ -138,13 +138,62 @@ export function normalizeApiEpics(apiEpics: ApiEpic[]): Normalized {
                     }
                 }
 
+                // determine weekOfMonth (preserve if provided, otherwise try to parse from name)
+                let weekOfMonth: number | undefined = undefined;
+                if (typeof (s as any).weekOfMonth === 'number') {
+                    weekOfMonth = (s as any).weekOfMonth;
+                } else if (typeof s.name === 'string') {
+                    const m = s.name.match(/Week\s*(\d+)/i);
+                    if (m) weekOfMonth = Number(m[1]);
+                }
+
+                // map dates, prefer explicit fields then fallbacks
+                let start = s.dateStarted ?? s.dateExpectedToStart ?? null;
+                let end = s.dateEnded ?? s.dateExpectedToEnd ?? null;
+
+                // if start/end missing but epic has month/year and we know weekOfMonth, compute dates
+                const epicYear = typeof aEpic.epicYear === 'number' ? aEpic.epicYear : undefined;
+                const epicMonth = typeof aEpic.epicMonth === 'number' ? aEpic.epicMonth : undefined; // 1-12
+                if ((!start || !end) && epicYear && epicMonth && typeof weekOfMonth === 'number') {
+                    try {
+                        // compute Mondays on or before first day, then collect weeks whose Monday is inside the month
+                        const monthIndex = epicMonth - 1;
+                        const firstDay = new Date(epicYear, monthIndex, 1);
+                        const lastDay = new Date(epicYear, monthIndex + 1, 0);
+
+                        const startCandidate = new Date(firstDay);
+                        while (startCandidate.getDay() !== 1) startCandidate.setDate(startCandidate.getDate() - 1);
+
+                        const weeks: { start: Date; end: Date }[] = [];
+                        const cur = new Date(startCandidate);
+                        while (cur <= lastDay) {
+                            const ws = new Date(cur);
+                            const we = new Date(cur);
+                            we.setDate(we.getDate() + 6);
+                            if (ws.getMonth() === monthIndex) {
+                                weeks.push({ start: new Date(ws), end: new Date(we) });
+                            }
+                            cur.setDate(cur.getDate() + 7);
+                        }
+
+                        const idx = weekOfMonth - 1;
+                        if (weeks[idx]) {
+                            start = weeks[idx].start.toISOString();
+                            end = weeks[idx].end.toISOString();
+                        }
+                    } catch (e) {
+                        // ignore compute errors and leave start/end as-is
+                    }
+                }
+
                 sprints.push({
                     id: s.id,
                     epicId: s.epicId ?? aEpic.id,
                     name: s.name,
                     sprintLabel: s.sprintLabel ?? s.label ?? null,
-                    start: s.dateStarted ?? s.dateExpectedToStart ?? null,
-                    end: s.dateEnded ?? s.dateExpectedToEnd ?? null,
+                    start: start,
+                    end: end,
+                    weekOfMonth: typeof weekOfMonth === 'number' ? weekOfMonth : undefined,
                     taskIds: sprintTaskIds,
                     createdAt: s.createdAt ?? undefined,
                     updatedAt: s.updatedAt ?? undefined,

@@ -75,8 +75,6 @@ export default function TaskCard({ taskId }: { taskId: string }) {
     ]),
   );
 
-  console.log({ task });
-
   const name = task?.name ?? "Untitled";
   const completed = !!task?.completed;
   const plannedTimeSeconds = task?.plannedTime;

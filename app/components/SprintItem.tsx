@@ -59,8 +59,6 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
     }
   }, [collapsed, tasksBySprint]);
 
-  if (!sprint) return null;
-
   /* -------------------------
      Group Tasks
   -------------------------- */
@@ -95,15 +93,6 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
 
   const progress =
     totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
-
-  const plannedHours = useMemo(() => {
-    const totalSeconds = tasksBySprint.reduce(
-      (acc, t) => acc + (t.plannedTime ?? 0),
-      0,
-    );
-    if (!totalSeconds) return undefined;
-    return Math.round(totalSeconds / 3600);
-  }, [tasksBySprint]);
 
   const { checklistTotal, checklistCompleted } = useMemo(() => {
     try {
@@ -153,7 +142,7 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
     setShowAddModal(true);
   }
 
-  return (
+  return !sprint ? null : (
     <div className="max-w-6xl mx-0 p-0 md:p-4 mb-6 md:mb-4">
       {/* Sprint Card */}
       <section

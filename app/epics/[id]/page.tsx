@@ -23,6 +23,23 @@ export default function EpicPage() {
     useShallow((s) => s.getSprintsByEpic(epicId)),
   );
 
+  const sortedSprints = React.useMemo(() => {
+    if (!sprintView || !sprintView.length) return sprintView;
+    return [...sprintView].sort((a, b) => {
+      const aw = (a as any).weekOfMonth ?? null;
+      const bw = (b as any).weekOfMonth ?? null;
+      if (aw != null && bw != null) return aw - bw;
+      if (aw != null) return -1;
+      if (bw != null) return 1;
+
+      const aStart = (a as any).start || (a as any).dateExpectedToStart || null;
+      const bStart = (b as any).start || (b as any).dateExpectedToEnd || null;
+      const aTime = aStart ? Date.parse(aStart) : Number.POSITIVE_INFINITY;
+      const bTime = bStart ? Date.parse(bStart) : Number.POSITIVE_INFINITY;
+      return aTime - bTime;
+    });
+  }, [sprintView]);
+
   return (
     <div className="min-h-screen flex bg-gray-50 dark:bg-black">
       <Sidebar sprints={epics} activeId={epicId} />
@@ -39,7 +56,7 @@ export default function EpicPage() {
                 {/* <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
                   Sprints
                 </h2> */}
-                <SprintList sprints={sprintView} />
+                <SprintList sprints={sortedSprints} />
               </div>
             )}
           </div>

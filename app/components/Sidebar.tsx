@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import CreateEpic from "./CreateEpic";
+import AddEpicModal from "./AddEpicModal";
+import EpicItem from "./EpicItem";
 import { useRouter } from "next/navigation";
 import { useUserStore, useAuthStore } from "@stores";
 import { useRootEpicStore } from "@stores";
@@ -127,6 +129,7 @@ export default function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [showAddEpic, setShowAddEpic] = useState(false);
   useEffect(() => {
     const handler = () => setOpen(true);
     if (typeof window !== "undefined") {
@@ -232,11 +235,9 @@ export default function Sidebar({
     e ? !!e.dateEnded || e.status === "completed" : false,
   );
 
-  const currentEpics = [
-    ...currentMonthEpics,
-    ...futureEpics,
-    ...fallbackCurrent,
-  ];
+  // Separate current / future / past clearly
+  const currentEpics = [...currentMonthEpics, ...fallbackCurrent];
+  const futureEpicsList = [...futureEpics];
   const pastEpics = [...pastEpicsWithMonth, ...fallbackPast];
 
   const renderBody = (closeOnSelect: boolean) => (
@@ -279,71 +280,91 @@ export default function Sidebar({
 
       <div className="space-y-6">
         <div>
-          <div className="text-xs font-semibold uppercase text-gray-400 mb-2">
-            Current Monthly Epics
+          <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
+            Current Epic
+          </div>
+          <div className="text-[10px] text-gray-400 mb-2">
+            for current month
           </div>
           <ul className="space-y-3">
             {currentEpics.length ? (
               currentEpics.map((ep) => (
                 <li key={ep.id}>
-                  <Link
-                    href={`/epics/${ep.id}`}
-                    onClick={() => {
-                      onSelect?.(ep.id);
-                      if (closeOnSelect) setOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-2 text-left px-3 py-4 rounded cursor-pointer text-sm ${
-                      activeId === ep.id
-                        ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-100"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-900"
-                    }`}
-                  >
-                    <IconSprint />
-                    <span className="truncate">{ep.name}</span>
-                  </Link>
+                  <EpicItem
+                    id={ep.id}
+                    name={ep.name}
+                    activeId={activeId}
+                    onSelect={onSelect}
+                    closeOnSelect={closeOnSelect}
+                    onClose={() => setOpen(false)}
+                  />
                 </li>
               ))
             ) : (
-              <li className="text-xs text-gray-500">
-                No current monthly epics
-              </li>
+              <li className="text-xs text-gray-500">No current epics</li>
             )}
           </ul>
         </div>
 
         <div>
-          <div className="text-xs font-semibold uppercase text-gray-400 mb-2">
-            Past Monthly Epics
+          <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
+            Past Epics
           </div>
+          <div className="text-[10px] text-gray-400 mb-2">For past month</div>
           <ul className="space-y-3">
             {pastEpics.length ? (
               pastEpics.map((ep) => (
                 <li key={ep.id}>
-                  <Link
-                    href={`/epics/${ep.id}`}
-                    onClick={() => {
-                      onSelect?.(ep.id);
-                      if (closeOnSelect) setOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-2 text-left px-2 py-4 rounded cursor-pointer text-sm ${
-                      activeId === ep.id
-                        ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-100"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-900"
-                    }`}
-                  >
-                    <IconSprint />
-                    <span className="truncate">{ep.name}</span>
-                  </Link>
+                  <EpicItem
+                    id={ep.id}
+                    name={ep.name}
+                    activeId={activeId}
+                    onSelect={onSelect}
+                    closeOnSelect={closeOnSelect}
+                    onClose={() => setOpen(false)}
+                  />
                 </li>
               ))
             ) : (
-              <li className="text-xs text-gray-500">No past monthly epics</li>
+              <li className="text-xs text-gray-500">No past epics</li>
+            )}
+          </ul>
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
+            Future Epics
+          </div>
+          <div className="text-[10px] text-gray-400 mb-2">
+            for future months
+          </div>
+          <ul className="space-y-3">
+            {futureEpicsList.length ? (
+              futureEpicsList.map((ep) => (
+                <li key={ep.id}>
+                  <EpicItem
+                    id={ep.id}
+                    name={ep.name}
+                    activeId={activeId}
+                    onSelect={onSelect}
+                    closeOnSelect={closeOnSelect}
+                    onClose={() => setOpen(false)}
+                  />
+                </li>
+              ))
+            ) : (
+              <li className="text-xs text-gray-500">No future epics</li>
             )}
           </ul>
         </div>
 
         <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-          <CreateEpic onCreated={onCreated} />
+          <button
+            onClick={() => setShowAddEpic(true)}
+            className="w-full justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition text-sm font-medium"
+          >
+            New Monthly Epic
+          </button>
         </div>
       </div>
     </>
@@ -377,6 +398,15 @@ export default function Sidebar({
           </button>
         </div>
       </aside>
+      {showAddEpic && (
+        <AddEpicModal
+          onClose={() => setShowAddEpic(false)}
+          onCreated={(epic) => {
+            if (onCreated) onCreated(epic);
+            setShowAddEpic(false);
+          }}
+        />
+      )}
       {/* Mobile / tablet slide-in sidebar */}
       {open && (
         <aside className="lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between pt-5 h-screen">
