@@ -8,6 +8,7 @@ if ! command -v node >/dev/null 2>&1; then
   echo "node not found in PATH. Install Node.js first." >&2
   exit 1
 fi
+
 if ! command -v npm >/dev/null 2>&1; then
   echo "npm not found in PATH. Install Node.js/npm first." >&2
   exit 1
@@ -16,6 +17,7 @@ fi
 # Do not set NODE_ENV=production yet — devDependencies are required for build
 echo "Installing dependencies..."
 echo "Cleaning previous build artifacts and local caches..."
+
 # remove Next.js build output and some common cache directories
 rm -rf .next .next/cache .next/static out dist
 rm -rf node_modules/.cache .cache .parcel-cache .vercel .turbo
@@ -38,8 +40,11 @@ echo "Building Next.js app..."
 NODE_ENV=production npm run build
 
 echo "Starting app (production)..."
-# Start in production mode
+
 export NODE_ENV=production
 PORT=${SPRINT_APP_PORT:-2200}
+
 echo "Starting app (production) on port $PORT..."
-PORT="$PORT" NODE_ENV=production npm run start
+
+# 🔥 OPTION B — replace shell with Next.js process
+exec PORT="$PORT" NODE_ENV=production npm run start
