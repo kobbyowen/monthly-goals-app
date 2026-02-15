@@ -44,7 +44,9 @@ echo "Starting app (production)..."
 export NODE_ENV=production
 PORT=${SPRINT_APP_PORT:-2200}
 
+echo "Starting app (production)..."
+
+PORT=${SPRINT_APP_PORT:-2200}
 echo "Starting app (production) on port $PORT..."
 
-# 🔥 OPTION B — replace shell with Next.js process
-exec PORT="$PORT" NODE_ENV=production npm run start
+PORT="$PORT" NODE_ENV=production exec npm run start
