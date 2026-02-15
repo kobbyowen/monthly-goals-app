@@ -42,7 +42,7 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
   return (
     <div>
       <div className="max-w-6xl mx-0 p-0 md:p-4 mb-3">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase text-center md:text-left">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase text-center">
           SPRINTS
         </h3>
         <div className="mt-2 h-[1px] bg-slate-200 w-full" />

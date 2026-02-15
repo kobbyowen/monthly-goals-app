@@ -1,5 +1,5 @@
-import crypto from 'crypto';
-import prisma from './prisma.js';
+import crypto from "crypto";
+import prisma from "./prisma.js";
 
 function generateId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -26,16 +26,26 @@ async function createUser({ name, email, password }) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new Error("Email already registered");
   const passwordHash = hashPassword(password);
-  const user = await prisma.user.create({
-    data: {
-      id: generateId("user"),
-      name: name || null,
-      email,
-      passwordHash,
-      createdAt: new Date().toISOString(),
-    },
-  });
-  return user;
+  try {
+    const user = await prisma.user.create({
+      data: {
+        id: generateId("user"),
+        name: name || null,
+        email,
+        passwordHash,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    return user;
+  } catch (err) {
+    // Prisma unique constraint error code is P2002
+    try {
+      if (err && err.code === "P2002") {
+        throw new Error("Email already registered");
+      }
+    } catch (e) {}
+    throw err;
+  }
 }
 
 async function createSession(userId) {
