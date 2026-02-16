@@ -13,6 +13,10 @@ type Props = {
   onChange: (patch: Partial<StepData>) => void;
   onNext?: () => void;
   onCancel?: () => void;
+  epicName?: string;
+  epicDescription?: string;
+  onEpicChange?: (patch: { name?: string; description?: string }) => void;
+  onBack?: () => void;
 };
 
 function daysInMonth(year: number, month: number) {
@@ -35,6 +39,10 @@ export default function WizardStep1({
   onChange,
   onNext,
   onCancel,
+  epicName,
+  epicDescription,
+  onEpicChange,
+  onBack,
 }: Props) {
   const now = new Date();
 

@@ -147,7 +147,7 @@ export function createStructuredPlan(wizardData: any) {
     }
 
     // final cleanup: strip helper fields and normalize tasks
-    const cleaned = sprints.map((s) => ({
+    const cleaned = sprints.map((s: any) => ({
         id: s.id,
         name: s.name,
         startAt: s.startAt,

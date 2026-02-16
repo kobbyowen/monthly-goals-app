@@ -20,7 +20,9 @@ export default function TasksPage() {
   const getSessionsByTask = useRootEpicStore(
     useShallow((s) => s.getSessionsByTask),
   );
-  const getSprintsByEpic = useRootEpicStore(useShallow((s) => s.getSprintsByEpic));
+  const getSprintsByEpic = useRootEpicStore(
+    useShallow((s) => s.getSprintsByEpic),
+  );
   const storeVersion = useRootEpicStore((s) => s._version);
 
   const { inProgressTasks, todoTasks, completedTasks } = React.useMemo(() => {
@@ -31,7 +33,11 @@ export default function TasksPage() {
     const q = (query || "").trim().toLowerCase();
     // If filtering by epic, include tasks directly linked to the epic OR tasks whose sprint belongs to the epic
     const sprintIdsForEpic = filterEpic
-      ? new Set((getSprintsByEpic ? getSprintsByEpic(filterEpic) : []).map((s: any) => s.id))
+      ? new Set(
+          (getSprintsByEpic ? getSprintsByEpic(filterEpic) : []).map(
+            (s: any) => s.id,
+          ),
+        )
       : new Set<string>();
 
     const filtered = (tasks || []).filter((t) => {
@@ -39,7 +45,9 @@ export default function TasksPage() {
       if (filterEpic) {
         const taskEpic = (t as any).epicId;
         const taskSprintId = (t as any).sprintId;
-        const inEpic = taskEpic === filterEpic || (taskSprintId && sprintIdsForEpic.has(taskSprintId));
+        const inEpic =
+          taskEpic === filterEpic ||
+          (taskSprintId && sprintIdsForEpic.has(taskSprintId));
         if (!inEpic) return false;
       }
       if (filterSprint && (t as any).sprintId !== filterSprint) return false;
@@ -71,7 +79,15 @@ export default function TasksPage() {
       todoTasks: todo,
       completedTasks: done,
     };
-  }, [tasks, getSessionsByTask, query, filterEpic, filterSprint, getSprintsByEpic, storeVersion]);
+  }, [
+    tasks,
+    getSessionsByTask,
+    query,
+    filterEpic,
+    filterSprint,
+    getSprintsByEpic,
+    storeVersion,
+  ]);
 
   // ensure stable client rendering when store initially empty
   const [mounted, setMounted] = useState(false);
@@ -79,13 +95,25 @@ export default function TasksPage() {
 
   // initialize default epic + sprint when store populates
   useEffect(() => {
-    if (mounted && (!filterEpic || filterEpic === "") && epics && epics.length > 0) {
+    if (
+      mounted &&
+      (!filterEpic || filterEpic === "") &&
+      epics &&
+      epics.length > 0
+    ) {
       const now = new Date();
       const curYear = now.getFullYear();
       const curMonth = now.getMonth() + 1;
 
       // prefer epic matching current year/month
-      const found = epics.find((e: any) => e && typeof e.epicYear === 'number' && typeof e.epicMonth === 'number' && e.epicYear === curYear && e.epicMonth === curMonth);
+      const found = epics.find(
+        (e: any) =>
+          e &&
+          typeof e.epicYear === "number" &&
+          typeof e.epicMonth === "number" &&
+          e.epicYear === curYear &&
+          e.epicMonth === curMonth,
+      );
       const defaultEpic = found ? found.id : (epics[0] && epics[0].id) || "";
       if (defaultEpic) setFilterEpic(defaultEpic);
 
@@ -182,13 +210,13 @@ export default function TasksPage() {
                 className="text-sm w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700"
               >
                 <option value="">All sprints</option>
-                {(getSprintsByEpic && filterEpic
-                  ? getSprintsByEpic(filterEpic)
-                  : []).map((sp: any) => (
-                  <option key={sp.id} value={sp.id}>
-                    {sp.name}
-                  </option>
-                ))}
+                {(filterEpic ? getSprintsByEpic(filterEpic) || [] : []).map(
+                  (sp: any) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.name}
+                    </option>
+                  ),
+                )}
               </select>
             </div>
           </div>
