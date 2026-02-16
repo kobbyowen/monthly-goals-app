@@ -221,7 +221,13 @@ export default function WizardModal({
       if (!key) return new Date().getDate();
       const [y, m] = key.split("-").map((s) => Number(s));
       if (!y || !m) return new Date().getDate();
-      return new Date(y, m, 0).getDate();
+      const total = new Date(y, m, 0).getDate();
+      // if the key is the current month, exclude past days
+      const now = new Date();
+      if (now.getFullYear() === y && now.getMonth() + 1 === m) {
+        return Math.max(0, total - (now.getDate() - 1));
+      }
+      return total;
     } catch {
       return new Date().getDate();
     }
@@ -232,9 +238,12 @@ export default function WizardModal({
       if (!key) return 0;
       const [y, m] = key.split("-").map((s) => Number(s));
       if (!y || !m) return 0;
-      const days = new Date(y, m, 0).getDate();
+      const total = new Date(y, m, 0).getDate();
+      const now = new Date();
+      const fromDay =
+        now.getFullYear() === y && now.getMonth() + 1 === m ? now.getDate() : 1;
       let count = 0;
-      for (let d = 1; d <= days; d++) {
+      for (let d = fromDay; d <= total; d++) {
         const dow = new Date(y, m - 1, d).getDay();
         if (dow === 0 || dow === 6) count++;
       }
@@ -281,7 +290,9 @@ export default function WizardModal({
       const [py, pm] = (monthKey || "").split("-").map((s) => Number(s));
       const daysInMonth = daysInMonthFromKey(monthKey);
       const weekendDays = countWeekendDaysFromKey(monthKey);
-      const weeksInMonth = 4; // treat month as 4-week sprint for monthly math
+      const fullWeeks = Math.floor(daysInMonth / 7);
+      const remainderDays = daysInMonth % 7;
+      const weeksInMonth = fullWeeks + (remainderDays > 0 ? 1 : 0);
 
       const totalHoursInMonth = daysInMonth * 24;
       const totalHoursExcludingWeekends = totalHoursInMonth - weekendDays * 24;
@@ -293,7 +304,13 @@ export default function WizardModal({
       const safeCommitmentHours = Math.max(0, safeHoursPerDay * includedDays);
 
       const weeklyCommitmentHours = Number(step1Data.weeklyCommitment || 0);
-      const monthlyCommitmentHours = weeklyCommitmentHours * 4;
+      const dailyCommitment = weeklyCommitmentHours / 7;
+      const monthlyCommitmentHours =
+        Math.round(
+          (fullWeeks * weeklyCommitmentHours +
+            remainderDays * dailyCommitment) *
+            100,
+        ) / 100;
 
       const goals = (step2Data.goals || []).map((g: any, idx: number) => {
         const hours = Number(g.hours || 0);
@@ -501,7 +518,10 @@ export default function WizardModal({
     setSubmitting(true);
     try {
       const created = await submitGoalsForEpic(planJson);
-      toast("Epic created — now you can add a checklist to any task", "success");
+      toast(
+        "Epic created — now you can add a checklist to any task",
+        "success",
+      );
       // eslint-disable-next-line no-console
       console.log("submitGoalsForEpic - API response:", created);
 

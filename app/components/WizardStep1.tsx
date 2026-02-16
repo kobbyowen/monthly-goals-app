@@ -54,9 +54,27 @@ export default function WizardStep1({
     typeof data.weeklyCommitment === "number" ? data.weeklyCommitment : 0;
 
   const [y, m] = monthKey.split("-").map((s) => Number(s));
-  const days = daysInMonth(y, m);
+  // If month is current month, exclude past days from calculations (use remaining days)
+  const totalDaysInMonth = daysInMonth(y, m);
+  const isCurrentMonth = y === now.getFullYear() && m === now.getMonth() + 1;
+  const startDay = isCurrentMonth ? now.getDate() : 1;
+  const days = Math.max(0, totalDaysInMonth - (startDay - 1));
   const totalMonthHours = 24 * days;
-  const weekendDays = countWeekendDays(y, m);
+  // Count weekend days within the considered range
+  function countWeekendDaysInRange(
+    year: number,
+    month: number,
+    fromDay: number,
+    toDay: number,
+  ) {
+    let count = 0;
+    for (let d = fromDay; d <= toDay; d++) {
+      const dow = new Date(year, month - 1, d).getDay();
+      if (dow === 0 || dow === 6) count++;
+    }
+    return count;
+  }
+  const weekendDays = countWeekendDaysInRange(y, m, startDay, totalDaysInMonth);
   const totalHoursExcludingWeekends = totalMonthHours - weekendDays * 24;
 
   // After deducting sleep (8h/day)
@@ -65,12 +83,17 @@ export default function WizardStep1({
     : totalHoursExcludingWeekends - 8 * (days - weekendDays);
 
   const safeHoursPerDay = 6; // internal default
-  const includedDays = includeWeekends ? days : days - weekendDays;
+  const includedDays = includeWeekends ? days : Math.max(0, days - weekendDays);
   const recommendedSafeCommitment = Math.max(0, safeHoursPerDay * includedDays);
 
-  // monthly commitment derived from weekly hours (pro-rate by days/7)
-  // Use 4 weeks per sprint as monthly equivalent
-  const monthlyCommitment = Math.round(weeklyCommitment * 4 * 100) / 100;
+  // monthly commitment derived from weekly hours using full weeks + remainder days
+  const fullWeeks = Math.floor(days / 7);
+  const remainderDays = days % 7;
+  const dailyCommitment = weeklyCommitment / 7;
+  const monthlyCommitment =
+    Math.round(
+      (fullWeeks * weeklyCommitment + remainderDays * dailyCommitment) * 100,
+    ) / 100;
 
   // Progress zones use totalMonthHours as baseline
   const yellowLimit = 10 * days; // 10 hours/day heavy workload
@@ -160,7 +183,7 @@ export default function WizardStep1({
       {/* Progress */}
       <div>
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>Monthly commitment (based on a 28-day month)</span>
+          <span>Monthly commitment (based on selected month)</span>
           <span>
             {monthlyCommitment}h / {totalMonthHours}h
           </span>

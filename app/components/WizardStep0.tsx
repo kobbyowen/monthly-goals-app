@@ -24,8 +24,9 @@ export default function WizardStep0({
   const now = new Date();
   const currentYear = now.getFullYear();
   const monthOptions = useMemo(() => {
+    // show the next 12 months starting from current month (exclude past months)
     return Array.from({ length: 12 }).map((_, idx) => {
-      const date = new Date(currentYear, idx, 1);
+      const date = new Date(currentYear, now.getMonth() + idx, 1);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const label = date.toLocaleString(undefined, {
         month: "long",

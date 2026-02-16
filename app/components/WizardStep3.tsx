@@ -24,9 +24,14 @@ export default function WizardStep3({ data }: Props) {
   const days = daysInMonth(monthKey);
   const includeWeekends = !!step1.includeWeekends;
   const weeklyCommitment = Number(step1.weeklyCommitment || 0);
-  const weeks = 4;
-  const monthlyCommitment = weeklyCommitment * 4;
   const totalHours = days * 24;
+  const fullWeeks = Math.floor(days / 7);
+  const remainderDays = days % 7;
+  const dailyCommitment = weeklyCommitment / 7;
+  const monthlyCommitment =
+    Math.round(
+      (fullWeeks * weeklyCommitment + remainderDays * dailyCommitment) * 100,
+    ) / 100;
 
   const goals = (step2.goals || []).map((g: any) => {
     const hours = Number(g.hours || 0);
@@ -143,12 +148,38 @@ export default function WizardStep3({ data }: Props) {
     };
   });
 
-  // Post-process: ensure total month hours >= weeklyCommitment * 4 by padding last sprint
+  // Reassign sequence numbers so that numbering starts from the first enabled (non-past) sprint.
+  // Past sprints keep their week label but do not consume a sequence number.
+  (function reseq() {
+    let seqCounter = 0;
+    const now = Date.now();
+    for (const s of sprintsWithHours) {
+      const endIso = s.endDate || s.end || null;
+      const isPast = endIso ? Date.parse(endIso) < now : false;
+      s.isPast = isPast;
+      if (!isPast) {
+        seqCounter++;
+        const seq = String(seqCounter).padStart(2, "0");
+        s.name = `Week ${s.weekNumber} Sprint ${seq}`;
+      } else {
+        // past sprints: remove sprint numeric suffix
+        s.name = `Week ${s.weekNumber} Sprint`;
+      }
+    }
+  })();
+
+  // Post-process: ensure total month hours >= calculated monthly commitment by padding last sprint
   try {
-    const totalMonthHours = sprintsWithHours.reduce((acc, s) => acc + (s.hours || 0), 0);
-    const minMonthlyRequired = (weeklyCommitment || 0) * 4;
+    const totalMonthHours = sprintsWithHours.reduce(
+      (acc, s) => acc + (s.hours || 0),
+      0,
+    );
+    const minMonthlyRequired =
+      Math.round(
+        (fullWeeks * weeklyCommitment + remainderDays * dailyCommitment) * 100,
+      ) / 100;
     if (totalMonthHours < minMonthlyRequired && sprintsWithHours.length > 0) {
-      const diff = Math.round(minMonthlyRequired - totalMonthHours);
+      const diff = Math.round(minMonthlyRequired - totalMonthHours || 0);
       sprintsWithHours[sprintsWithHours.length - 1].hours =
         (sprintsWithHours[sprintsWithHours.length - 1].hours || 0) + diff;
     }
@@ -297,13 +328,14 @@ export default function WizardStep3({ data }: Props) {
                     (s) => s.startDate === isoStart && s.endDate === isoEnd,
                   );
                   if (sp) {
+                    const isPast = !!sp.isPast;
                     rows.push(
                       <div
                         key={`g_${i}`}
-                        className="flex items-center justify-between"
+                        className={`flex items-center justify-between ${isPast ? "opacity-60 italic" : ""}`}
                       >
                         <div className="text-slate-700">{sp.name}</div>
-                        <div className="text-slate-600">{`${fmt(w.start)} — ${fmt(w.end)} · ${sp.hours}h`}</div>
+                        <div className="text-slate-600">{`${fmt(w.start)} — ${fmt(w.end)} · ${sp.hours}h ${isPast ? "· past" : ""}`}</div>
                       </div>,
                     );
                   } else {

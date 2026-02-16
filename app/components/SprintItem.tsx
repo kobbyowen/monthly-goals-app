@@ -126,6 +126,15 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
         ? "running"
         : "todo";
 
+  // Determine if sprint is in the past (end date before today)
+  let sprintEnd: string | null = null;
+  try {
+    sprintEnd = sprint?.end || sprint?.dateExpectedToEnd || null;
+  } catch (e) {
+    sprintEnd = null;
+  }
+  const isPast = sprintEnd ? Date.parse(sprintEnd) < Date.now() : false;
+
   const statusStyles = {
     todo: "bg-gray-100 text-gray-700",
     running: "bg-yellow-100 text-yellow-700",
@@ -177,7 +186,9 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
             if (e.key === "Enter" || e.key === " ") setCollapsed((c) => !c);
           }}
         >
-          <div className="space-y-2 text-center md:text-left md:pl-6">
+          <div
+            className={`space-y-2 text-center md:text-left md:pl-6 ${isPast ? "opacity-60 pointer-events-none" : ""}`}
+          >
             <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
               <h2 className="text-xl font-semibold text-gray-900">
                 {sprint.name}
@@ -239,8 +250,8 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
                   e.stopPropagation();
                   handleAdd();
                 }}
-                disabled={adding}
-                className={`hidden md:inline-flex px-4 py-2 text-sm font-medium rounded-lg transition ${adding ? "bg-indigo-300 text-white cursor-wait" : "bg-indigo-600 text-white hover:bg-indigo-700"}`}
+                disabled={adding || isPast}
+                className={`hidden md:inline-flex px-4 py-2 text-sm font-medium rounded-lg transition ${adding || isPast ? "bg-indigo-300 text-white cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700"}`}
               >
                 {adding ? "Adding…" : "Add Task"}
               </button>
