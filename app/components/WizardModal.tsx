@@ -339,7 +339,10 @@ export default function WizardModal({
                       toast("Please select a month", "error");
                       return;
                     }
-                    if (!step1Data.weeklyCommitment || step1Data.weeklyCommitment <= 0) {
+                    if (
+                      !step1Data.weeklyCommitment ||
+                      step1Data.weeklyCommitment <= 0
+                    ) {
                       toast("Please set a weekly commitment (> 0)", "error");
                       return;
                     }
@@ -362,13 +365,19 @@ export default function WizardModal({
                   }
                   if (validateStep2()) setStep((s) => s + 1);
                 }}
-                disabled={step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit}
+                disabled={
+                  step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
+                }
                 className={`rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white ${
                   step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
-                title={step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit ? "Reduce goal allocation to proceed" : undefined}
+                title={
+                  step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
+                    ? "Reduce goal allocation to proceed"
+                    : undefined
+                }
               >
                 Next
               </button>
