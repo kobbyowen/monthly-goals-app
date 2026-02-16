@@ -13,16 +13,19 @@ export function createStructuredPlan(wizardData: any) {
     const rndId = (prefix = "id") =>
         `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 
-    // initialize sprint containers
-    const sprints = sprintsSrc.map((s: any, idx: number) => ({
-        id: `spr_${String(idx + 1).padStart(3, "0")}`,
-        name: s.name || s.name,
-        startAt: s.startDate || s.startAt || null,
-        endAt: s.endDate || s.endAt || null,
-        weeklyCapacity: weeklyLimit,
-        remainingHours: weeklyLimit,
-        tasks: [] as any[],
-    }));
+    // initialize sprint containers. If preview provided per-sprint hours, use that
+    const sprints = sprintsSrc.map((s: any, idx: number) => {
+        const cap = typeof s.hours === 'number' && s.hours >= 0 ? Number(s.hours) : weeklyLimit;
+        return {
+            id: `spr_${String(idx + 1).padStart(3, "0")}`,
+            name: s.name || s.name,
+            startAt: s.startDate || s.startAt || null,
+            endAt: s.endDate || s.endAt || null,
+            weeklyCapacity: cap,
+            remainingHours: cap,
+            tasks: [] as any[],
+        };
+    });
 
     // split goals by frequency
     const weeklyGoals = goals.filter(
@@ -65,87 +68,81 @@ export function createStructuredPlan(wizardData: any) {
     // STEP 1: assign weekly goals to every sprint — never drop user-set weekly hours.
     // We allocate the full requested weekly hours into each sprint. This may push
     // sprint.remainingHours below zero; a soft overrun of -5 hours is tolerated.
+    // STEP 1: assign weekly goals to every sprint — allocate proportionally based on sprint capacity
+    // For full weeks (capacity === weeklyLimit) this allocates the full requested hours.
+    // For partial weeks (capacity < weeklyLimit) this allocates: round(goal.hours * capacity / weeklyLimit).
     for (const sprint of sprints) {
         for (const goal of weeklyGoals) {
             const hours = (goal.effort && goal.effort.hours) || 0;
             if (hours <= 0) continue;
-            const task = {
-                id: rndId("task"),
-                name: goal.name,
-                sourceGoalId: goal.id,
-                effortType: "weekly",
-                allocatedHours: hours,
-                priority: goal.priority || "medium",
-            };
-            // ensure full allocation for weekly goals
-            pushTaskToSprint(sprint, task, true);
-        }
-    }
-
-    // STEP 2: distribute monthly goals across sprints fairly (early-first remainder)
-    for (const goal of monthlyGoals) {
-        const total =
-            (goal.effort && (goal.effort.monthlyEquivalentHours ?? goal.effort.hours)) || 0;
-        if (total <= 0) continue;
-
-        // base allocation per sprint (integer hours) + remainder
-        const base = Math.floor(total / numSprints);
-        let remainder = total - base * numSprints;
-
-        for (let i = 0; i < sprints.length && (base > 0 || remainder > 0); i++) {
-            const sprint = sprints[i];
-            const alloc = base + (remainder > 0 ? 1 : 0);
-            if (remainder > 0) remainder--;
+            let alloc = hours;
+            if (weeklyLimit > 0) {
+                alloc = Math.max(0, Math.round((hours * (sprint.weeklyCapacity || 0)) / weeklyLimit));
+            }
             if (alloc <= 0) continue;
             const task = {
                 id: rndId("task"),
                 name: goal.name,
                 sourceGoalId: goal.id,
-                effortType: "monthly",
+                effortType: "weekly",
                 allocatedHours: alloc,
                 priority: goal.priority || "medium",
             };
-            // try to allocate conservatively allowing per-sprint soft overrun to minRemaining=-5
-            const used = pushTaskToSprint(sprint, task, false, -5);
-            if (used < alloc) {
-                let remainingToPlace = alloc - used;
-                // try to place remainder into later sprints (also respecting the -5 soft overrun)
-                for (let j = i + 1; j < sprints.length && remainingToPlace > 0; j++) {
-                    const nextSprint = sprints[j];
-                    const carryAlloc = Math.min(remainingToPlace, Math.max(0, nextSprint.remainingHours - -5));
-                    if (carryAlloc > 0) {
-                        const used2 = pushTaskToSprint(
-                            nextSprint,
-                            {
-                                id: rndId("task"),
-                                name: goal.name,
-                                sourceGoalId: goal.id,
-                                effortType: "monthly",
-                                allocatedHours: carryAlloc,
-                                priority: goal.priority || "medium",
-                            },
-                            false,
-                            -5,
-                        );
-                        remainingToPlace -= used2;
-                    }
-                }
+            // conservative allocation: do not allow overflow for weekly allocations
+            pushTaskToSprint(sprint, task, false, 0);
+        }
+    }
 
-                // if we still have remaining hours that couldn't be placed within the soft overrun,
-                // force them into the last sprint to guarantee no goal is dropped (preserve user hours).
-                if (remainingToPlace > 0) {
-                    const last = sprints[sprints.length - 1];
-                    const forcedTask = {
-                        id: rndId("task"),
-                        name: goal.name,
-                        sourceGoalId: goal.id,
-                        effortType: "monthly",
-                        allocatedHours: remainingToPlace,
-                        priority: goal.priority || "medium",
-                    };
-                    pushTaskToSprint(last, forcedTask, true);
-                }
-            }
+    // STEP 2: allocate monthly goals across sprints by filling remaining free hours per sprint
+    // Algorithm: sort monthly goals by priority, then for each goal repeatedly take each
+    // sprint's available capacity (above a soft minRemaining) and place as much of the
+    // goal as fits. If after exhausting all sprints some hours remain, force them into
+    // the last sprint to preserve user hours.
+    const priorityValue = (p: string | undefined) =>
+        p === "high" ? 1 : p === "medium" ? 2 : 3;
+    const monthlySorted = [...monthlyGoals].sort(
+        (a: any, b: any) => priorityValue(a.priority) - priorityValue(b.priority),
+    );
+
+    for (const goal of monthlySorted) {
+        const total =
+            (goal.effort && (goal.effort.monthlyEquivalentHours ?? goal.effort.hours)) || 0;
+        if (total <= 0) continue;
+
+        let remainingToPlace = Math.round(total);
+        const minRemaining = -5; // allow small soft overrun when forcing into last sprint
+
+        for (let i = 0; i < sprints.length && remainingToPlace > 0; i++) {
+            const sprint = sprints[i];
+            const available = Math.max(0, sprint.remainingHours - minRemaining);
+            if (available <= 0) continue;
+            const take = Math.min(available, remainingToPlace);
+            if (take <= 0) continue;
+            const task = {
+                id: rndId("task"),
+                name: goal.name,
+                sourceGoalId: goal.id,
+                effortType: "monthly",
+                allocatedHours: take,
+                priority: goal.priority || "medium",
+            };
+            pushTaskToSprint(sprint, task, false, minRemaining);
+            remainingToPlace -= take;
+        }
+
+        if (remainingToPlace > 0) {
+            // force remaining into last sprint to avoid dropping user hours
+            const last = sprints[sprints.length - 1];
+            const forcedTask = {
+                id: rndId("task"),
+                name: goal.name,
+                sourceGoalId: goal.id,
+                effortType: "monthly",
+                allocatedHours: remainingToPlace,
+                priority: goal.priority || "medium",
+            };
+            pushTaskToSprint(last, forcedTask, true);
+            remainingToPlace = 0;
         }
     }
 
@@ -165,12 +162,18 @@ export function createStructuredPlan(wizardData: any) {
         })),
     }));
 
-    return {
+    const payload = {
         epicId: rndId("epc"),
         epicName: epic.name || null,
         epicMonth: epic.month || null,
         sprints: cleaned,
     };
+
+    // log payload for inspection
+
+    console.log("createStructuredPlan - payload:", JSON.stringify(payload, null, 2));
+
+    return payload;
 }
 
 export default createStructuredPlan;

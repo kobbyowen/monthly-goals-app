@@ -12,6 +12,12 @@ type Props = {
   checklistTotal: number;
   checklistCompleted: number;
   onRename?: (newName: string) => void;
+  /**
+   * Optional editable hours (decimal). If provided, the component will render
+   * a number input and call `onEstimatedHoursChange` whenever the user changes it.
+   */
+  estimatedHours?: number;
+  onEstimatedHoursChange?: (hours: number) => void;
 };
 
 function formatHMS(totalSeconds: number) {
@@ -26,11 +32,16 @@ export default function TaskDetails({
   status,
   totalSeconds,
   estimatedSeconds,
+  estimatedHours,
+  onEstimatedHoursChange,
   checklistTotal,
   checklistCompleted,
   onRename,
 }: Props) {
   const [value, setValue] = useState(name);
+  const [hoursValue, setHoursValue] = useState<string>(
+    typeof estimatedHours === "number" ? String(estimatedHours) : "",
+  );
 
   // keep local value in sync when name prop changes
   useEffect(() => {
@@ -49,6 +60,20 @@ export default function TaskDetails({
     }, 700);
     return () => clearTimeout(id);
   }, [value, onRename, name]);
+
+  // editable estimated hours debounce
+  useEffect(() => {
+    if (!onEstimatedHoursChange) return;
+    if (hoursValue === "") return;
+    const n = Number(hoursValue);
+    if (isNaN(n)) return;
+    // if same as incoming estimatedHours, skip
+    if (typeof estimatedHours === "number" && Math.abs(estimatedHours - n) < 1e-6) return;
+    const id = setTimeout(() => {
+      onEstimatedHoursChange(n);
+    }, 700);
+    return () => clearTimeout(id);
+  }, [hoursValue, onEstimatedHoursChange, estimatedHours]);
 
   const badge = useMemo(() => {
     switch (status) {
@@ -117,13 +142,38 @@ export default function TaskDetails({
           </div>
         </div>
 
-        {/* Estimated */}
-        <div>
-          <span className="text-slate-500">Estimated</span>
-          <div className="mt-1 text-slate-800">
-            {estimatedSeconds ? formatHMS(estimatedSeconds) : "—"}
-          </div>
-        </div>
+            {/* Estimated (editable hours when handler provided) */}
+            <div>
+              <span className="text-slate-500">Estimated</span>
+              <div className="mt-1">
+                {onEstimatedHoursChange ? (
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.25"
+                    min="0"
+                    value={hoursValue}
+                    onChange={(e) => setHoursValue(e.target.value)}
+                    onBlur={() => {
+                      const n = Number(hoursValue);
+                      if (!isNaN(n)) onEstimatedHoursChange(n);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const n = Number(hoursValue);
+                        if (!isNaN(n)) onEstimatedHoursChange(n);
+                      }
+                      if (e.key === "Escape") setHoursValue(typeof estimatedHours === "number" ? String(estimatedHours) : "");
+                    }}
+                    className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
+                  />
+                ) : (
+                  <div className="text-slate-800">
+                    {estimatedSeconds ? formatHMS(estimatedSeconds) : "—"}
+                  </div>
+                )}
+              </div>
+            </div>
 
         {/* Checklist */}
         <div>

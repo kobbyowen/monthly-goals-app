@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useRootEpicStore } from "../stores";
 import { useShallow } from "zustand/shallow";
 import {
@@ -63,6 +63,19 @@ export default function TaskModal({
     }
   }
 
+  // Save estimated hours when child calls back (debounce lives in child)
+  async function handleEstimatedHoursChange(newHours: number) {
+    if (!task) return;
+    const secs = Math.round(newHours * 3600);
+    try {
+      const updated = await apiUpdateTask(taskId, { plannedTime: secs } as any);
+      storeUpdateTask(updated.id, updated);
+      if (onUpdated) onUpdated();
+    } catch (err) {
+      toast("Failed to save time", "error");
+    }
+  }
+
   if (!task) return null;
 
   const isRunning = !!sessions?.find((s) => !s.endedAt);
@@ -112,11 +125,16 @@ export default function TaskModal({
         {/* Scrollable Body */}
         <div className="overflow-y-auto px-5 py-5 space-y-6">
           {/* Task Details */}
+          <div className="mb-2 text-xs text-slate-500">Inputs/modifications are auto saved as you edit</div>
           <TaskDetails
             name={task.name}
             status={status}
             totalSeconds={totalSeconds}
             estimatedSeconds={task.plannedTime as number}
+            estimatedHours={
+              task.plannedTime ? (task.plannedTime as number) / 3600 : undefined
+            }
+            onEstimatedHoursChange={handleEstimatedHoursChange}
             checklistTotal={checklists.length}
             checklistCompleted={checklistCompleted}
             onRename={handleRenameTask}

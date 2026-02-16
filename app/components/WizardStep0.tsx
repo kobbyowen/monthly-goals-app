@@ -6,19 +6,31 @@ type Props = {
   month: string;
   epicName?: string;
   epicDescription?: string;
-  onChange: (patch: { month?: string; name?: string; description?: string }) => void;
+  onChange: (patch: {
+    month?: string;
+    name?: string;
+    description?: string;
+  }) => void;
   onNext?: () => void;
   onCancel?: () => void;
 };
 
-export default function WizardStep0({ month, epicName, epicDescription, onChange }: Props) {
+export default function WizardStep0({
+  month,
+  epicName,
+  epicDescription,
+  onChange,
+}: Props) {
   const now = new Date();
   const currentYear = now.getFullYear();
   const monthOptions = useMemo(() => {
     return Array.from({ length: 12 }).map((_, idx) => {
       const date = new Date(currentYear, idx, 1);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const label = date.toLocaleString(undefined, { month: "long", year: "numeric" });
+      const label = date.toLocaleString(undefined, {
+        month: "long",
+        year: "numeric",
+      });
       return { key, label };
     });
   }, [currentYear]);
@@ -26,7 +38,9 @@ export default function WizardStep0({ month, epicName, epicDescription, onChange
   return (
     <div className="px-4 py-4 space-y-4">
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">Month</label>
+        <label className="mb-1 block text-xs font-medium text-slate-500">
+          Month
+        </label>
         <select
           value={month || ""}
           onChange={(e) => onChange({ month: e.target.value })}
@@ -42,7 +56,9 @@ export default function WizardStep0({ month, epicName, epicDescription, onChange
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">Epic name (optional)</label>
+        <label className="mb-1 block text-xs font-medium text-slate-500">
+          Epic name (optional)
+        </label>
         <input
           type="text"
           value={epicName ?? ""}
@@ -53,9 +69,11 @@ export default function WizardStep0({ month, epicName, epicDescription, onChange
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">Motto / Description (optional)</label>
+        <label className="mb-1 block text-xs font-medium text-slate-500">
+          Motto / Description (optional)
+        </label>
         <textarea
-          value={epicDescription ?? ""}
+          value={epicDescription ?? "Hard work beats talent"}
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Short description or motto for this epic"
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"

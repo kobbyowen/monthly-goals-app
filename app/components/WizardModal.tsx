@@ -5,9 +5,9 @@ import WizardStep0 from "./WizardStep0";
 import WizardStep1 from "./WizardStep1";
 import WizardStep2 from "./WizardStep2";
 import WizardStep3 from "./WizardStep3";
-import { createPlan } from "@lib/api/wizard";
 import { toast } from "../lib/ui";
-import createStructuredPlan from "../utils/createStructuredPlan";
+import { submitGoalsForEpic } from "@lib/api/submitGoalsForEpic";
+import useRootEpicStore from "../stores/rootEpicStore";
 
 type TaskRow = {
   id: string;
@@ -56,6 +56,8 @@ export default function WizardModal({
   const [sprints, setSprints] = useState<SprintRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const addEpicsFromApi = useRootEpicStore((s) => s.addEpicsFromApi);
+  const epicById = useRootEpicStore((s) => s.epics.byId);
 
   function addSprint() {
     setSprints((s) => [
@@ -494,49 +496,27 @@ export default function WizardModal({
       console.log("Generated plan:", planJson);
     }
 
-    // convert generated plan to the API-shaped payload using the utility
-    let structuredPayload: any = null;
-    try {
-      structuredPayload = createStructuredPlan(planJson);
-      // eslint-disable-next-line no-console
-      console.log(
-        "Structured API payload:",
-        JSON.stringify(structuredPayload, null, 2),
-      );
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.log("Structured API payload:", structuredPayload ?? err);
-    }
-
-    const payload = {
-      epicId,
-      epicName,
-      epicDescription,
-      epicMonth,
-      plan: planJson,
-      sprints: sprints.map((sp) => ({
-        id: sp.id,
-        name: sp.name,
-        startAt: sp.startAt,
-        endAt: sp.endAt,
-        tasks: sp.tasks.map((t) => ({
-          id: t.id,
-          name: t.name,
-          effortType: t.effortType,
-          allocatedHours: t.allocatedHours,
-          priority: t.priority,
-        })),
-      })),
-    };
+    // convert generated plan, POST via utility, then update client store
 
     setSubmitting(true);
     try {
-      const created = await createPlan(payload as any);
-      toast("Epic created", "success");
-      // log submitted payload for inspection
+      const created = await submitGoalsForEpic(planJson);
+      toast("Epic created — now you can add a checklist to any task", "success");
       // eslint-disable-next-line no-console
-      console.log("Submitted payload:", payload);
-      // reset modal state
+      console.log("submitGoalsForEpic - API response:", created);
+
+      try {
+        if (created) {
+          const arr = Array.isArray(created) ? created : [created];
+          // filter out epics already in store to avoid duplicates
+          const toAdd = arr.filter((ep: any) => !epicById || !epicById[ep.id]);
+          if (toAdd.length > 0) addEpicsFromApi(toAdd);
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("store update failed", e);
+      }
+
       resetWizardState();
       if (onCreated) onCreated(created);
       onClose();
