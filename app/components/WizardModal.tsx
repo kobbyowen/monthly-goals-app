@@ -47,6 +47,7 @@ export default function WizardModal({
     numSprints: 4,
     weeksPerSprint: 1,
     startDate: "",
+    goals: [],
   });
 
   const [sprints, setSprints] = useState<SprintRow[]>([]);
@@ -125,8 +126,13 @@ export default function WizardModal({
   }
 
   function validateStep1() {
-    if (!epicId.trim() || !epicName.trim() || !epicMonth.trim()) {
-      toast("Please fill epic id, name and month", "error");
+    const month = step1Data.month || epicMonth;
+    if (!month || !month.trim()) {
+      toast("Please select a month", "error");
+      return false;
+    }
+    if (!step1Data.weeklyCommitment || step1Data.weeklyCommitment <= 0) {
+      toast("Please set a weekly commitment (> 0)", "error");
       return false;
     }
     return true;
@@ -160,6 +166,29 @@ export default function WizardModal({
       });
     }
     setSprints(arr);
+  }
+
+  function daysInMonthFromKey(key?: string) {
+    try {
+      if (!key) return new Date().getDate();
+      const [y, m] = key.split("-").map((s) => Number(s));
+      if (!y || !m) return new Date().getDate();
+      return new Date(y, m, 0).getDate();
+    } catch {
+      return new Date().getDate();
+    }
+  }
+
+  function usedWeeklyFromGoals(goals: any[] = []) {
+    const days = daysInMonthFromKey(step1Data.month || epicMonth);
+    return goals.reduce((acc, g) => {
+      if (!g) return acc;
+      if (g.effortType === "monthly") {
+        // monthly -> weekly = monthly * 7 / days
+        return acc + (Number(g.hours) * 7) / days;
+      }
+      return acc + Number(g.hours || 0);
+    }, 0);
   }
 
   function validateStep2() {
@@ -213,6 +242,9 @@ export default function WizardModal({
   }
 
   if (!open) return null;
+  const _goals = step2Data.goals || [];
+  const _usedWeekly = usedWeeklyFromGoals(_goals);
+  const _weeklyLimit = step1Data.weeklyCommitment || 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -252,15 +284,6 @@ export default function WizardModal({
                 if (patch.month) setEpicMonth(patch.month);
               }}
               onNext={() => {
-                // keep existing validation but also require epicMonth from step1Data
-                if (!epicId.trim() || !epicName.trim()) {
-                  toast("Please fill epic id and name", "error");
-                  return;
-                }
-                if (!step1Data.month && !epicMonth) {
-                  toast("Please select a month", "error");
-                  return;
-                }
                 setEpicMonth(step1Data.month || epicMonth);
                 setStep(2);
               }}
@@ -275,6 +298,8 @@ export default function WizardModal({
                 weeksPerSprint: step2Data.weeksPerSprint,
                 startDate: step2Data.startDate,
               }}
+              weeklyLimit={step1Data.weeklyCommitment}
+              epicMonth={epicMonth}
               onChange={(patch) => setStep2Data((s) => ({ ...s, ...patch }))}
             />
           )}
@@ -309,27 +334,41 @@ export default function WizardModal({
               <button
                 onClick={() => {
                   if (step === 1) {
-                    if (!epicId.trim() || !epicName.trim()) {
-                      toast("Please fill epic id and name", "error");
-                      return;
-                    }
-                    if (!step1Data.month && !epicMonth) {
+                    const month = step1Data.month || epicMonth;
+                    if (!month || !month.trim()) {
                       toast("Please select a month", "error");
                       return;
                     }
-                    setEpicMonth(step1Data.month || epicMonth);
+                    if (!step1Data.weeklyCommitment || step1Data.weeklyCommitment <= 0) {
+                      toast("Please set a weekly commitment (> 0)", "error");
+                      return;
+                    }
+                    setEpicMonth(month);
                     setStep((s) => s + 1);
                     return;
                   }
 
-                  // step === 2
+                  // step === 2: validate goals allocation before proceeding
+                  const goals = step2Data.goals || [];
+                  const used = usedWeeklyFromGoals(goals);
+                  const limit = step1Data.weeklyCommitment || 0;
+                  if (limit > 0 && used > limit) {
+                    toast("Goals exceed weekly commitment", "error");
+                    return;
+                  }
                   // if user hasn't created sprints, generate from step2Data
                   if (sprints.length === 0) {
                     generateSprintsFromStep2();
                   }
                   if (validateStep2()) setStep((s) => s + 1);
                 }}
-                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+                disabled={step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit}
+                className={`rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white ${
+                  step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+                title={step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit ? "Reduce goal allocation to proceed" : undefined}
               >
                 Next
               </button>

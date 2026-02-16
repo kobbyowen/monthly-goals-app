@@ -1,52 +1,174 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 
 type Props = {
   data: any;
   onChange: (patch: Partial<any>) => void;
+  weeklyLimit?: number;
+  epicMonth?: string; // YYYY-MM
 };
 
-export default function WizardStep2({ data, onChange }: Props) {
+type Goal = {
+  id: string;
+  name: string;
+  hours: number; // the number entered (weekly or monthly depending on effortType)
+  effortType: "weekly" | "monthly";
+  priority: "High" | "Medium" | "Low";
+};
+
+function daysInMonthFromKey(key?: string) {
+  try {
+    if (!key) return new Date().getDate();
+    const [y, m] = key.split("-").map((s) => Number(s));
+    if (!y || !m) return new Date().getDate();
+    return new Date(y, m, 0).getDate();
+  } catch {
+    return new Date().getDate();
+  }
+}
+
+export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth }: Props) {
+  const days = daysInMonthFromKey(epicMonth) || new Date().getDate();
+
+  const [goals, setGoals] = useState<Goal[]>([
+    { id: `g_${Date.now()}_1`, name: "Learn React", hours: 8, effortType: "weekly", priority: "High" },
+    { id: `g_${Date.now()}_2`, name: "Trading Practice", hours: 10, effortType: "weekly", priority: "Medium" },
+  ]);
+
+  function addGoal() {
+    const newGoal: Goal = { id: `g_${Date.now()}`, name: "", hours: 1, effortType: "weekly", priority: "Medium" };
+    // prevent adding if it would immediately exceed weekly limit
+    const used = usedWeeklyHours(goals);
+    const addition = toWeeklyEquivalent(newGoal);
+    if (weeklyLimit > 0 && used + addition > weeklyLimit) {
+      // show error toast via onChange hook or simply do nothing for now
+      // but better: allow add and show validation on the row — here we'll allow add but mark overallocated elsewhere
+    }
+    setGoals((g) => [...g, newGoal]);
+  }
+
+  function removeGoal(id: string) {
+    setGoals((g) => g.filter((x) => x.id !== id));
+  }
+
+  function updateGoal(id: string, patch: Partial<Goal>) {
+    setGoals((g) => g.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  }
+
+  function toWeeklyEquivalent(goal: Goal) {
+    if (goal.effortType === "weekly") return goal.hours;
+    // monthly -> weekly: hours * (days / 7) / days? user's earlier formula used days/7 for month -> monthly commitment; convert monthly to weekly by dividing by (days/7)
+    // monthlyHours -> weeklyEquivalent = monthlyHours / (days/7) = monthlyHours * 7 / days
+    return Math.round((goal.hours * 7) / days * 100) / 100;
+  }
+
+  function monthlyEquivalent(goal: Goal) {
+    if (goal.effortType === "monthly") return goal.hours;
+    // weekly -> monthly = weekly * (days / 7)
+    return Math.round(goal.hours * (days / 7) * 100) / 100;
+  }
+
+  function usedWeeklyHours(list: Goal[]) {
+    return list.reduce((acc, g) => acc + toWeeklyEquivalent(g), 0);
+  }
+
+  const used = usedWeeklyHours(goals);
+  const remaining = Math.max(0, (weeklyLimit || 0) - used);
+  const percent = weeklyLimit > 0 ? Math.min(100, (used / weeklyLimit) * 100) : 0;
+
+  // validation helpers
+  function rowError(g: Goal) {
+    if (!g.name.trim()) return "Name required";
+    if (!(g.hours > 0)) return "Hours must be > 0";
+    return null;
+  }
+
+  // expose goals upstream if caller wants them
+  React.useEffect(() => {
+    onChange?.({ goals });
+  }, [goals]);
+
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-xs font-medium text-slate-600">
-          Number of sprints
-        </label>
-        <input
-          type="number"
-          min={1}
-          value={data.numSprints ?? 4}
-          onChange={(e) => onChange({ numSprints: Number(e.target.value) })}
-          className="mt-1 w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
+    <div className="space-y-3 px-4 py-3 sm:px-6 sm:py-4">
+
+      {/* Allocation summary */}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-slate-600">Allocated weekly hours</span>
+          <span className="font-semibold text-slate-900">{used}h / {weeklyLimit}h</span>
+        </div>
+
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className="h-full bg-emerald-500" style={{ width: `${percent}%` }} />
+        </div>
+
+        <p className="mt-2 text-xs text-slate-500">{remaining}h remaining</p>
       </div>
 
-      <div>
-        <label className="block text-xs font-medium text-slate-600">
-          Sprint length (weeks)
-        </label>
-        <input
-          type="number"
-          min={1}
-          value={data.weeksPerSprint ?? 1}
-          onChange={(e) => onChange({ weeksPerSprint: Number(e.target.value) })}
-          className="mt-1 w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-      </div>
+      {/* Goals list */}
+      <div className="space-y-2">
+        {goals.map((g) => {
+          const err = rowError(g);
+          const weeklyEq = toWeeklyEquivalent(g);
+          const monthlyEq = monthlyEquivalent(g);
+          const overalloc = weeklyLimit > 0 && used > weeklyLimit;
+          return (
+            <div key={g.id} className="rounded-lg border border-slate-200 p-2">
+              <div className="grid grid-cols-12 gap-1 items-center">
+                <input
+                  type="text"
+                  placeholder="Goal name"
+                  value={g.name}
+                  onChange={(e) => updateGoal(g.id, { name: e.target.value })}
+                  className={`col-span-12 sm:col-span-6 rounded-md border border-slate-300 px-3 py-1 text-sm focus:border-emerald-500 focus:outline-none ${err ? 'border-rose-400' : ''}`}
+                />
 
-      <div>
-        <label className="block text-xs font-medium text-slate-600">
-          Start date
-        </label>
-        <input
-          type="date"
-          value={data.startDate || ""}
-          onChange={(e) => onChange({ startDate: e.target.value })}
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
+                <div className="col-span-4 sm:col-span-2">
+                  <input
+                    type="number"
+                    placeholder="Hrs"
+                    value={g.hours}
+                    onChange={(e) => updateGoal(g.id, { hours: Number(e.target.value) || 0 })}
+                    className={`w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none ${g.hours <= 0 ? 'border-rose-400' : ''}`}
+                  />
+                </div>
+
+                <select
+                  value={g.effortType}
+                  onChange={(e) => updateGoal(g.id, { effortType: e.target.value as any })}
+                  className="col-span-3 sm:col-span-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                >
+                  <option value="weekly">/week</option>
+                  <option value="monthly">/month</option>
+                </select>
+
+                <select
+                  value={g.priority}
+                  onChange={(e) => updateGoal(g.id, { priority: e.target.value as any })}
+                  className="col-span-3 sm:col-span-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                >
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+
+                <button onClick={() => removeGoal(g.id)} className="col-span-2 sm:col-span-1 text-rose-500 text-xs hover:text-rose-600">Delete</button>
+
+                <div className="col-span-12 text-xs text-slate-600 mt-1">
+                  Monthly: <span className="font-medium text-slate-900">{monthlyEq}h</span> · Weekly: <span className="font-medium text-slate-900">{weeklyEq}h</span>
+                </div>
+                <div className="col-span-12 mt-1">
+                  <div className="text-xs text-rose-500">{err ?? (overalloc ? 'Allocation exceeds weekly limit' : '')}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
+      <button onClick={addGoal} disabled={weeklyLimit > 0 && used >= weeklyLimit} className={`text-sm font-medium ${weeklyLimit > 0 && used >= weeklyLimit ? 'text-slate-400 cursor-not-allowed' : 'text-emerald-600 hover:underline'}`}>
+        + Add Goal
+      </button>
     </div>
   );
 }
