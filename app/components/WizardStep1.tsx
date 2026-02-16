@@ -63,27 +63,42 @@ export default function WizardStep1({
 
   const [y, m] = monthKey.split("-").map((s) => Number(s));
   const days = daysInMonth(y, m);
-  const totalHours = 24 * days;
+  const totalMonthHours = 24 * days;
   const weekendDays = countWeekendDays(y, m);
-  const totalExcludingWeekends = totalHours - weekendDays * 24;
-  const effectiveTotal = includeWeekends ? totalHours : totalExcludingWeekends;
-  // number of days considered when computing sleep (only days included in availability)
+  const totalHoursExcludingWeekends = totalMonthHours - weekendDays * 24;
+
+  // After deducting sleep (8h/day)
+  const hoursAfterSleep = includeWeekends
+    ? totalMonthHours - 8 * days
+    : totalHoursExcludingWeekends - 8 * (days - weekendDays);
+
+  const safeHoursPerDay = 6; // internal default
   const includedDays = includeWeekends ? days : days - weekendDays;
-  const sleepAdjusted = effectiveTotal - 8 * includedDays;
-  const safeCommitment = Math.max(0, sleepAdjusted - 160);
+  const recommendedSafeCommitment = Math.max(0, safeHoursPerDay * includedDays);
 
   // monthly commitment derived from weekly hours (pro-rate by days/7)
   const monthlyCommitment =
     Math.round(weeklyCommitment * (days / 7) * 100) / 100;
 
-  // progress bar zones (widths as percentages) - use effectiveTotal as baseline
-  const denom = effectiveTotal > 0 ? effectiveTotal : 1;
-  const greenWidth = Math.min(1, safeCommitment / denom) * 100;
-  const yellowWidth =
-    Math.min(1, Math.max(0, (sleepAdjusted - safeCommitment) / denom)) * 100;
+  // Progress zones use totalMonthHours as baseline
+  const yellowLimit = 10 * days; // 10 hours/day heavy workload
+  const greenWidth = Math.max(
+    0,
+    Math.min(100, (recommendedSafeCommitment / totalMonthHours) * 100),
+  );
+  const yellowWidth = Math.max(
+    0,
+    Math.min(
+      100 - greenWidth,
+      ((yellowLimit - recommendedSafeCommitment) / totalMonthHours) * 100,
+    ),
+  );
   const redWidth = Math.max(0, 100 - greenWidth - yellowWidth);
 
-  const commitmentPercent = Math.min(100, (monthlyCommitment / denom) * 100);
+  const commitmentPercent = Math.max(
+    0,
+    Math.min(100, (monthlyCommitment / totalMonthHours) * 100),
+  );
 
   return (
     <div className="px-2 py-2 space-y-6">
@@ -121,25 +136,27 @@ export default function WizardStep1({
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs space-y-1">
         <p className="text-xs">
           Total hours in month:
-          <span className="ml-1 font-semibold">{totalHours}h</span>
+          <span className="ml-1 font-semibold">{totalMonthHours}h</span>
         </p>
 
         <p className="text-xs">
           Total hours excluding weekends:
-          <span className="ml-1 font-semibold">{totalExcludingWeekends}h</span>
+          <span className="ml-1 font-semibold">
+            {totalHoursExcludingWeekends}h
+          </span>
         </p>
 
         <p className="text-xs">
           After deducting sleep (8h/day):
           <span className="ml-1 font-semibold">
-            {Math.max(0, sleepAdjusted)}h
+            {Math.max(0, hoursAfterSleep)}h
           </span>
         </p>
 
         <p className="text-xs">
           Recommended safe commitment:
           <span className="ml-1 font-semibold">
-            {Math.max(0, Math.round(safeCommitment))}h
+            {Math.max(0, Math.round(recommendedSafeCommitment))}h
           </span>
         </p>
 
@@ -166,12 +183,14 @@ export default function WizardStep1({
         />
       </div>
 
+      {/* safeHoursPerDay is internal (default 6) — no UI control */}
+
       {/* Progress */}
       <div>
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>Monthly commitment</span>
           <span>
-            {monthlyCommitment}h / {totalHours}h
+            {monthlyCommitment}h / {totalMonthHours}h
           </span>
         </div>
 
@@ -192,24 +211,26 @@ export default function WizardStep1({
             />
           </div>
 
-          {/* marker: larger, visible percentage badge above the bar */}
-          <div
-            style={{ left: `${commitmentPercent}%` }}
-            className="absolute -top-6 -translate-x-1/2 z-10 pointer-events-none"
-          >
-            <div className="h-6 w-10 rounded-full bg-white border border-slate-300 shadow-md flex items-center justify-center text-[11px] font-semibold text-slate-700">
-              {Math.round(commitmentPercent)}%
+          {/* marker: larger, visible percentage badge above the bar (hidden at 0%) */}
+          {commitmentPercent > 0 && (
+            <div
+              style={{ left: `${commitmentPercent}%` }}
+              className="absolute -top-6 -translate-x-1/2 z-10 pointer-events-none"
+            >
+              <div className="h-6 w-10 rounded-full bg-white border border-slate-300 shadow-md flex items-center justify-center text-[11px] font-semibold text-slate-700">
+                {Math.round(commitmentPercent)}%
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="mt-2 text-[11px] text-slate-500">
-          {monthlyCommitment <= safeCommitment ? (
+          {monthlyCommitment <= recommendedSafeCommitment ? (
             <>
               Current commitment sits inside the
               <span className="font-medium text-emerald-600"> safe zone</span>.
             </>
-          ) : monthlyCommitment <= sleepAdjusted ? (
+          ) : monthlyCommitment <= yellowLimit ? (
             <>
               Current commitment is in the
               <span className="font-medium text-yellow-600"> heavy zone</span>.
