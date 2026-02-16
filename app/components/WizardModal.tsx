@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import WizardStep0 from "./WizardStep0";
 import WizardStep1 from "./WizardStep1";
 import WizardStep2 from "./WizardStep2";
 import WizardStep3 from "./WizardStep3";
@@ -32,11 +33,13 @@ export default function WizardModal({
   onClose: () => void;
   onCreated?: (epic: any) => void;
 }) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
 
   const [epicId, setEpicId] = useState("");
   const [epicName, setEpicName] = useState("");
+  const [epicDescription, setEpicDescription] = useState("");
   const [epicMonth, setEpicMonth] = useState("");
+  const [epicNameAuto, setEpicNameAuto] = useState(true);
   const [step1Data, setStep1Data] = useState({
     month: epicMonth || "",
     includeWeekends: false,
@@ -166,6 +169,7 @@ export default function WizardModal({
       });
     }
     setSprints(arr);
+    return arr;
   }
 
   function daysInMonthFromKey(key?: string) {
@@ -176,6 +180,23 @@ export default function WizardModal({
       return new Date(y, m, 0).getDate();
     } catch {
       return new Date().getDate();
+    }
+  }
+
+  function countWeekendDaysFromKey(key?: string) {
+    try {
+      if (!key) return 0;
+      const [y, m] = key.split("-").map((s) => Number(s));
+      if (!y || !m) return 0;
+      const days = new Date(y, m, 0).getDate();
+      let count = 0;
+      for (let d = 1; d <= days; d++) {
+        const dow = new Date(y, m - 1, d).getDay();
+        if (dow === 0 || dow === 6) count++;
+      }
+      return count;
+    } catch {
+      return 0;
     }
   }
 
@@ -191,12 +212,13 @@ export default function WizardModal({
     }, 0);
   }
 
-  function validateStep2() {
-    if (sprints.length === 0) {
+  function validateStep2(sprintsList?: SprintRow[]) {
+    const list = sprintsList || sprints;
+    if (!list || list.length === 0) {
       toast("Add at least one sprint", "error");
       return false;
     }
-    for (const sp of sprints) {
+    for (const sp of list) {
       if (!sp.id || !sp.name || !sp.startAt || !sp.endAt) {
         toast("Each sprint needs id, name, startAt and endAt", "error");
         return false;
@@ -208,10 +230,205 @@ export default function WizardModal({
   async function handleSubmit() {
     if (!validateStep1()) return setStep(1);
     if (!validateStep2()) return setStep(2);
+
+    // build structured plan JSON per spec
+    function buildPlan() {
+      const monthKey = epicMonth || step1Data.month;
+      const [py, pm] = (monthKey || "").split("-").map((s) => Number(s));
+      const daysInMonth = daysInMonthFromKey(monthKey);
+      const weekendDays = countWeekendDaysFromKey(monthKey);
+      const weeksInMonth = 4; // treat month as 4-week sprint for monthly math
+
+      const totalHoursInMonth = daysInMonth * 24;
+      const totalHoursExcludingWeekends = totalHoursInMonth - weekendDays * 24;
+      const sleepHoursPerDay = 8;
+      const includedDays = step1Data.includeWeekends
+        ? daysInMonth
+        : daysInMonth - weekendDays;
+      const safeHoursPerDay = 6; // internal
+      const safeCommitmentHours = Math.max(0, safeHoursPerDay * includedDays);
+
+      const weeklyCommitmentHours = Number(step1Data.weeklyCommitment || 0);
+      const monthlyCommitmentHours = weeklyCommitmentHours * 4;
+
+      const goals = (step2Data.goals || []).map((g: any, idx: number) => {
+        const hours = Number(g.hours || 0);
+        const effortFrequency = g.effortType || "weekly";
+        const monthlyEquivalentHours =
+          effortFrequency === "monthly" ? hours : hours * 4;
+        return {
+          id: g.id || `goal_${Date.now()}_${idx}`,
+          name: g.name,
+          priority: (g.priority || "medium").toLowerCase(),
+          effort: {
+            hours: hours,
+            effortFrequency: effortFrequency,
+            monthlyEquivalentHours: monthlyEquivalentHours,
+          },
+        };
+      });
+
+      const monthlyAllocatedHours = goals.reduce(
+        (s: number, gg: any) => s + (gg.effort.monthlyEquivalentHours || 0),
+        0,
+      );
+      const monthlyRemainingHours = Math.max(
+        0,
+        monthlyCommitmentHours - monthlyAllocatedHours,
+      );
+      const isOverAllocated = monthlyAllocatedHours > monthlyCommitmentHours;
+
+      // generate sprints aligned to weeks: first week starts on month first day, ends on Sunday, then Monday-Sunday until month end
+      const sprintsPreview: any[] = [];
+      if (py && pm) {
+        const first = new Date(py, pm - 1, 1);
+        const last = new Date(py, pm, 0);
+        // first end Sunday
+        const firstStart = new Date(first);
+        const daysUntilSunday = (7 - firstStart.getDay()) % 7;
+        const firstEnd = new Date(firstStart);
+        firstEnd.setDate(firstStart.getDate() + daysUntilSunday);
+        if (firstEnd > last) firstEnd.setTime(last.getTime());
+        sprintsPreview.push({
+          name: "Week 1",
+          weekNumber: 1,
+          startDate: formatDate(firstStart),
+          endDate: formatDate(firstEnd),
+        });
+
+        let nextStart = new Date(firstEnd);
+        nextStart.setDate(firstEnd.getDate() + 1);
+        let wn = 2;
+        while (nextStart <= last) {
+          const weekStart = new Date(nextStart);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          if (weekEnd > last) weekEnd.setTime(last.getTime());
+          sprintsPreview.push({
+            name: `Week ${wn}`,
+            weekNumber: wn,
+            startDate: formatDate(weekStart),
+            endDate: formatDate(weekEnd),
+          });
+          wn++;
+          nextStart = new Date(weekEnd);
+          nextStart.setDate(weekEnd.getDate() + 1);
+        }
+      }
+
+      // filter out very short weeks:
+      // - if weekends are included: remove weeks with less than 2 calendar days
+      // - if weekends are excluded: remove weeks with less than 2 working days (Mon-Fri)
+      const includeWeekends = !!step1Data.includeWeekends;
+      function daysInclusive(a: Date, b: Date) {
+        return Math.floor((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+      }
+      function workingDaysInclusive(a: Date, b: Date) {
+        let cnt = 0;
+        for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) {
+          const dow = d.getDay();
+          if (dow !== 0 && dow !== 6) cnt++;
+        }
+        return cnt;
+      }
+
+      const filteredPreview = sprintsPreview.filter((sp) => {
+        const s = new Date(sp.startDate);
+        const e = new Date(sp.endDate);
+        const totalDays = daysInclusive(s, e);
+        if (includeWeekends) return totalDays >= 2;
+        const workDays = workingDaysInclusive(s, e);
+        return workDays >= 2;
+      });
+
+      // compute hours for each sprint based on weekly commitment and days in the week
+      let globalSeq = 0;
+      const sprintsWithHours = filteredPreview.map((sp) => {
+        const s = new Date(sp.startDate);
+        const e = new Date(sp.endDate);
+        const daysCount = includeWeekends
+          ? daysInclusive(s, e)
+          : workingDaysInclusive(s, e);
+        // proportion of weekly commitment for the days in this sprint week
+        const weekHours = Math.round((weeklyCommitmentHours / 7) * daysCount);
+        const wn = Number(sp.weekNumber) || 0;
+        // global sequence across active (filtered) sprints
+        globalSeq++;
+        const seq = String(globalSeq).padStart(2, "0");
+        const name = `Week ${wn} Sprint ${seq}`;
+        return { ...sp, name, hours: weekHours };
+      });
+
+      const plan = {
+        wizardVersion: 2,
+        capacity: {
+          month: {
+            year: py || null,
+            month: pm || null,
+            label: monthKey || null,
+            daysInMonth,
+            weeksInMonth,
+          },
+          includeWeekends: !!step1Data.includeWeekends,
+          hours: {
+            totalHoursInMonth,
+            totalHoursExcludingWeekends,
+            sleepHoursPerDay,
+            hoursAfterSleep: Math.max(
+              0,
+              (step1Data.includeWeekends
+                ? totalHoursInMonth
+                : totalHoursExcludingWeekends) -
+                sleepHoursPerDay *
+                  (step1Data.includeWeekends ? daysInMonth : includedDays),
+            ),
+            assumedWorkHoursPerWeek: 40,
+            safeCommitmentHours,
+          },
+          weeklyCommitmentHours,
+          monthlyCommitmentHours,
+        },
+        goals,
+        allocation: {
+          monthlyAllocatedHours,
+          monthlyRemainingHours,
+          isOverAllocated,
+        },
+        generatedPlanPreview: {
+          epic: {
+            name: epicName || monthKey,
+            month: monthKey,
+          },
+          sprints: sprintsWithHours,
+        },
+        metadata: {
+          createdAt: new Date().toISOString(),
+          source: "wizard",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+        },
+      };
+
+      return plan;
+    }
+
+    const planJson = buildPlan();
+
+    // log the generated plan JSON for inspection
+    try {
+      // pretty print
+      // eslint-disable-next-line no-console
+      console.log("Generated plan:", JSON.stringify(planJson, null, 2));
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log("Generated plan:", planJson);
+    }
+
     const payload = {
       epicId,
       epicName,
+      epicDescription,
       epicMonth,
+      plan: planJson,
       sprints: sprints.map((sp) => ({
         id: sp.id,
         name: sp.name,
@@ -231,6 +448,18 @@ export default function WizardModal({
     try {
       const created = await createPlan(payload as any);
       toast("Epic created", "success");
+      // log submitted payload for inspection
+      // eslint-disable-next-line no-console
+      console.log("Submitted payload:", payload);
+      // reset modal state
+      setEpicId("");
+      setEpicName("");
+      setEpicDescription("");
+      setEpicMonth("");
+      setStep1Data({ month: "", includeWeekends: false, weeklyCommitment: 0 });
+      setStep2Data({ numSprints: 4, weeksPerSprint: 1, startDate: "", goals: [] });
+      setSprints([]);
+      setEpicNameAuto(true);
       if (onCreated) onCreated(created);
       onClose();
     } catch (err: any) {
@@ -251,7 +480,7 @@ export default function WizardModal({
       <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white flex flex-col max-h-[90vh] overflow-auto">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
           <h2 className="text-sm font-semibold text-slate-900">
-            Create Epic From Goals — Step {step} of 3
+            Create Epic From Goals — Step {step + 1} of 4
           </h2>
           <button
             onClick={onClose}
@@ -264,19 +493,60 @@ export default function WizardModal({
         <div className="p-4">
           <div className="mb-3">
             <h2 className="mt-1 text-lg font-semibold text-slate-900">
-              {step === 1
-                ? "Plan Your Monthly Capacity"
-                : step === 2
-                  ? "Plan Sprints & Tasks"
-                  : "Review & Create Epic"}
+              {step === 0
+                ? "Epic Details"
+                : step === 1
+                  ? "Plan Your Monthly Capacity"
+                  : step === 2
+                    ? "Plan Sprints & Tasks"
+                    : "Review & Create Epic"}
             </h2>
           </div>
+          {step === 0 && (
+            <WizardStep0
+              month={step1Data.month || epicMonth}
+              epicName={epicName}
+              epicDescription={epicDescription}
+              onChange={(patch) => {
+                if (patch.month) {
+                  setStep1Data((s) => ({ ...s, month: patch.month! }));
+                  setEpicMonth(patch.month!);
+                  // if epic name is auto-managed, update suggestion when month changes
+                  if (epicNameAuto) {
+                    try {
+                      const [y, m] = (patch.month || "").split("-").map((s) => Number(s));
+                      if (y && m) {
+                        const d = new Date(y, m - 1, 1);
+                        const label = d.toLocaleString(undefined, { month: "long", year: "numeric" });
+                        setEpicName(`${label} Epic`);
+                        setEpicNameAuto(true);
+                      }
+                    } catch {}
+                  }
+                }
+                if (patch.name !== undefined) {
+                  setEpicName(patch.name as string);
+                  setEpicNameAuto(false);
+                }
+                if (patch.description !== undefined) setEpicDescription(patch.description as string);
+              }}
+              onCancel={onClose}
+            />
+          )}
+
           {step === 1 && (
             <WizardStep1
               data={{
                 month: step1Data.month || epicMonth,
                 includeWeekends: step1Data.includeWeekends,
                 weeklyCommitment: step1Data.weeklyCommitment,
+              }}
+              epicName={epicName}
+              epicDescription={epicDescription}
+              onEpicChange={(p) => {
+                if (typeof p.name === "string") setEpicName(p.name);
+                if (typeof p.description === "string")
+                  setEpicDescription(p.description);
               }}
               onChange={(patch) => {
                 const next = { ...step1Data, ...patch };
@@ -288,6 +558,7 @@ export default function WizardModal({
                 setStep(2);
               }}
               onCancel={onClose}
+              onBack={() => setStep(0)}
             />
           )}
 
@@ -309,6 +580,7 @@ export default function WizardModal({
               data={{
                 epicId,
                 epicName,
+                epicDescription,
                 epicMonth,
                 sprints,
                 step2: step2Data,
@@ -320,7 +592,7 @@ export default function WizardModal({
 
         <div className="flex justify-between gap-2 border-t border-slate-200 px-5 py-3">
           <div>
-            {step > 1 && (
+            {step > 0 && (
               <button
                 onClick={() => setStep((s) => s - 1)}
                 className="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700"
@@ -333,6 +605,17 @@ export default function WizardModal({
             {step < 3 && (
               <button
                 onClick={() => {
+                  if (step === 0) {
+                    const month = step1Data.month || epicMonth;
+                    if (!month || !month.trim()) {
+                      toast("Please select a month", "error");
+                      return;
+                    }
+                    setEpicMonth(month);
+                    setStep(1);
+                    return;
+                  }
+
                   if (step === 1) {
                     const month = step1Data.month || epicMonth;
                     if (!month || !month.trim()) {

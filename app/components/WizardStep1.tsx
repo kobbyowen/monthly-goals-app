@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 
 type StepData = {
   month: string; // 'YYYY-MM'
@@ -37,26 +37,10 @@ export default function WizardStep1({
   onCancel,
 }: Props) {
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const monthOptions = useMemo(() => {
-    return Array.from({ length: 12 }).map((_, idx) => {
-      const date = new Date(currentYear, idx, 1);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const label = date.toLocaleString(undefined, {
-        month: "long",
-        year: "numeric",
-      });
-      return {
-        key,
-        label,
-        year: date.getFullYear(),
-        month: date.getMonth() + 1,
-      };
-    });
-  }, [currentYear]);
 
   // Ensure defaults
-  const monthKey = data.month || monthOptions[0].key;
+  const defaultMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthKey = data.month || defaultMonthKey;
   const includeWeekends = !!data.includeWeekends;
   const weeklyCommitment =
     typeof data.weeklyCommitment === "number" ? data.weeklyCommitment : 0;
@@ -77,8 +61,8 @@ export default function WizardStep1({
   const recommendedSafeCommitment = Math.max(0, safeHoursPerDay * includedDays);
 
   // monthly commitment derived from weekly hours (pro-rate by days/7)
-  const monthlyCommitment =
-    Math.round(weeklyCommitment * (days / 7) * 100) / 100;
+  // Use 4 weeks per sprint as monthly equivalent
+  const monthlyCommitment = Math.round(weeklyCommitment * 4 * 100) / 100;
 
   // Progress zones use totalMonthHours as baseline
   const yellowLimit = 10 * days; // 10 hours/day heavy workload
@@ -102,36 +86,6 @@ export default function WizardStep1({
 
   return (
     <div className="px-2 py-2 space-y-6">
-      {/* Month + Weekend */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">
-            Month
-          </label>
-          <select
-            value={monthKey}
-            onChange={(e) => onChange({ month: e.target.value })}
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
-          >
-            {monthOptions.map((opt) => (
-              <option key={opt.key} value={opt.key}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <label className="flex items-center gap-2 pt-6 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={includeWeekends}
-            onChange={(e) => onChange({ includeWeekends: e.target.checked })}
-            className="h-4 w-4 rounded border-slate-300 text-emerald-600"
-          />
-          Include Saturdays & Sundays
-        </label>
-      </div>
-
       {/* Capacity Summary */}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs space-y-1">
         <p className="text-xs">
@@ -168,6 +122,16 @@ export default function WizardStep1({
       </div>
 
       {/* Weekly Commitment */}
+      <label className="flex items-center gap-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          checked={includeWeekends}
+          onChange={(e) => onChange({ includeWeekends: e.target.checked })}
+          className="h-4 w-4 rounded border-slate-300 text-emerald-600"
+        />
+        Include Saturdays & Sundays
+      </label>
+
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-500">
           Hours you will dedicate per week
@@ -188,7 +152,7 @@ export default function WizardStep1({
       {/* Progress */}
       <div>
         <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>Monthly commitment</span>
+          <span>Monthly commitment (based on a 28-day month)</span>
           <span>
             {monthlyCommitment}h / {totalMonthHours}h
           </span>
