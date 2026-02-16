@@ -130,7 +130,12 @@ export default function WizardModal({
     setEpicDescription("");
     setEpicMonth("");
     setStep1Data({ month: "", includeWeekends: false, weeklyCommitment: 0 });
-    setStep2Data({ numSprints: 4, weeksPerSprint: 1, startDate: "", goals: [] });
+    setStep2Data({
+      numSprints: 4,
+      weeksPerSprint: 1,
+      startDate: "",
+      goals: [],
+    });
     setSprints([]);
     setEpicNameAuto(true);
     setIsDirty(false);
@@ -138,33 +143,17 @@ export default function WizardModal({
     setSubmitting(false);
   }
 
-  async function handleCloseAttempt() {
+  function handleCloseAttempt() {
     if (!isDirty) {
       resetWizardState();
       onClose();
       return;
     }
-
-    // Use app confirmation dialog instead of browser confirm
-    const ok = await new Promise<boolean>((resolve) => {
-      try {
-        window.dispatchEvent(
-          new CustomEvent("app:confirm", {
-            detail: {
-              message: "You have unsaved changes — closing will discard them. Proceed?",
-              confirmLabel: "Discard",
-              resolve,
-            },
-          }),
-        );
-      } catch (e) {
-        // fallback to browser confirm
-        // eslint-disable-next-line no-restricted-globals
-        const r = confirm("You have unsaved changes — closing will discard them. Proceed?");
-        resolve(Boolean(r));
-      }
-    });
-
+    // warn user that unsaved changes will be lost
+    // eslint-disable-next-line no-restricted-globals
+    const ok = confirm(
+      "You have unsaved changes — closing will discard them. Proceed?",
+    );
     if (ok) {
       resetWizardState();
       onClose();
@@ -404,13 +393,16 @@ export default function WizardModal({
         const daysCount = includeWeekends
           ? daysInclusive(s, e)
           : workingDaysInclusive(s, e);
-        // proportion of weekly commitment for the days in this sprint week
-        // weekends should not reduce the user's weekly commitment: when weekends
-        // are excluded, treat a full working week as `weeklyCommitmentHours` (5-day)
-        const denom = 7;
-        const weekHours = Math.round(
-          (weeklyCommitmentHours / denom) * daysCount,
-        );
+        // If this is a full week allocate full weekly commitment regardless
+        // of whether weekends are included. For partial weeks, allocate
+        // proportionally using a 7-day denominator so fractions are consistent.
+        let weekHours: number;
+        const isFullWeek = includeWeekends ? daysCount === 7 : daysCount === 5;
+        if (isFullWeek) {
+          weekHours = weeklyCommitmentHours;
+        } else {
+          weekHours = Math.round((weeklyCommitmentHours / 7) * daysCount);
+        }
         const wn = Number(sp.weekNumber) || 0;
         // global sequence across active (filtered) sprints
         globalSeq++;
@@ -601,10 +593,15 @@ export default function WizardModal({
                   // if epic name is auto-managed, update suggestion when month changes
                   if (epicNameAuto) {
                     try {
-                      const [y, m] = (patch.month || "").split("-").map((s) => Number(s));
+                      const [y, m] = (patch.month || "")
+                        .split("-")
+                        .map((s) => Number(s));
                       if (y && m) {
                         const d = new Date(y, m - 1, 1);
-                        const label = d.toLocaleString(undefined, { month: "long", year: "numeric" });
+                        const label = d.toLocaleString(undefined, {
+                          month: "long",
+                          year: "numeric",
+                        });
                         setEpicName(`${label} Epic`);
                         setEpicNameAuto(true);
                       }
@@ -663,7 +660,10 @@ export default function WizardModal({
               }}
               weeklyLimit={step1Data.weeklyCommitment}
               epicMonth={epicMonth}
-              onChange={(patch) => { setStep2Data((s) => ({ ...s, ...patch })); setIsDirty(true); }}
+              onChange={(patch) => {
+                setStep2Data((s) => ({ ...s, ...patch }));
+                setIsDirty(true);
+              }}
             />
           )}
 

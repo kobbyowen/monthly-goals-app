@@ -129,8 +129,11 @@ export default function WizardStep3({ data }: Props) {
     globalSeq++;
     const seq = String(globalSeq).padStart(2, "0");
     const name = `Week ${sp.weekNumber} Sprint ${seq}`;
-    const denom = 7; // always distribute over 7 days per user preference
-    const hours = Math.round((weeklyCommitment / denom) * daysCount);
+    // full week => full weekly commitment; partial => proportional over 7 days
+    const isFullWeek = includeWeekends ? daysCount === 7 : daysCount === 5;
+    const hours = isFullWeek
+      ? weeklyCommitment
+      : Math.round((weeklyCommitment / 7) * daysCount);
     return {
       weekNumber: sp.weekNumber,
       name,
