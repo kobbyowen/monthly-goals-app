@@ -129,7 +129,8 @@ export default function WizardStep3({ data }: Props) {
     globalSeq++;
     const seq = String(globalSeq).padStart(2, "0");
     const name = `Week ${sp.weekNumber} Sprint ${seq}`;
-    const hours = Math.round((weeklyCommitment / 7) * daysCount);
+    const denom = 7; // always distribute over 7 days per user preference
+    const hours = Math.round((weeklyCommitment / denom) * daysCount);
     return {
       weekNumber: sp.weekNumber,
       name,
@@ -138,6 +139,19 @@ export default function WizardStep3({ data }: Props) {
       hours,
     };
   });
+
+  // Post-process: ensure total month hours >= weeklyCommitment * 4 by padding last sprint
+  try {
+    const totalMonthHours = sprintsWithHours.reduce((acc, s) => acc + (s.hours || 0), 0);
+    const minMonthlyRequired = (weeklyCommitment || 0) * 4;
+    if (totalMonthHours < minMonthlyRequired && sprintsWithHours.length > 0) {
+      const diff = Math.round(minMonthlyRequired - totalMonthHours);
+      sprintsWithHours[sprintsWithHours.length - 1].hours =
+        (sprintsWithHours[sprintsWithHours.length - 1].hours || 0) + diff;
+    }
+  } catch (e) {
+    // best-effort
+  }
 
   function formatIso(d: Date) {
     const y = d.getFullYear();

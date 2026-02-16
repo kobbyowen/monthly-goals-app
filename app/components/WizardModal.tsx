@@ -7,6 +7,7 @@ import WizardStep2 from "./WizardStep2";
 import WizardStep3 from "./WizardStep3";
 import { createPlan } from "@lib/api/wizard";
 import { toast } from "../lib/ui";
+import createStructuredPlan from "../utils/createStructuredPlan";
 
 type TaskRow = {
   id: string;
@@ -52,9 +53,9 @@ export default function WizardModal({
     startDate: "",
     goals: [],
   });
-
   const [sprints, setSprints] = useState<SprintRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   function addSprint() {
     setSprints((s) => [
@@ -67,14 +68,17 @@ export default function WizardModal({
         tasks: [],
       },
     ]);
+    setIsDirty(true);
   }
 
   function removeSprint(idx: number) {
     setSprints((s) => s.filter((_, i) => i !== idx));
+    setIsDirty(true);
   }
 
   function updateSprint(idx: number, patch: Partial<SprintRow>) {
     setSprints((s) => s.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+    setIsDirty(true);
   }
 
   function addTaskToSprint(sprintIdx: number) {
@@ -97,6 +101,7 @@ export default function WizardModal({
           : r,
       ),
     );
+    setIsDirty(true);
   }
 
   function updateTask(
@@ -116,6 +121,54 @@ export default function WizardModal({
           : r,
       ),
     );
+    setIsDirty(true);
+  }
+
+  function resetWizardState() {
+    setEpicId("");
+    setEpicName("");
+    setEpicDescription("");
+    setEpicMonth("");
+    setStep1Data({ month: "", includeWeekends: false, weeklyCommitment: 0 });
+    setStep2Data({ numSprints: 4, weeksPerSprint: 1, startDate: "", goals: [] });
+    setSprints([]);
+    setEpicNameAuto(true);
+    setIsDirty(false);
+    setStep(0);
+    setSubmitting(false);
+  }
+
+  async function handleCloseAttempt() {
+    if (!isDirty) {
+      resetWizardState();
+      onClose();
+      return;
+    }
+
+    // Use app confirmation dialog instead of browser confirm
+    const ok = await new Promise<boolean>((resolve) => {
+      try {
+        window.dispatchEvent(
+          new CustomEvent("app:confirm", {
+            detail: {
+              message: "You have unsaved changes — closing will discard them. Proceed?",
+              confirmLabel: "Discard",
+              resolve,
+            },
+          }),
+        );
+      } catch (e) {
+        // fallback to browser confirm
+        // eslint-disable-next-line no-restricted-globals
+        const r = confirm("You have unsaved changes — closing will discard them. Proceed?");
+        resolve(Boolean(r));
+      }
+    });
+
+    if (ok) {
+      resetWizardState();
+      onClose();
+    }
   }
 
   function removeTask(sprintIdx: number, taskIdx: number) {
@@ -321,7 +374,9 @@ export default function WizardModal({
       // - if weekends are excluded: remove weeks with less than 2 working days (Mon-Fri)
       const includeWeekends = !!step1Data.includeWeekends;
       function daysInclusive(a: Date, b: Date) {
-        return Math.floor((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+        return (
+          Math.floor((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000)) + 1
+        );
       }
       function workingDaysInclusive(a: Date, b: Date) {
         let cnt = 0;
@@ -350,7 +405,12 @@ export default function WizardModal({
           ? daysInclusive(s, e)
           : workingDaysInclusive(s, e);
         // proportion of weekly commitment for the days in this sprint week
-        const weekHours = Math.round((weeklyCommitmentHours / 7) * daysCount);
+        // weekends should not reduce the user's weekly commitment: when weekends
+        // are excluded, treat a full working week as `weeklyCommitmentHours` (5-day)
+        const denom = 7;
+        const weekHours = Math.round(
+          (weeklyCommitmentHours / denom) * daysCount,
+        );
         const wn = Number(sp.weekNumber) || 0;
         // global sequence across active (filtered) sprints
         globalSeq++;
@@ -358,6 +418,25 @@ export default function WizardModal({
         const name = `Week ${wn} Sprint ${seq}`;
         return { ...sp, name, hours: weekHours };
       });
+
+      // Post-process: ensure total month hours >= weeklyCommitmentHours * 4
+      try {
+        const totalMonthHours = sprintsWithHours.reduce(
+          (acc, s) => acc + (s.hours || 0),
+          0,
+        );
+        const minMonthlyRequired = (weeklyCommitmentHours || 0) * 4;
+        if (
+          totalMonthHours < minMonthlyRequired &&
+          sprintsWithHours.length > 0
+        ) {
+          const diff = Math.round(minMonthlyRequired - totalMonthHours);
+          sprintsWithHours[sprintsWithHours.length - 1].hours =
+            (sprintsWithHours[sprintsWithHours.length - 1].hours || 0) + diff;
+        }
+      } catch (e) {
+        // best-effort; do not break plan generation
+      }
 
       const plan = {
         wizardVersion: 2,
@@ -423,6 +502,20 @@ export default function WizardModal({
       console.log("Generated plan:", planJson);
     }
 
+    // convert generated plan to the API-shaped payload using the utility
+    let structuredPayload: any = null;
+    try {
+      structuredPayload = createStructuredPlan(planJson);
+      // eslint-disable-next-line no-console
+      console.log(
+        "Structured API payload:",
+        JSON.stringify(structuredPayload, null, 2),
+      );
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log("Structured API payload:", structuredPayload ?? err);
+    }
+
     const payload = {
       epicId,
       epicName,
@@ -452,14 +545,7 @@ export default function WizardModal({
       // eslint-disable-next-line no-console
       console.log("Submitted payload:", payload);
       // reset modal state
-      setEpicId("");
-      setEpicName("");
-      setEpicDescription("");
-      setEpicMonth("");
-      setStep1Data({ month: "", includeWeekends: false, weeklyCommitment: 0 });
-      setStep2Data({ numSprints: 4, weeksPerSprint: 1, startDate: "", goals: [] });
-      setSprints([]);
-      setEpicNameAuto(true);
+      resetWizardState();
       if (onCreated) onCreated(created);
       onClose();
     } catch (err: any) {
@@ -483,7 +569,7 @@ export default function WizardModal({
             Create Epic From Goals — Step {step + 1} of 4
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleCloseAttempt}
             className="text-slate-400 hover:text-slate-600"
           >
             ✕
@@ -511,6 +597,7 @@ export default function WizardModal({
                 if (patch.month) {
                   setStep1Data((s) => ({ ...s, month: patch.month! }));
                   setEpicMonth(patch.month!);
+                  setIsDirty(true);
                   // if epic name is auto-managed, update suggestion when month changes
                   if (epicNameAuto) {
                     try {
@@ -527,10 +614,14 @@ export default function WizardModal({
                 if (patch.name !== undefined) {
                   setEpicName(patch.name as string);
                   setEpicNameAuto(false);
+                  setIsDirty(true);
                 }
-                if (patch.description !== undefined) setEpicDescription(patch.description as string);
+                if (patch.description !== undefined) {
+                  setEpicDescription(patch.description as string);
+                  setIsDirty(true);
+                }
               }}
-              onCancel={onClose}
+              onCancel={handleCloseAttempt}
             />
           )}
 
@@ -551,13 +642,14 @@ export default function WizardModal({
               onChange={(patch) => {
                 const next = { ...step1Data, ...patch };
                 setStep1Data(next);
+                setIsDirty(true);
                 if (patch.month) setEpicMonth(patch.month);
               }}
               onNext={() => {
                 setEpicMonth(step1Data.month || epicMonth);
                 setStep(2);
               }}
-              onCancel={onClose}
+              onCancel={handleCloseAttempt}
               onBack={() => setStep(0)}
             />
           )}
@@ -571,7 +663,7 @@ export default function WizardModal({
               }}
               weeklyLimit={step1Data.weeklyCommitment}
               epicMonth={epicMonth}
-              onChange={(patch) => setStep2Data((s) => ({ ...s, ...patch }))}
+              onChange={(patch) => { setStep2Data((s) => ({ ...s, ...patch })); setIsDirty(true); }}
             />
           )}
 

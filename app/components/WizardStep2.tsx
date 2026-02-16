@@ -28,16 +28,39 @@ function daysInMonthFromKey(key?: string) {
   }
 }
 
-export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth }: Props) {
+export default function WizardStep2({
+  data,
+  onChange,
+  weeklyLimit = 0,
+  epicMonth,
+}: Props) {
   const days = daysInMonthFromKey(epicMonth) || new Date().getDate();
 
   const [goals, setGoals] = useState<Goal[]>([
-    { id: `g_${Date.now()}_1`, name: "Learn React", hours: 8, effortType: "weekly", priority: "High" },
-    { id: `g_${Date.now()}_2`, name: "Trading Practice", hours: 10, effortType: "weekly", priority: "Medium" },
+    {
+      id: `g_${Date.now()}_1`,
+      name: "Learn React",
+      hours: 8,
+      effortType: "weekly",
+      priority: "High",
+    },
+    {
+      id: `g_${Date.now()}_2`,
+      name: "Trading Practice",
+      hours: 10,
+      effortType: "weekly",
+      priority: "Medium",
+    },
   ]);
 
   function addGoal() {
-    const newGoal: Goal = { id: `g_${Date.now()}`, name: "", hours: 1, effortType: "weekly", priority: "Medium" };
+    const newGoal: Goal = {
+      id: `g_${Date.now()}`,
+      name: "",
+      hours: 1,
+      effortType: "weekly",
+      priority: "Medium",
+    };
     // prevent adding if it would immediately exceed weekly limit
     const used = usedWeeklyHours(goals);
     const addition = toWeeklyEquivalent(newGoal);
@@ -60,7 +83,7 @@ export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth
     if (goal.effortType === "weekly") return goal.hours;
     // monthly -> weekly: hours * (days / 7) / days? user's earlier formula used days/7 for month -> monthly commitment; convert monthly to weekly by dividing by (days/7)
     // monthlyHours -> weeklyEquivalent = monthlyHours / (days/7) = monthlyHours * 7 / days
-    return Math.round((goal.hours * 7) / days * 100) / 100;
+    return Math.round(((goal.hours * 7) / days) * 100) / 100;
   }
 
   function monthlyEquivalent(goal: Goal) {
@@ -75,7 +98,8 @@ export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth
 
   const used = usedWeeklyHours(goals);
   const remaining = Math.max(0, (weeklyLimit || 0) - used);
-  const percent = weeklyLimit > 0 ? Math.min(100, (used / weeklyLimit) * 100) : 0;
+  const percent =
+    weeklyLimit > 0 ? Math.min(100, (used / weeklyLimit) * 100) : 0;
 
   // validation helpers
   function rowError(g: Goal) {
@@ -91,19 +115,30 @@ export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth
 
   return (
     <div className="space-y-3 px-4 py-3 sm:px-6 sm:py-4">
-
       {/* Allocation summary */}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-slate-600">Allocated weekly hours</span>
-          <span className="font-semibold text-slate-900">{used}h / {weeklyLimit}h</span>
+          <span className="font-semibold text-slate-900">
+            {used}h / {weeklyLimit}h
+          </span>
         </div>
 
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-          <div className="h-full bg-emerald-500" style={{ width: `${percent}%` }} />
+          <div
+            className="h-full bg-emerald-500"
+            style={{ width: `${percent}%` }}
+          />
         </div>
 
         <p className="mt-2 text-xs text-slate-500">{remaining}h remaining</p>
+      </div>
+
+      <div className="rounded-md border border-slate-200 bg-blue-50 p-2 text-xs text-slate-700">
+        <strong className="font-medium">Note:</strong> Setting a goal's
+        frequency to <em>Monthly</em> will make the wizard automatically
+        position and distribute that goal across the sprints based on priority.
+        Higher-priority monthly goals are placed earlier in the month.
       </div>
 
       {/* Goals list */}
@@ -121,7 +156,7 @@ export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth
                   placeholder="Goal name"
                   value={g.name}
                   onChange={(e) => updateGoal(g.id, { name: e.target.value })}
-                  className={`col-span-12 sm:col-span-6 rounded-md border border-slate-300 px-3 py-1 text-sm focus:border-emerald-500 focus:outline-none ${err ? 'border-rose-400' : ''}`}
+                  className={`col-span-12 sm:col-span-6 rounded-md border border-slate-300 px-3 py-1 text-sm focus:border-emerald-500 focus:outline-none ${err ? "border-rose-400" : ""}`}
                 />
 
                 <div className="col-span-4 sm:col-span-2">
@@ -129,14 +164,18 @@ export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth
                     type="number"
                     placeholder="Hrs"
                     value={g.hours}
-                    onChange={(e) => updateGoal(g.id, { hours: Number(e.target.value) || 0 })}
-                    className={`w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none ${g.hours <= 0 ? 'border-rose-400' : ''}`}
+                    onChange={(e) =>
+                      updateGoal(g.id, { hours: Number(e.target.value) || 0 })
+                    }
+                    className={`w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none ${g.hours <= 0 ? "border-rose-400" : ""}`}
                   />
                 </div>
 
                 <select
                   value={g.effortType}
-                  onChange={(e) => updateGoal(g.id, { effortType: e.target.value as any })}
+                  onChange={(e) =>
+                    updateGoal(g.id, { effortType: e.target.value as any })
+                  }
                   className="col-span-3 sm:col-span-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 >
                   <option value="weekly">/week</option>
@@ -145,7 +184,9 @@ export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth
 
                 <select
                   value={g.priority}
-                  onChange={(e) => updateGoal(g.id, { priority: e.target.value as any })}
+                  onChange={(e) =>
+                    updateGoal(g.id, { priority: e.target.value as any })
+                  }
                   className="col-span-3 sm:col-span-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 >
                   <option>High</option>
@@ -153,20 +194,39 @@ export default function WizardStep2({ data, onChange, weeklyLimit = 0, epicMonth
                   <option>Low</option>
                 </select>
 
-                <button onClick={() => removeGoal(g.id)} className="col-span-2 sm:col-span-1 text-rose-500 text-xs hover:text-rose-600">Delete</button>
+                <button
+                  onClick={() => removeGoal(g.id)}
+                  className="col-span-2 sm:col-span-1 text-rose-500 text-xs hover:text-rose-600"
+                >
+                  Delete
+                </button>
 
                 <div className="col-span-12 text-xs text-slate-600 mt-1">
-                  Monthly: <span className="font-medium text-slate-900">{monthlyEq}h</span> · Weekly: <span className="font-medium text-slate-900">{weeklyEq}h</span>
+                  Monthly:{" "}
+                  <span className="font-medium text-slate-900">
+                    {monthlyEq}h
+                  </span>{" "}
+                  · Weekly:{" "}
+                  <span className="font-medium text-slate-900">
+                    {weeklyEq}h
+                  </span>
                 </div>
                 <div className="col-span-12 mt-1">
-                  <div className="text-xs text-rose-500">{err ?? (overalloc ? 'Allocation exceeds weekly limit' : '')}</div>
+                  <div className="text-xs text-rose-500">
+                    {err ??
+                      (overalloc ? "Allocation exceeds weekly limit" : "")}
+                  </div>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
-      <button onClick={addGoal} disabled={weeklyLimit > 0 && used >= weeklyLimit} className={`text-sm font-medium ${weeklyLimit > 0 && used >= weeklyLimit ? 'text-slate-400 cursor-not-allowed' : 'text-emerald-600 hover:underline'}`}>
+      <button
+        onClick={addGoal}
+        disabled={weeklyLimit > 0 && used >= weeklyLimit}
+        className={`text-sm font-medium ${weeklyLimit > 0 && used >= weeklyLimit ? "text-slate-400 cursor-not-allowed" : "text-emerald-600 hover:underline"}`}
+      >
         + Add Goal
       </button>
     </div>
