@@ -143,6 +143,23 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
     setShowAddModal(true);
   }
 
+  function formatSprintRange(start?: string | null, end?: string | null) {
+    try {
+      if (!start && !end) return "";
+      const opts: Intl.DateTimeFormatOptions = {
+        month: "short",
+        day: "numeric",
+      };
+      const fmt = new Intl.DateTimeFormat(undefined, opts);
+      const s = start ? fmt.format(new Date(start)) : "";
+      const e = end ? fmt.format(new Date(end)) : "";
+      if (s && e) return `${s} — ${e}`;
+      return s || e || "";
+    } catch (e) {
+      return `${start || ""}${start && end ? " — " : ""}${end || ""}`;
+    }
+  }
+
   return !sprint ? null : (
     <div className="max-w-6xl mx-0 p-0 md:p-4 mb-6 md:mb-4">
       {/* Sprint Card */}
@@ -165,6 +182,10 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
               <h2 className="text-xl font-semibold text-gray-900">
                 {sprint.name}
               </h2>
+              {/** show sprint date range */}
+              <div className="text-sm text-slate-500">
+                {formatSprintRange(sprint.start, sprint.end)}
+              </div>
 
               <span
                 className={`px-3 py-1 text-xs font-medium rounded-full ${statusStyles}`}

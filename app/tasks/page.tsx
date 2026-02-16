@@ -10,6 +10,7 @@ import type { Task as ApiTask, Epic } from "@lib/api/types";
 export default function TasksPage() {
   const [query, setQuery] = useState("");
   const [filterEpic, setFilterEpic] = useState<string>("");
+  const [filterSprint, setFilterSprint] = useState<string>("");
   const epics = useRootEpicStore(
     useShallow((s) => s.epics.allIds.map((id) => s.epics.byId[id])),
   );
@@ -19,6 +20,7 @@ export default function TasksPage() {
   const getSessionsByTask = useRootEpicStore(
     useShallow((s) => s.getSessionsByTask),
   );
+  const getSprintsByEpic = useRootEpicStore(useShallow((s) => s.getSprintsByEpic));
   const storeVersion = useRootEpicStore((s) => s._version);
 
   const { inProgressTasks, todoTasks, completedTasks } = React.useMemo(() => {
@@ -27,10 +29,20 @@ export default function TasksPage() {
     const done: typeof tasks = [];
 
     const q = (query || "").trim().toLowerCase();
+    // If filtering by epic, include tasks directly linked to the epic OR tasks whose sprint belongs to the epic
+    const sprintIdsForEpic = filterEpic
+      ? new Set((getSprintsByEpic ? getSprintsByEpic(filterEpic) : []).map((s: any) => s.id))
+      : new Set<string>();
 
     const filtered = (tasks || []).filter((t) => {
       if (!t) return false;
-      if (filterEpic && (t as any).epicId !== filterEpic) return false;
+      if (filterEpic) {
+        const taskEpic = (t as any).epicId;
+        const taskSprintId = (t as any).sprintId;
+        const inEpic = taskEpic === filterEpic || (taskSprintId && sprintIdsForEpic.has(taskSprintId));
+        if (!inEpic) return false;
+      }
+      if (filterSprint && (t as any).sprintId !== filterSprint) return false;
       if (!q) return true;
       const name = ((t as any).name || (t as any).title || "")
         .toString()
@@ -59,11 +71,72 @@ export default function TasksPage() {
       todoTasks: todo,
       completedTasks: done,
     };
-  }, [tasks, getSessionsByTask, query, filterEpic, storeVersion]);
+  }, [tasks, getSessionsByTask, query, filterEpic, filterSprint, getSprintsByEpic, storeVersion]);
 
   // ensure stable client rendering when store initially empty
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // initialize default epic + sprint when store populates
+  useEffect(() => {
+    if (mounted && (!filterEpic || filterEpic === "") && epics && epics.length > 0) {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth() + 1;
+
+      // prefer epic matching current year/month
+      const found = epics.find((e: any) => e && typeof e.epicYear === 'number' && typeof e.epicMonth === 'number' && e.epicYear === curYear && e.epicMonth === curMonth);
+      const defaultEpic = found ? found.id : (epics[0] && epics[0].id) || "";
+      if (defaultEpic) setFilterEpic(defaultEpic);
+
+      // derive default sprint for this epic
+      const sprints = getSprintsByEpic ? getSprintsByEpic(defaultEpic) : [];
+      if (sprints && sprints.length) {
+        // prefer sprint that contains today
+        const containing = sprints.find((sp: any) => {
+          const start = sp && (sp.start || sp.dateExpectedToStart || null);
+          const end = sp && (sp.end || sp.dateExpectedToEnd || null);
+          if (!start || !end) return false;
+          try {
+            const s = Date.parse(start);
+            const e = Date.parse(end);
+            const t = Date.now();
+            return s <= t && t <= e;
+          } catch (e) {
+            return false;
+          }
+        });
+        setFilterSprint((containing && containing.id) || sprints[0].id);
+      }
+    }
+  }, [mounted, epics, getSprintsByEpic]);
+
+  // when epic changes, reset/derive sprint for that epic
+  useEffect(() => {
+    if (!filterEpic) {
+      setFilterSprint("");
+      return;
+    }
+    const sprints = getSprintsByEpic ? getSprintsByEpic(filterEpic) : [];
+    if (sprints && sprints.length) {
+      const now = Date.now();
+      const containing = sprints.find((sp: any) => {
+        const start = sp && (sp.start || sp.dateExpectedToStart || null);
+        const end = sp && (sp.end || sp.dateExpectedToEnd || null);
+        if (!start || !end) return false;
+        try {
+          const s = Date.parse(start);
+          const e = Date.parse(end);
+          return s <= now && now <= e;
+        } catch (e) {
+          return false;
+        }
+      });
+      setFilterSprint((containing && containing.id) || sprints[0].id);
+    } else {
+      setFilterSprint("");
+    }
+  }, [filterEpic, getSprintsByEpic]);
 
   if (!mounted) return null;
 
@@ -99,6 +172,21 @@ export default function TasksPage() {
                 {(epics || []).map((ep) => (
                   <option key={ep?.id} value={ep?.id}>
                     {ep?.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Filter by sprint"
+                value={filterSprint}
+                onChange={(e) => setFilterSprint(e.target.value)}
+                className="text-sm w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700"
+              >
+                <option value="">All sprints</option>
+                {(getSprintsByEpic && filterEpic
+                  ? getSprintsByEpic(filterEpic)
+                  : []).map((sp: any) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.name}
                   </option>
                 ))}
               </select>

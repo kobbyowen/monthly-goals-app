@@ -50,7 +50,7 @@ export default function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await loginUser({ email, password, remember });
+    await loginUser({ email, password, remember: true });
   }
 
   return (

@@ -309,7 +309,7 @@ export default function TaskCard({ taskId }: { taskId: string }) {
     <>
       <div
         onClick={() => setOpen(true)}
-        className={`bg-white rounded-2xl border ${styles.border} p-4 shadow-sm cursor-pointer`}
+        className={`bg-white rounded-md border ${styles.border} p-4 shadow-sm cursor-pointer`}
       >
         <div className="flex items-start justify-between gap-4">
           {/* Left */}
