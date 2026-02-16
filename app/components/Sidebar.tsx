@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import CreateEpic from "./CreateEpic";
 import AddEpicModal from "./AddEpicModal";
+import WizardModal from "./WizardModal";
 import EpicItem from "./EpicItem";
 import { useRouter } from "next/navigation";
 import { useUserStore, useAuthStore } from "@stores";
@@ -130,6 +131,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [showAddEpic, setShowAddEpic] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   useEffect(() => {
     const handler = () => setOpen(true);
     if (typeof window !== "undefined") {
@@ -359,11 +361,19 @@ export default function Sidebar({
         </div>
 
         <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+          <div className="mb-2">
+            <button
+              onClick={() => setShowWizard(true)}
+              className="w-full justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium mb-2"
+            >
+              New Monthly Epic From Goals
+            </button>
+          </div>
           <button
             onClick={() => setShowAddEpic(true)}
             className="w-full justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition text-sm font-medium"
           >
-            New Monthly Epic
+            New Monthly Epic From Scratch
           </button>
         </div>
       </div>
@@ -398,6 +408,11 @@ export default function Sidebar({
           </button>
         </div>
       </aside>
+      <WizardModal
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        onCreated={onCreated}
+      />
       {showAddEpic && (
         <AddEpicModal
           onClose={() => setShowAddEpic(false)}

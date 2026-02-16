@@ -8,3 +8,4 @@ export * from './checklists';
 export * from './dashboard';
 export * from './auth';
 export * from './user';
+export * from './wizard';
