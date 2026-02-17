@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 
 type Props = {
   data: any;
@@ -70,6 +70,9 @@ export default function WizardStep2({
     },
   ];
 
+  // track last-added goal id to scroll it into view after render
+  const lastAddedRef = useRef<string | null>(null);
+
   const [goals, setGoals] = useState<Goal[]>(() => {
     try {
       const incoming = (data && data.goals) || null;
@@ -108,6 +111,8 @@ export default function WizardStep2({
       // show error toast via onChange hook or simply do nothing for now
       // but better: allow add and show validation on the row — here we'll allow add but mark overallocated elsewhere
     }
+    // remember last-added id so we can scroll it into view after render
+    lastAddedRef.current = newGoal.id;
     setGoals((g) => [...g, newGoal]);
   }
 
@@ -118,6 +123,23 @@ export default function WizardStep2({
   function updateGoal(id: string, patch: Partial<Goal>) {
     setGoals((g) => g.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
+
+  // when goals change, if we've recently added one, scroll it into view
+  useEffect(() => {
+    const last = lastAddedRef.current;
+    if (!last) return;
+    // find the element for the goal and scroll it into view inside the scrollable container
+    try {
+      const el = document.getElementById(`goal-${last}`);
+      if (el && typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      lastAddedRef.current = null;
+    }
+  }, [goals.length]);
 
   function toWeeklyEquivalent(goal: Goal) {
     const h = Number(goal.hours || 0);
@@ -166,7 +188,9 @@ export default function WizardStep2({
       suppressOnChangeRef.current = false;
       return;
     }
-    onChange?.({ goals });
+    // compute if any row has validation errors
+    const hasErrors = goals.some((gg) => rowError(gg) !== null);
+    onChange?.({ goals, hasErrors });
   }, [goals]);
 
   // if parent supplies `data.goals` (e.g., when navigating back), sync it into local state
@@ -246,7 +270,7 @@ export default function WizardStep2({
           const monthlyEq = monthlyEquivalent(g);
           const overalloc = weeklyLimit > 0 && used > weeklyLimit;
           return (
-            <div key={g.id} className="rounded-lg border border-slate-200 p-2">
+            <div key={g.id} id={`goal-${g.id}`} className="rounded-lg border border-slate-200 p-2">
               <div className="grid grid-cols-12 gap-1 items-center">
                 <input
                   type="text"

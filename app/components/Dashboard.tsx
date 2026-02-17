@@ -352,7 +352,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
                   <MiniTaskCard
                     key={t.id}
                     name={t.name || t.title || ""}
-                    badge="In Progress"
+                    badge="Started"
                     usedSec={used}
                     plannedSec={planned}
                     running={Boolean(

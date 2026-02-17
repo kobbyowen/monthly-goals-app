@@ -739,13 +739,17 @@ export default function WizardModal({
                   }
 
                   // step === 2: validate goals allocation before proceeding
-                  const goals = step2Data.goals || [];
-                  const used = usedWeeklyFromGoals(goals);
-                  const limit = step1Data.weeklyCommitment || 0;
-                  if (limit > 0 && used > limit) {
-                    toast("Goals exceed weekly commitment", "error");
-                    return;
-                  }
+                          const goals = step2Data.goals || [];
+                          const used = usedWeeklyFromGoals(goals);
+                          const limit = step1Data.weeklyCommitment || 0;
+                          if (step2Data.hasErrors) {
+                            toast("Please fix validation errors in goals before continuing", "error");
+                            return;
+                          }
+                          if (limit > 0 && used > limit) {
+                            toast("Goals exceed weekly commitment", "error");
+                            return;
+                          }
                   // if user hasn't created sprints, generate from step2Data
                   if (sprints.length === 0) {
                     generateSprintsFromStep2();
@@ -753,15 +757,19 @@ export default function WizardModal({
                   setStep((s) => s + 1);
                 }}
                 disabled={
-                  step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
+                  (step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit) ||
+                  (step === 2 && Boolean(step2Data.hasErrors))
                 }
                 className={`rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white ${
-                  step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
+                  (step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit) ||
+                  (step === 2 && Boolean(step2Data.hasErrors))
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
                 title={
-                  step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
+                  step === 2 && Boolean(step2Data.hasErrors)
+                    ? "Fix validation errors in goals"
+                    : step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
                     ? "Reduce goal allocation to proceed"
                     : undefined
                 }
