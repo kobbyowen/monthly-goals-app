@@ -518,7 +518,7 @@ export default function WizardModal({
                 : step === 1
                   ? "Plan Your Monthly Capacity"
                   : step === 2
-                    ? "List Your Goals"
+                    ? "Define your goals - set time commitments"
                     : "Review & Create Epic"}
             </h2>
           </div>

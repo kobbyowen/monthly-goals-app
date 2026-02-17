@@ -93,7 +93,6 @@ export default function WizardStep2({
     return defaultGoals;
   });
 
-
   function addGoal() {
     const newGoal: Goal = {
       id: `g_${Date.now()}`,
@@ -119,7 +118,6 @@ export default function WizardStep2({
   function updateGoal(id: string, patch: Partial<Goal>) {
     setGoals((g) => g.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
-
 
   function toWeeklyEquivalent(goal: Goal) {
     const h = Number(goal.hours || 0);
@@ -209,7 +207,6 @@ export default function WizardStep2({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data && data.goals]);
 
-
   return (
     <div className="space-y-3 px-4 py-3 sm:px-6 sm:py-4">
       {/* Bulk paste now handled in Step 0 (epic details) */}
@@ -233,13 +230,12 @@ export default function WizardStep2({
       </div>
 
       <div className="rounded-md border border-slate-200 bg-blue-50 p-2 text-xs text-slate-700">
-        <strong className="font-medium">Note:</strong> Setting a goal's
-        frequency to <em>Monthly</em> will make the wizard automatically
-        position and distribute that goal across the sprints based on priority.
+        <strong className="font-medium">Note:</strong> Goals defined using
+        monthly hours will be auto distributed based on total time and priority
         <br />
-        Higher-priority monthly goals are placed earlier in the month.
         <br />
-        Set a goal to weekly if you want to work on it every week
+        Goals defined using weekly hours will be repeated in every sprint(week)
+        using hours set
       </div>
 
       {/* Goals list - constrain height so modal doesn't grow; make list scrollable */}
