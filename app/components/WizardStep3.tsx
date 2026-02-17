@@ -270,9 +270,14 @@ export default function WizardStep3({ data }: Props) {
 
       {/* Goals Summary */}
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Goals
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Goals
+          </h3>
+          <div className="text-xs text-slate-500">
+            {goals.length} goal{goals.length === 1 ? "" : "s"}
+          </div>
+        </div>
         <div className="mt-2 space-y-2">
           {goals.length === 0 && (
             <div className="text-xs text-slate-500">No goals added.</div>

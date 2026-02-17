@@ -93,6 +93,7 @@ export default function WizardStep2({
     return defaultGoals;
   });
 
+
   function addGoal() {
     const newGoal: Goal = {
       id: `g_${Date.now()}`,
@@ -118,6 +119,7 @@ export default function WizardStep2({
   function updateGoal(id: string, patch: Partial<Goal>) {
     setGoals((g) => g.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
+
 
   function toWeeklyEquivalent(goal: Goal) {
     const h = Number(goal.hours || 0);
@@ -207,8 +209,10 @@ export default function WizardStep2({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data && data.goals]);
 
+
   return (
     <div className="space-y-3 px-4 py-3 sm:px-6 sm:py-4">
+      {/* Bulk paste now handled in Step 0 (epic details) */}
       {/* Allocation summary */}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm">
         <div className="flex items-center justify-between">

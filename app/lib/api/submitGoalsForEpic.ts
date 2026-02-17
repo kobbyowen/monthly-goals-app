@@ -17,19 +17,29 @@ export async function submitGoalsForEpic(wizardData: any) {
         }
     }
 
-    const originalCount = Array.isArray(payload.sprints) ? payload.sprints.length : 0;
-    const filtered = (payload.sprints || []).filter((s: any) => !isSprintPast(s.endAt));
-    if (filtered.length !== originalCount) {
-        console.log(`submitGoalsForEpic - filtered out ${originalCount - filtered.length} past sprint(s)`);
-    }
+    const allSprints = (payload.sprints || []);
+    const filtered = allSprints.filter((s: any) => !isSprintPast(s.endAt));
+
     // if no active sprints remain, abort submission
     if (filtered.length === 0) {
         throw new Error("All generated sprints are in the past — nothing to submit. Please adjust the epic month or add a future sprint.");
     }
-    const payloadToPost = { ...payload, sprints: filtered };
 
-    // log payload
-    console.log("submitGoalsForEpic - payload to POST:", JSON.stringify(payloadToPost, null, 2));
+    // If some sprints were removed for being past, reassign their tasks into the last active sprint
+    if (filtered.length < allSprints.length) {
+        const removed = allSprints.filter((s: any) => isSprintPast(s.endAt));
+        const droppedTasks: any[] = [];
+        for (const r of removed) {
+            if (Array.isArray(r.tasks)) droppedTasks.push(...r.tasks);
+        }
+        if (droppedTasks.length > 0) {
+            // append dropped tasks to last active sprint
+            const last = filtered[filtered.length - 1];
+            last.tasks = last.tasks ? last.tasks.concat(droppedTasks) : droppedTasks.slice();
+        }
+    }
+
+    const payloadToPost = { ...payload, sprints: filtered };
 
     // call the API
     const created = await createPlan(payloadToPost as any);

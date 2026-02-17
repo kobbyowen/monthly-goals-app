@@ -49,11 +49,20 @@ export default function WizardModal({
     weeklyCommitment: 0,
   });
 
-  const [step2Data, setStep2Data] = useState({
+  type Step2Data = {
+    numSprints: number;
+    weeksPerSprint: number;
+    startDate: string;
+    goals: any[];
+    bulkText: string;
+  };
+
+  const [step2Data, setStep2Data] = useState<Step2Data>({
     numSprints: 4,
     weeksPerSprint: 1,
     startDate: "",
     goals: [],
+    bulkText: "",
   });
   const [sprints, setSprints] = useState<SprintRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -73,6 +82,7 @@ export default function WizardModal({
       weeksPerSprint: 1,
       startDate: "",
       goals: [],
+      bulkText: "",
     });
     setSprints([]);
     setEpicNameAuto(true);
@@ -443,10 +453,8 @@ export default function WizardModal({
     try {
       // pretty print
       // eslint-disable-next-line no-console
-      console.log("Generated plan:", JSON.stringify(planJson, null, 2));
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.log("Generated plan:", planJson);
     }
 
     // convert generated plan, POST via utility, then update client store
@@ -458,8 +466,6 @@ export default function WizardModal({
         "Epic created — now you can add a checklist to any task",
         "success",
       );
-      // eslint-disable-next-line no-console
-      console.log("submitGoalsForEpic - API response:", created);
 
       try {
         if (created) {
@@ -488,8 +494,6 @@ export default function WizardModal({
   const _goals = step2Data.goals || [];
   const _usedWeekly = usedWeeklyFromGoals(_goals);
   const _weeklyLimit = step1Data.weeklyCommitment || 0;
-
-  console.log({ _usedWeekly, _weeklyLimit });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -523,6 +527,7 @@ export default function WizardModal({
               month={step1Data.month || epicMonth}
               epicName={epicName}
               epicDescription={epicDescription}
+              goalsText={step2Data.bulkText}
               onChange={(patch) => {
                 if (patch.month) {
                   setStep1Data((s) => ({ ...s, month: patch.month! }));
@@ -553,6 +558,74 @@ export default function WizardModal({
                 }
                 if (patch.description !== undefined) {
                   setEpicDescription(patch.description as string);
+                  setIsDirty(true);
+                }
+                if (patch.goalsText !== undefined) {
+                  const txt = String(patch.goalsText || "");
+                  // parse into lines; support CSV: name,hours,W|M,H|M|L
+                  const lines = txt
+                    .split(/\r?\n/)
+                    .map((l) => l.trim())
+                    .filter(Boolean);
+                  const existing = ((step2Data && (step2Data as any).goals) ||
+                    []) as any[];
+                  const byName = new Map<string, any>();
+                  for (const g of existing) {
+                    const key = (g.name || "").trim().toLowerCase();
+                    if (key) byName.set(key, g);
+                  }
+
+                  const parsed = lines.map((ln, idx) => {
+                    // split CSV parts
+                    const parts = ln
+                      .split(",")
+                      .map((p) => p.trim())
+                      .filter(Boolean);
+                    const name = parts[0] || `Untitled ${idx + 1}`;
+                    // parse hours
+                    let hours: number | undefined = undefined;
+                    if (parts[1]) {
+                      const n = Number(parts[1]);
+                      if (!Number.isNaN(n)) hours = n;
+                    }
+                    // parse frequency
+                    let effortType: "weekly" | "monthly" = "weekly";
+                    if (parts[2]) {
+                      const f = parts[2].toUpperCase();
+                      if (f === "M" || f === "MONTHLY") effortType = "monthly";
+                      else effortType = "weekly";
+                    }
+                    // parse priority
+                    let priority: string = "Medium";
+                    if (parts[3]) {
+                      const p = parts[3].toUpperCase();
+                      if (p === "H") priority = "High";
+                      else if (p === "L") priority = "Low";
+                      else priority = "Medium";
+                    }
+
+                    const key = name.trim().toLowerCase();
+                    const ex = byName.get(key);
+                    if (ex) {
+                      return {
+                        ...ex,
+                        name,
+                        hours: hours !== undefined ? hours : ex.hours,
+                        effortType: effortType || ex.effortType,
+                        priority: priority || ex.priority,
+                      };
+                    }
+
+                    return {
+                      id: `g_${Date.now()}_${idx}`,
+                      name,
+                      hours: hours !== undefined ? hours : 1,
+                      effortType,
+                      priority,
+                    };
+                  });
+
+                  setStep2Data((s) => ({ ...s, goals: parsed, bulkText: txt }));
                   setIsDirty(true);
                 }
               }}

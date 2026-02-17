@@ -5,6 +5,8 @@ export function createStructuredPlan(wizardData: any) {
         generatedPlanPreview = { epic: {}, sprints: [] },
     } = wizardData || {};
 
+    console.log({ capacity, goals, generatedPlanPreview })
+
     const weeklyLimit = capacity.weeklyCommitmentHours || 0;
     const epic = generatedPlanPreview.epic || {};
     const sprintsSrc = generatedPlanPreview.sprints || [];
@@ -27,13 +29,27 @@ export function createStructuredPlan(wizardData: any) {
         };
     });
 
-    // split goals by frequency
-    const weeklyGoals = goals.filter(
-        (g: any) => (g.effort || {}).effortFrequency === "weekly"
-    );
-    const monthlyGoals = goals.filter(
-        (g: any) => (g.effort || {}).effortFrequency === "monthly"
-    );
+    // split goals by frequency (weekly vs monthly)
+    const weeklyGoals = goals.filter((g: any) => (g.effort || {}).effortFrequency === "weekly");
+    const monthlyGoals = goals.filter((g: any) => (g.effort || {}).effortFrequency === "monthly");
+
+    // helper: determine whether a sprint is in the past (end date before today)
+    function isSprintPast(endAt: string | null | undefined) {
+        if (!endAt) return false;
+        try {
+            const d = new Date(endAt);
+            d.setHours(23, 59, 59, 999);
+            return d.getTime() < Date.now();
+        } catch {
+            return false;
+        }
+    }
+
+    // Choose the sprints we will allocate goals into: prefer non-past (active) sprints.
+    // If all generated sprints are past, fall back to using all sprints so we still allocate.
+    let activeSprints = sprints.filter((sp: any) => !isSprintPast(sp.endAt));
+    if (!activeSprints || activeSprints.length === 0) activeSprints = sprints;
+
 
     // helper to push a task into a sprint and account for remaining hours
     // - allowOverflow: when true, always allocate the requested hours (used for user weekly goals)
@@ -71,7 +87,7 @@ export function createStructuredPlan(wizardData: any) {
     // STEP 1: assign weekly goals to every sprint — allocate proportionally based on sprint capacity
     // For full weeks (capacity === weeklyLimit) this allocates the full requested hours.
     // For partial weeks (capacity < weeklyLimit) this allocates: round(goal.hours * capacity / weeklyLimit).
-    for (const sprint of sprints) {
+    for (const sprint of activeSprints) {
         for (const goal of weeklyGoals) {
             const hours = (goal.effort && goal.effort.hours) || 0;
             if (hours <= 0) continue;
@@ -110,11 +126,12 @@ export function createStructuredPlan(wizardData: any) {
         if (total <= 0) continue;
 
         let remainingToPlace = Math.round(total);
-        const minRemaining = -5; // allow small soft overrun when forcing into last sprint
+        const minRemaining = 0; // do not allow monthly allocation to push sprint below 0 remaining hours
 
-        for (let i = 0; i < sprints.length && remainingToPlace > 0; i++) {
-            const sprint = sprints[i];
-            const available = Math.max(0, sprint.remainingHours - minRemaining);
+        // First try to fill into existing activeSprints without exceeding capacity
+        for (let i = 0; i < activeSprints.length && remainingToPlace > 0; i++) {
+            const sprint = activeSprints[i];
+            const available = Math.max(0, Math.round(sprint.remainingHours || 0) - minRemaining);
             if (available <= 0) continue;
             const take = Math.min(available, remainingToPlace);
             if (take <= 0) continue;
@@ -130,19 +147,36 @@ export function createStructuredPlan(wizardData: any) {
             remainingToPlace -= take;
         }
 
-        if (remainingToPlace > 0) {
-            // force remaining into last sprint to avoid dropping user hours
-            const last = sprints[sprints.length - 1];
-            const forcedTask = {
+        // If there's still remaining, create extra sprints with default capacity and allocate into them
+        const defaultSprintCap = weeklyLimit || 50;
+        let extraIndex = 1;
+        while (remainingToPlace > 0) {
+            const extraId = `spr_extra_${Date.now()}_${extraIndex++}`;
+            const extra = {
+                id: extraId,
+                name: `Extra Sprint ${extraIndex}`,
+                startAt: null,
+                endAt: null,
+                weeklyCapacity: defaultSprintCap,
+                remainingHours: defaultSprintCap,
+                tasks: [] as any[],
+            };
+            sprints.push(extra);
+            activeSprints.push(extra);
+
+            const take = Math.min(extra.remainingHours, remainingToPlace);
+            const task = {
                 id: rndId("task"),
                 name: goal.name,
                 sourceGoalId: goal.id,
                 effortType: "monthly",
-                allocatedHours: remainingToPlace,
+                allocatedHours: take,
                 priority: goal.priority || "medium",
             };
-            pushTaskToSprint(last, forcedTask, true);
-            remainingToPlace = 0;
+            pushTaskToSprint(extra, task, false, 0);
+            remainingToPlace -= take;
+            // safety
+            if (extraIndex > 20) break;
         }
     }
 
@@ -169,10 +203,8 @@ export function createStructuredPlan(wizardData: any) {
         sprints: cleaned,
     };
 
-    // log payload for inspection
 
-    console.log("createStructuredPlan - payload:", JSON.stringify(payload, null, 2));
-
+    console.log({ payload })
     return payload;
 }
 

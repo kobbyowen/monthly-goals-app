@@ -10,7 +10,9 @@ type Props = {
     month?: string;
     name?: string;
     description?: string;
+    goalsText?: string;
   }) => void;
+  goalsText?: string;
   onNext?: () => void;
   onCancel?: () => void;
 };
@@ -20,6 +22,7 @@ export default function WizardStep0({
   epicName,
   epicDescription,
   onChange,
+  goalsText,
 }: Props) {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -79,6 +82,19 @@ export default function WizardStep0({
           placeholder="Short description or motto for this epic"
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
           rows={2}
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-500">
+          Outline your monthly goals (one per line) - hours will be set later
+        </label>
+        <textarea
+          value={goalsText || ""}
+          onChange={(e) => onChange({ goalsText: e.target.value })}
+          placeholder={`Complete the rocket\nRead the entire bible`}
+          rows={4}
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
         />
       </div>
     </div>

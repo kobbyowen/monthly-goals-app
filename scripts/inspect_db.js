@@ -1,4 +1,4 @@
-import prisma from '../app/lib/prisma.js';
+import prisma from "../app/lib/prisma.js";
 (async () => {
   try {
     const sprints = await prisma.sprint.findMany({
