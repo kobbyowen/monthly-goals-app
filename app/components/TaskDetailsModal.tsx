@@ -64,11 +64,19 @@ export default function TaskModal({
   }
 
   // Save estimated hours when child calls back (debounce lives in child)
-  async function handleEstimatedHoursChange(newHours: number) {
+  async function handleEstimatedHoursChange(
+    newHours: number | null | undefined,
+  ) {
     if (!task) return;
-    const secs = Math.round(newHours * 3600);
     try {
-      const updated = await apiUpdateTask(taskId, { plannedTime: secs } as any);
+      const payload: any = {};
+      if (newHours === null || newHours === undefined) {
+        payload.plannedTime = null;
+      } else {
+        const secs = Math.round(newHours * 3600);
+        payload.plannedTime = secs;
+      }
+      const updated = await apiUpdateTask(taskId, payload as any);
       storeUpdateTask(updated.id, updated);
       if (onUpdated) onUpdated();
     } catch (err) {
@@ -125,7 +133,9 @@ export default function TaskModal({
         {/* Scrollable Body */}
         <div className="overflow-y-auto px-5 py-5 space-y-6">
           {/* Task Details */}
-          <div className="mb-2 text-xs text-slate-500">Inputs/modifications are auto saved as you edit</div>
+          <div className="mb-2 text-xs text-slate-500">
+            Inputs/modifications are auto saved as you edit
+          </div>
           <TaskDetails
             name={task.name}
             status={status}

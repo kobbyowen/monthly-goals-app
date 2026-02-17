@@ -17,7 +17,7 @@ type Props = {
    * a number input and call `onEstimatedHoursChange` whenever the user changes it.
    */
   estimatedHours?: number;
-  onEstimatedHoursChange?: (hours: number) => void;
+  onEstimatedHoursChange?: (hours: number | null | undefined) => void;
 };
 
 function formatHMS(totalSeconds: number) {
@@ -64,11 +64,21 @@ export default function TaskDetails({
   // editable estimated hours debounce
   useEffect(() => {
     if (!onEstimatedHoursChange) return;
-    if (hoursValue === "") return;
+    // allow clearing the input to indicate removal (null)
+    if (hoursValue === "") {
+      const id = setTimeout(() => {
+        onEstimatedHoursChange(null);
+      }, 700);
+      return () => clearTimeout(id);
+    }
     const n = Number(hoursValue);
     if (isNaN(n)) return;
     // if same as incoming estimatedHours, skip
-    if (typeof estimatedHours === "number" && Math.abs(estimatedHours - n) < 1e-6) return;
+    if (
+      typeof estimatedHours === "number" &&
+      Math.abs(estimatedHours - n) < 1e-6
+    )
+      return;
     const id = setTimeout(() => {
       onEstimatedHoursChange(n);
     }, 700);
@@ -142,38 +152,51 @@ export default function TaskDetails({
           </div>
         </div>
 
-            {/* Estimated (editable hours when handler provided) */}
-            <div>
-              <span className="text-slate-500">Estimated</span>
-              <div className="mt-1">
-                {onEstimatedHoursChange ? (
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.25"
-                    min="0"
-                    value={hoursValue}
-                    onChange={(e) => setHoursValue(e.target.value)}
-                    onBlur={() => {
+        {/* Estimated (editable hours when handler provided) */}
+        <div>
+          <span className="text-slate-500">Estimated</span>
+          <div className="mt-1">
+            {onEstimatedHoursChange ? (
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.25"
+                min="0"
+                value={hoursValue}
+                onChange={(e) => setHoursValue(e.target.value)}
+                onBlur={() => {
+                  if (hoursValue === "") {
+                    onEstimatedHoursChange(null);
+                    return;
+                  }
+                  const n = Number(hoursValue);
+                  if (!isNaN(n)) onEstimatedHoursChange(n);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (hoursValue === "") {
+                      onEstimatedHoursChange(null);
+                    } else {
                       const n = Number(hoursValue);
                       if (!isNaN(n)) onEstimatedHoursChange(n);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const n = Number(hoursValue);
-                        if (!isNaN(n)) onEstimatedHoursChange(n);
-                      }
-                      if (e.key === "Escape") setHoursValue(typeof estimatedHours === "number" ? String(estimatedHours) : "");
-                    }}
-                    className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
-                  />
-                ) : (
-                  <div className="text-slate-800">
-                    {estimatedSeconds ? formatHMS(estimatedSeconds) : "—"}
-                  </div>
-                )}
+                    }
+                  }
+                  if (e.key === "Escape")
+                    setHoursValue(
+                      typeof estimatedHours === "number"
+                        ? String(estimatedHours)
+                        : "",
+                    );
+                }}
+                className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+            ) : (
+              <div className="text-slate-800">
+                {estimatedSeconds ? formatHMS(estimatedSeconds) : "—"}
               </div>
-            </div>
+            )}
+          </div>
+        </div>
 
         {/* Checklist */}
         <div>

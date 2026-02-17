@@ -55,6 +55,7 @@ export default function WizardModal({
     startDate: string;
     goals: any[];
     bulkText: string;
+    hasErrors?: boolean;
   };
 
   const [step2Data, setStep2Data] = useState<Step2Data>({
@@ -63,6 +64,7 @@ export default function WizardModal({
     startDate: "",
     goals: [],
     bulkText: "",
+    hasErrors: false,
   });
   const [sprints, setSprints] = useState<SprintRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -757,17 +759,21 @@ export default function WizardModal({
                   setStep((s) => s + 1);
                 }}
                 disabled={
+                  (step === 1 && (!step1Data.weeklyCommitment || step1Data.weeklyCommitment <= 0)) ||
                   (step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit) ||
                   (step === 2 && Boolean(step2Data.hasErrors))
                 }
                 className={`rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white ${
+                  (step === 1 && (!step1Data.weeklyCommitment || step1Data.weeklyCommitment <= 0)) ||
                   (step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit) ||
                   (step === 2 && Boolean(step2Data.hasErrors))
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
                 title={
-                  step === 2 && Boolean(step2Data.hasErrors)
+                  step === 1 && (!step1Data.weeklyCommitment || step1Data.weeklyCommitment <= 0)
+                    ? "Set weekly commitment to proceed"
+                    : step === 2 && Boolean(step2Data.hasErrors)
                     ? "Fix validation errors in goals"
                     : step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
                     ? "Reduce goal allocation to proceed"

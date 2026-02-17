@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 type StepData = {
   month: string; // 'YYYY-MM'
@@ -50,8 +50,24 @@ export default function WizardStep1({
   const defaultMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const monthKey = data.month || defaultMonthKey;
   const includeWeekends = !!data.includeWeekends;
-  const weeklyCommitment =
+  // numeric value used for calculations (0 when not provided)
+  const weeklyCommitmentNum =
     typeof data.weeklyCommitment === "number" ? data.weeklyCommitment : 0;
+
+  // local string state for the input so the number input can be cleared
+  const [weeklyCommitmentStr, setWeeklyCommitmentStr] = useState<string>(
+    typeof data.weeklyCommitment === "number"
+      ? String(data.weeklyCommitment)
+      : "",
+  );
+
+  useEffect(() => {
+    setWeeklyCommitmentStr(
+      typeof data.weeklyCommitment === "number"
+        ? String(data.weeklyCommitment)
+        : "",
+    );
+  }, [data.weeklyCommitment]);
 
   const [y, m] = monthKey.split("-").map((s) => Number(s));
   // If month is current month, exclude past days from calculations (use remaining days)
@@ -89,8 +105,8 @@ export default function WizardStep1({
   // monthly commitment derived from weekly hours using full weeks + remainder days
   const fullWeeks = Math.round(days / 7);
   const remainderDays = days % 7;
-  const dailyCommitment = weeklyCommitment / 7;
-  const monthlyCommitment = Math.round(fullWeeks * weeklyCommitment);
+  const dailyCommitment = weeklyCommitmentNum / 7;
+  const monthlyCommitment = Math.round(fullWeeks * weeklyCommitmentNum);
 
   // Progress zones use totalMonthHours as baseline
   const yellowLimit = 10 * days; // 10 hours/day heavy workload
@@ -166,13 +182,12 @@ export default function WizardStep1({
         </label>
         <input
           type="number"
-          value={weeklyCommitment ?? ""}
-          onChange={(e) =>
-            onChange({
-              weeklyCommitment:
-                e.target.value === "" ? undefined : Number(e.target.value),
-            })
-          }
+          value={weeklyCommitmentStr}
+          onChange={(e) => {
+            const v = e.target.value;
+            setWeeklyCommitmentStr(v);
+            onChange({ weeklyCommitment: v === "" ? undefined : Number(v) });
+          }}
           placeholder="e.g. 20"
           className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
         />
