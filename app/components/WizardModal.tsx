@@ -58,6 +58,7 @@ export default function WizardModal({
   const [sprints, setSprints] = useState<SprintRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
   const addEpicsFromApi = useRootEpicStore((s) => s.addEpicsFromApi);
   const epicById = useRootEpicStore((s) => s.epics.byId);
 
@@ -86,15 +87,18 @@ export default function WizardModal({
       onClose();
       return;
     }
-    // warn user that unsaved changes will be lost
-    // eslint-disable-next-line no-restricted-globals
-    const ok = confirm(
-      "You have unsaved changes — closing will discard them. Proceed?",
-    );
-    if (ok) {
-      resetWizardState();
-      onClose();
-    }
+    // show in-UI confirmation dialog instead of native confirm
+    setShowConfirmClose(true);
+  }
+
+  function handleConfirmCloseCancel() {
+    setShowConfirmClose(false);
+  }
+
+  function handleConfirmCloseProceed() {
+    setShowConfirmClose(false);
+    resetWizardState();
+    onClose();
   }
 
   function validateStep1() {
@@ -697,6 +701,29 @@ export default function WizardModal({
             )}
           </div>
         </div>
+        {showConfirmClose && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-4 shadow-lg">
+              <h3 className="text-sm font-semibold text-slate-900">Unsaved changes</h3>
+              <p className="mt-2 text-xs text-slate-600">You have unsaved changes — closing will discard them. Proceed?</p>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={handleConfirmCloseCancel}
+                  className="rounded-md bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmCloseProceed}
+                  className="rounded-md bg-rose-500 px-3 py-2 text-sm font-medium text-white"
+                >
+                  Proceed
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
