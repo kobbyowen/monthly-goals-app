@@ -158,12 +158,42 @@ export const useRootEpicStore = create<RootEpicState>()(
 
             addEpicsFromApi: (apiEpics: ApiEpic[]) => {
                 const normalized = normalizeApiEpics(apiEpics);
+
+                // defensive cleaning: ensure ids within arrays are unique
+                const cleanSprints = normalized.sprints.map((s) => ({
+                    ...s,
+                    taskIds: Array.from(new Set((s.taskIds || []) as ID[])),
+                }));
+
+                const cleanEpics = normalized.epics.map((e) => ({
+                    ...e,
+                    sprintIds: Array.from(new Set((e.sprintIds || []) as ID[])),
+                    taskIds: Array.from(new Set((e.taskIds || []) as ID[])),
+                }));
+
+                // ensure tasks/sessions/checklists arrays are unique by id
+                const dedupeById = <T extends { id: ID }>(arr: T[]) => {
+                    const seen = new Set<ID>();
+                    const out: T[] = [];
+                    arr.forEach((it) => {
+                        if (!seen.has(it.id)) {
+                            seen.add(it.id);
+                            out.push(it);
+                        }
+                    });
+                    return out;
+                };
+
+                const cleanTasks = dedupeById(normalized.tasks);
+                const cleanSessions = dedupeById(normalized.sessions);
+                const cleanChecklists = dedupeById(normalized.checklists);
+
                 // populate store slices in a stable order
-                get().epics.addMany(normalized.epics);
-                get().sprints.addMany(normalized.sprints);
-                get().tasks.addMany(normalized.tasks);
-                get().sessions.addMany(normalized.sessions);
-                get().checklists.addMany(normalized.checklists);
+                get().epics.addMany(cleanEpics as any);
+                get().sprints.addMany(cleanSprints as any);
+                get().tasks.addMany(cleanTasks as any);
+                get().sessions.addMany(cleanSessions as any);
+                get().checklists.addMany(cleanChecklists as any);
             },
 
             updateEpic: (id: ID, patch: Partial<Epic>) => get().epics.update(id, patch),
