@@ -21,17 +21,21 @@ export default function WizardStep3({ data }: Props) {
   const step1 = data.step1 || {};
   const step2 = data.step2 || {};
   const monthKey = data.epicMonth || step1.month || "";
-  const days = daysInMonth(monthKey);
+  // compute days left in the selected month (exclude elapsed days if it's the current month)
+  const totalDaysInMonth = daysInMonth(monthKey);
+  const now = new Date();
+  const [mkY, mkM] = (monthKey || "").split("-").map((s) => Number(s));
+  const isCurrentMonth =
+    mkY === now.getFullYear() && mkM === now.getMonth() + 1;
+  const startDay = isCurrentMonth ? now.getDate() : 1;
+  const days = Math.max(0, totalDaysInMonth - (startDay - 1));
   const includeWeekends = !!step1.includeWeekends;
   const weeklyCommitment = Number(step1.weeklyCommitment || 0);
   const totalHours = days * 24;
-  const fullWeeks = Math.floor(days / 7);
+  const fullWeeks = Math.round(days / 7);
   const remainderDays = days % 7;
   const dailyCommitment = weeklyCommitment / 7;
-  const monthlyCommitment =
-    Math.round(
-      (fullWeeks * weeklyCommitment + remainderDays * dailyCommitment) * 100,
-    ) / 100;
+  const monthlyCommitment = Math.round(fullWeeks * weeklyCommitment);
 
   const goals = (step2.goals || []).map((g: any) => {
     const hours = Number(g.hours || 0);

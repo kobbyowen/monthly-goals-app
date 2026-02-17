@@ -87,13 +87,10 @@ export default function WizardStep1({
   const recommendedSafeCommitment = Math.max(0, safeHoursPerDay * includedDays);
 
   // monthly commitment derived from weekly hours using full weeks + remainder days
-  const fullWeeks = Math.floor(days / 7);
+  const fullWeeks = Math.round(days / 7);
   const remainderDays = days % 7;
   const dailyCommitment = weeklyCommitment / 7;
-  const monthlyCommitment =
-    Math.round(
-      (fullWeeks * weeklyCommitment + remainderDays * dailyCommitment) * 100,
-    ) / 100;
+  const monthlyCommitment = Math.round(fullWeeks * weeklyCommitment);
 
   // Progress zones use totalMonthHours as baseline
   const yellowLimit = 10 * days; // 10 hours/day heavy workload

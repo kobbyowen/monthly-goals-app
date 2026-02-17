@@ -39,15 +39,15 @@ export default function WizardStep2({
   const [goals, setGoals] = useState<Goal[]>([
     {
       id: `g_${Date.now()}_1`,
-      name: "Learn React",
-      hours: 8,
+      name: "",
+      hours: 1,
       effortType: "weekly",
       priority: "High",
     },
     {
       id: `g_${Date.now()}_2`,
-      name: "Trading Practice",
-      hours: 10,
+      name: "",
+      hours: 1,
       effortType: "weekly",
       priority: "Medium",
     },

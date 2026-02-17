@@ -38,7 +38,9 @@ export default function WizardModal({
 
   const [epicId, setEpicId] = useState("");
   const [epicName, setEpicName] = useState("");
-  const [epicDescription, setEpicDescription] = useState("");
+  const [epicDescription, setEpicDescription] = useState(
+    "Hard work beats talent",
+  );
   const [epicMonth, setEpicMonth] = useState("");
   const [epicNameAuto, setEpicNameAuto] = useState(true);
   const [step1Data, setStep1Data] = useState({

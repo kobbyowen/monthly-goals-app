@@ -74,7 +74,7 @@ export default function WizardStep0({
           Motto / Description (optional)
         </label>
         <textarea
-          value={epicDescription ?? "Hard work beats talent"}
+          value={epicDescription ?? ""}
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Short description or motto for this epic"
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
