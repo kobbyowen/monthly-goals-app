@@ -104,9 +104,9 @@ export default function CreateEpic({
     <div>
       <button
         onClick={() => setOpen(true)}
-        className="w-full justify-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition"
+        className="w-full justify-center px-4 py-2 bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 transition"
       >
-        New Monthly Epic
+        New Monthly Epic (Scratch)
       </button>
 
       {open && (
