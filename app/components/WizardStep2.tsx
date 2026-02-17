@@ -34,7 +34,24 @@ export default function WizardStep2({
   weeklyLimit = 0,
   epicMonth,
 }: Props) {
-  const days = daysInMonthFromKey(epicMonth) || new Date().getDate();
+  // compute days left in selected month (exclude elapsed days if it's the current month)
+  function daysLeftInMonthFromKey(key?: string) {
+    try {
+      if (!key) return new Date().getDate();
+      const [y, m] = key.split("-").map((s) => Number(s));
+      if (!y || !m) return new Date().getDate();
+      const total = new Date(y, m, 0).getDate();
+      const now = new Date();
+      if (now.getFullYear() === y && now.getMonth() + 1 === m) {
+        return Math.max(0, total - (now.getDate() - 1));
+      }
+      return total;
+    } catch {
+      return new Date().getDate();
+    }
+  }
+
+  const days = daysLeftInMonthFromKey(epicMonth) || new Date().getDate();
 
   const defaultGoals: Goal[] = [
     {
@@ -60,7 +77,12 @@ export default function WizardStep2({
         return incoming.map((g: any) => ({
           id: g.id || `g_${Math.random().toString(36).slice(2, 9)}`,
           name: typeof g.name === "string" ? g.name : "",
-          hours: typeof g.hours === "number" ? g.hours : g.hours ? Number(g.hours) : undefined,
+          hours:
+            typeof g.hours === "number"
+              ? g.hours
+              : g.hours
+                ? Number(g.hours)
+                : undefined,
           effortType: g.effortType === "monthly" ? "monthly" : "weekly",
           priority: g.priority || "Medium",
         }));
@@ -100,16 +122,24 @@ export default function WizardStep2({
   function toWeeklyEquivalent(goal: Goal) {
     const h = Number(goal.hours || 0);
     if (goal.effortType === "weekly") return h;
-    // monthly -> weekly: hours * (days / 7) / days? user's earlier formula used days/7 for month -> monthly commitment; convert monthly to weekly by dividing by (days/7)
-    // monthlyHours -> weeklyEquivalent = monthlyHours / (days/7) = monthlyHours * 7 / days
-    return Math.round(((h * 7) / days) * 100) / 100;
+    // For monthly goals, distribute across full weeks left in the selected month.
+    // Compute number of full weeks remaining and divide monthly hours equally across them.
+    // If there are no full weeks left, place all hours in a single upcoming week.
+    const daysLeft = days;
+    const fullWeeks = Math.round(daysLeft / 7);
+    if (fullWeeks >= 1) {
+      return Math.round(h / fullWeeks);
+    }
+    return h;
   }
 
   function monthlyEquivalent(goal: Goal) {
     const h = Number(goal.hours || 0);
     if (goal.effortType === "monthly") return h;
+    const daysLeft = days;
+    const fullWeeks = Math.round(daysLeft / 7);
     // weekly -> monthly = weekly * (days / 7)
-    return Math.round(h * (days / 7) * 100) / 100;
+    return h * fullWeeks;
   }
 
   function usedWeeklyHours(list: Goal[]) {
@@ -148,8 +178,15 @@ export default function WizardStep2({
       const incomingNormalized = incoming.map((g: any) => ({
         id: g.id || `g_${Math.random().toString(36).slice(2, 9)}`,
         name: typeof g.name === "string" ? g.name : "",
-        hours: typeof g.hours === "number" ? g.hours : g.hours ? Number(g.hours) : undefined,
-        effortType: (g.effortType === "monthly" ? "monthly" : "weekly") as "weekly" | "monthly",
+        hours:
+          typeof g.hours === "number"
+            ? g.hours
+            : g.hours
+              ? Number(g.hours)
+              : undefined,
+        effortType: (g.effortType === "monthly" ? "monthly" : "weekly") as
+          | "weekly"
+          | "monthly",
         priority: (g.priority || "Medium") as "High" | "Medium" | "Low",
       }));
 

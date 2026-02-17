@@ -55,8 +55,22 @@ async function createSprint(payload) {
           sn && typeof sn === "object" ? sn.start || sn.startAt : undefined;
         const end =
           sn && typeof sn === "object" ? sn.end || sn.endAt : undefined;
+        let finalChildId = childId;
+        if (providedId) {
+          const existingChild = await prisma.sprint.findUnique({ where: { id: providedId } });
+          if (existingChild) {
+            // If same owner (or no owner set), allow overwrite by deleting first
+            if (!s.userId || !existingChild.userId || existingChild.userId === s.userId) {
+              await prisma.sprint.delete({ where: { id: providedId } });
+            } else {
+              // Conflict with another user's sprint id: generate a new id to avoid unique constraint
+              finalChildId = ensureId("sprint");
+            }
+          }
+        }
+
         const childData = {
-          id: childId,
+          id: finalChildId,
           name: baseName,
           epicId: created.id,
           kind: "sprint",

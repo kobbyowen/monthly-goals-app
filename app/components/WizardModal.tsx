@@ -184,11 +184,15 @@ export default function WizardModal({
 
   function usedWeeklyFromGoals(goals: any[] = []) {
     const days = daysInMonthFromKey(step1Data.month || epicMonth);
+    const fullWeeks = Math.round(days / 7);
     return goals.reduce((acc, g) => {
       if (!g) return acc;
       if (g.effortType === "monthly") {
-        // monthly -> weekly = monthly * 7 / days
-        return acc + (Number(g.hours) * 7) / days;
+        const mh = Number(g.hours || 0);
+        if (fullWeeks >= 1) {
+          return acc + Math.round(mh / fullWeeks);
+        }
+        return acc + mh;
       }
       return acc + Number(g.hours || 0);
     }, 0);
@@ -485,6 +489,8 @@ export default function WizardModal({
   const _usedWeekly = usedWeeklyFromGoals(_goals);
   const _weeklyLimit = step1Data.weeklyCommitment || 0;
 
+  console.log({ _usedWeekly, _weeklyLimit });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white flex flex-col max-h-[90vh] overflow-auto">
@@ -705,8 +711,12 @@ export default function WizardModal({
           <div className="fixed inset-0 z-60 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/40" />
             <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-4 shadow-lg">
-              <h3 className="text-sm font-semibold text-slate-900">Unsaved changes</h3>
-              <p className="mt-2 text-xs text-slate-600">You have unsaved changes — closing will discard them. Proceed?</p>
+              <h3 className="text-sm font-semibold text-slate-900">
+                Unsaved changes
+              </h3>
+              <p className="mt-2 text-xs text-slate-600">
+                You have unsaved changes — closing will discard them. Proceed?
+              </p>
               <div className="mt-4 flex justify-end gap-2">
                 <button
                   onClick={handleConfirmCloseCancel}
