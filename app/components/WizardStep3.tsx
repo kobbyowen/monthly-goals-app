@@ -38,10 +38,11 @@ export default function WizardStep3({ data }: Props) {
   const monthlyCommitment = Math.round(fullWeeks * weeklyCommitment);
 
   const goals = (step2.goals || []).map((g: any) => {
-    const hours = Number(g.hours || 0);
+    const rawHours =
+      typeof g.hours === "number" ? g.hours : Number(g.hours || 0);
     const weekly =
-      g.effortType === "monthly" ? Math.round((hours * 7) / days) : hours;
-    return { ...g, weekly };
+      g.effortType === "monthly" ? Math.round((rawHours * 7) / days) : rawHours;
+    return { ...g, hours: rawHours, weekly };
   });
 
   const usedWeekly = goals.reduce(
@@ -279,14 +280,27 @@ export default function WizardStep3({ data }: Props) {
           {goals.map((g: any) => (
             <div
               key={g.id}
-              className="rounded-md border border-slate-200 px-3 py-2 text-sm flex justify-between"
+              className="rounded-md border border-slate-200 px-3 py-2 text-sm flex items-center justify-between"
             >
-              <div>
-                <p className="font-medium text-slate-900">{g.name}</p>
-                <p className="text-xs text-slate-500">{g.priority} priority</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <p className="font-medium text-slate-900 truncate">{g.name}</p>
+                {/* priority badge */}
+                <span
+                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    (g.priority || "").toLowerCase() === "high"
+                      ? "bg-red-500 text-white"
+                      : (g.priority || "").toLowerCase() === "medium"
+                        ? "bg-yellow-400 text-black"
+                        : "bg-gray-400 text-black"
+                  }`}
+                >
+                  {(g.priority || "").toLowerCase()}
+                </span>
               </div>
-              <p className="text-sm font-semibold text-slate-800">
-                {g.weekly}h / week
+              <p className="text-sm font-semibold text-slate-800 ml-4 whitespace-nowrap">
+                {g.effortType === "monthly"
+                  ? `${g.hours}h / month`
+                  : `${g.weekly}h / week`}
               </p>
             </div>
           ))}

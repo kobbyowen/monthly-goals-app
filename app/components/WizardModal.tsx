@@ -585,6 +585,7 @@ export default function WizardModal({
                 numSprints: step2Data.numSprints,
                 weeksPerSprint: step2Data.weeksPerSprint,
                 startDate: step2Data.startDate,
+                goals: step2Data.goals,
               }}
               weeklyLimit={step1Data.weeklyCommitment}
               epicMonth={epicMonth}

@@ -36,7 +36,7 @@ export default function WizardStep2({
 }: Props) {
   const days = daysInMonthFromKey(epicMonth) || new Date().getDate();
 
-  const [goals, setGoals] = useState<Goal[]>([
+  const defaultGoals: Goal[] = [
     {
       id: `g_${Date.now()}_1`,
       name: "",
@@ -51,7 +51,25 @@ export default function WizardStep2({
       effortType: "weekly",
       priority: "Medium",
     },
-  ]);
+  ];
+
+  const [goals, setGoals] = useState<Goal[]>(() => {
+    try {
+      const incoming = (data && data.goals) || null;
+      if (Array.isArray(incoming) && incoming.length > 0) {
+        return incoming.map((g: any) => ({
+          id: g.id || `g_${Math.random().toString(36).slice(2, 9)}`,
+          name: typeof g.name === "string" ? g.name : "",
+          hours: typeof g.hours === "number" ? g.hours : g.hours ? Number(g.hours) : undefined,
+          effortType: g.effortType === "monthly" ? "monthly" : "weekly",
+          priority: g.priority || "Medium",
+        }));
+      }
+    } catch (e) {
+      // ignore and fall back to defaults
+    }
+    return defaultGoals;
+  });
 
   function addGoal() {
     const newGoal: Goal = {
@@ -112,9 +130,45 @@ export default function WizardStep2({
   }
 
   // expose goals upstream if caller wants them
+  const suppressOnChangeRef = React.useRef(false);
   React.useEffect(() => {
+    if (suppressOnChangeRef.current) {
+      suppressOnChangeRef.current = false;
+      return;
+    }
     onChange?.({ goals });
   }, [goals]);
+
+  // if parent supplies `data.goals` (e.g., when navigating back), sync it into local state
+  React.useEffect(() => {
+    try {
+      const incoming = (data && data.goals) || null;
+      if (!Array.isArray(incoming)) return;
+
+      const incomingNormalized = incoming.map((g: any) => ({
+        id: g.id || `g_${Math.random().toString(36).slice(2, 9)}`,
+        name: typeof g.name === "string" ? g.name : "",
+        hours: typeof g.hours === "number" ? g.hours : g.hours ? Number(g.hours) : undefined,
+        effortType: (g.effortType === "monthly" ? "monthly" : "weekly") as "weekly" | "monthly",
+        priority: (g.priority || "Medium") as "High" | "Medium" | "Low",
+      }));
+
+      // cheap deep-equality check to avoid unnecessary state updates
+      try {
+        const a = JSON.stringify(incomingNormalized);
+        const b = JSON.stringify(goals);
+        if (a === b) return;
+      } catch (e) {
+        // fallthrough to set state
+      }
+
+      suppressOnChangeRef.current = true;
+      setGoals(incomingNormalized);
+    } catch (e) {
+      // noop
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data && data.goals]);
 
   return (
     <div className="space-y-3 px-4 py-3 sm:px-6 sm:py-4">
