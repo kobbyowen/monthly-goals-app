@@ -129,7 +129,9 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
   // Determine if sprint is in the past (end date before today)
   let sprintEnd: string | null = null;
   try {
-    sprintEnd = sprint?.end || sprint?.dateExpectedToEnd || null;
+    // some server payloads may include different date field names; cast to any to avoid
+    // a TypeScript error when accessing legacy/alternative fields
+    sprintEnd = sprint?.end || (sprint as any)?.dateExpectedToEnd || null;
   } catch (e) {
     sprintEnd = null;
   }

@@ -166,9 +166,12 @@ export default function WizardStep1({
         </label>
         <input
           type="number"
-          value={weeklyCommitment}
+          value={weeklyCommitment ?? ""}
           onChange={(e) =>
-            onChange({ weeklyCommitment: Number(e.target.value) || 0 })
+            onChange({
+              weeklyCommitment:
+                e.target.value === "" ? undefined : Number(e.target.value),
+            })
           }
           placeholder="e.g. 20"
           className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"

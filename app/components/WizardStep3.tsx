@@ -24,7 +24,7 @@ export default function WizardStep3({ data }: Props) {
   // compute days left in the selected month (exclude elapsed days if it's the current month)
   const totalDaysInMonth = daysInMonth(monthKey);
   const now = new Date();
-  const [mkY, mkM] = (monthKey || "").split("-").map((s) => Number(s));
+  const [mkY, mkM] = (monthKey || "").split("-").map((s: string) => Number(s));
   const isCurrentMonth =
     mkY === now.getFullYear() && mkM === now.getMonth() + 1;
   const startDay = isCurrentMonth ? now.getDate() : 1;
@@ -158,9 +158,9 @@ export default function WizardStep3({ data }: Props) {
     let seqCounter = 0;
     const now = Date.now();
     for (const s of sprintsWithHours) {
-      const endIso = s.endDate || s.end || null;
+      const endIso = s.endDate || (s as any).end || null;
       const isPast = endIso ? Date.parse(endIso) < now : false;
-      s.isPast = isPast;
+      (s as any).isPast = isPast;
       if (!isPast) {
         seqCounter++;
         const seq = String(seqCounter).padStart(2, "0");
@@ -332,7 +332,7 @@ export default function WizardStep3({ data }: Props) {
                     (s) => s.startDate === isoStart && s.endDate === isoEnd,
                   );
                   if (sp) {
-                    const isPast = !!sp.isPast;
+                    const isPast = !!(sp as any).isPast;
                     rows.push(
                       <div
                         key={`g_${i}`}

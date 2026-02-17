@@ -373,7 +373,7 @@ export default function Sidebar({
             onClick={() => setShowAddEpic(true)}
             className="w-full justify-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition text-sm font-medium"
           >
-            New Monthly Epic From Scratch
+            New Monthly Epic (Scratch)
           </button>
         </div>
       </div>

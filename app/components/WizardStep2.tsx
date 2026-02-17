@@ -12,7 +12,7 @@ type Props = {
 type Goal = {
   id: string;
   name: string;
-  hours: number; // the number entered (weekly or monthly depending on effortType)
+  hours?: number; // the number entered (weekly or monthly depending on effortType)
   effortType: "weekly" | "monthly";
   priority: "High" | "Medium" | "Low";
 };
@@ -80,16 +80,18 @@ export default function WizardStep2({
   }
 
   function toWeeklyEquivalent(goal: Goal) {
-    if (goal.effortType === "weekly") return goal.hours;
+    const h = Number(goal.hours || 0);
+    if (goal.effortType === "weekly") return h;
     // monthly -> weekly: hours * (days / 7) / days? user's earlier formula used days/7 for month -> monthly commitment; convert monthly to weekly by dividing by (days/7)
     // monthlyHours -> weeklyEquivalent = monthlyHours / (days/7) = monthlyHours * 7 / days
-    return Math.round(((goal.hours * 7) / days) * 100) / 100;
+    return Math.round(((h * 7) / days) * 100) / 100;
   }
 
   function monthlyEquivalent(goal: Goal) {
-    if (goal.effortType === "monthly") return goal.hours;
+    const h = Number(goal.hours || 0);
+    if (goal.effortType === "monthly") return h;
     // weekly -> monthly = weekly * (days / 7)
-    return Math.round(goal.hours * (days / 7) * 100) / 100;
+    return Math.round(h * (days / 7) * 100) / 100;
   }
 
   function usedWeeklyHours(list: Goal[]) {
@@ -104,7 +106,8 @@ export default function WizardStep2({
   // validation helpers
   function rowError(g: Goal) {
     if (!g.name.trim()) return "Name required";
-    if (!(g.hours > 0)) return "Hours must be > 0";
+    if (!(typeof g.hours === "number" && g.hours > 0))
+      return "Hours must be > 0";
     return null;
   }
 
@@ -138,7 +141,10 @@ export default function WizardStep2({
         <strong className="font-medium">Note:</strong> Setting a goal's
         frequency to <em>Monthly</em> will make the wizard automatically
         position and distribute that goal across the sprints based on priority.
+        <br />
         Higher-priority monthly goals are placed earlier in the month.
+        <br />
+        Set a goal to weekly if you want to work on it every week
       </div>
 
       {/* Goals list */}
@@ -163,11 +169,18 @@ export default function WizardStep2({
                   <input
                     type="number"
                     placeholder="Hrs"
-                    value={g.hours}
+                    value={g.hours ?? ""}
                     onChange={(e) =>
-                      updateGoal(g.id, { hours: Number(e.target.value) || 0 })
+                      updateGoal(g.id, {
+                        hours:
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
+                      })
                     }
-                    className={`w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none ${g.hours <= 0 ? "border-rose-400" : ""}`}
+                    className={`w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none ${
+                      (g.hours ?? 0) <= 0 ? "border-rose-400" : ""
+                    }`}
                   />
                 </div>
 
