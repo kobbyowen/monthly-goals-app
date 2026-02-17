@@ -147,8 +147,8 @@ export default function WizardStep2({
         Set a goal to weekly if you want to work on it every week
       </div>
 
-      {/* Goals list */}
-      <div className="space-y-2">
+      {/* Goals list - constrain height so modal doesn't grow; make list scrollable */}
+      <div className="max-h-60 overflow-auto pr-2 space-y-2">
         {goals.map((g) => {
           const err = rowError(g);
           const weeklyEq = toWeeklyEquivalent(g);
@@ -165,7 +165,7 @@ export default function WizardStep2({
                   className={`col-span-12 sm:col-span-6 rounded-md border border-slate-300 px-3 py-1 text-sm focus:border-emerald-500 focus:outline-none ${err ? "border-rose-400" : ""}`}
                 />
 
-                <div className="col-span-4 sm:col-span-2">
+                <div className="col-span-3 sm:col-span-1 md:col-span-1">
                   <input
                     type="number"
                     placeholder="Hrs"
@@ -189,7 +189,7 @@ export default function WizardStep2({
                   onChange={(e) =>
                     updateGoal(g.id, { effortType: e.target.value as any })
                   }
-                  className="col-span-3 sm:col-span-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  className="col-span-3 sm:col-span-2 md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 >
                   <option value="weekly">/week</option>
                   <option value="monthly">/month</option>
@@ -200,7 +200,7 @@ export default function WizardStep2({
                   onChange={(e) =>
                     updateGoal(g.id, { priority: e.target.value as any })
                   }
-                  className="col-span-3 sm:col-span-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  className="col-span-3 sm:col-span-2 md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
                 >
                   <option>High</option>
                   <option>Medium</option>

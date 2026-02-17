@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import WizardStep0 from "./WizardStep0";
 import WizardStep1 from "./WizardStep1";
 import WizardStep2 from "./WizardStep2";
@@ -61,73 +61,6 @@ export default function WizardModal({
   const addEpicsFromApi = useRootEpicStore((s) => s.addEpicsFromApi);
   const epicById = useRootEpicStore((s) => s.epics.byId);
 
-  function addSprint() {
-    setSprints((s) => [
-      ...s,
-      {
-        id: `spr_${Date.now()}`,
-        name: "New Sprint",
-        startAt: "",
-        endAt: "",
-        tasks: [],
-      },
-    ]);
-    setIsDirty(true);
-  }
-
-  function removeSprint(idx: number) {
-    setSprints((s) => s.filter((_, i) => i !== idx));
-    setIsDirty(true);
-  }
-
-  function updateSprint(idx: number, patch: Partial<SprintRow>) {
-    setSprints((s) => s.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
-    setIsDirty(true);
-  }
-
-  function addTaskToSprint(sprintIdx: number) {
-    setSprints((s) =>
-      s.map((r, i) =>
-        i === sprintIdx
-          ? {
-              ...r,
-              tasks: [
-                ...r.tasks,
-                {
-                  id: `task_${Date.now()}`,
-                  name: "New Task",
-                  effortType: "weekly",
-                  allocatedHours: 1,
-                  priority: "medium",
-                },
-              ],
-            }
-          : r,
-      ),
-    );
-    setIsDirty(true);
-  }
-
-  function updateTask(
-    sprintIdx: number,
-    taskIdx: number,
-    patch: Partial<TaskRow>,
-  ) {
-    setSprints((s) =>
-      s.map((r, i) =>
-        i === sprintIdx
-          ? {
-              ...r,
-              tasks: r.tasks.map((t, ti) =>
-                ti === taskIdx ? { ...t, ...patch } : t,
-              ),
-            }
-          : r,
-      ),
-    );
-    setIsDirty(true);
-  }
-
   function resetWizardState() {
     setEpicId("");
     setEpicName("");
@@ -162,16 +95,6 @@ export default function WizardModal({
       resetWizardState();
       onClose();
     }
-  }
-
-  function removeTask(sprintIdx: number, taskIdx: number) {
-    setSprints((s) =>
-      s.map((r, i) =>
-        i === sprintIdx
-          ? { ...r, tasks: r.tasks.filter((_, ti) => ti !== taskIdx) }
-          : r,
-      ),
-    );
   }
 
   function validateStep1() {
@@ -267,20 +190,23 @@ export default function WizardModal({
     }, 0);
   }
 
-  function validateStep2(sprintsList?: SprintRow[]) {
-    const list = sprintsList || sprints;
-    if (!list || list.length === 0) {
-      toast("Add at least one sprint", "error");
-      return false;
-    }
-    for (const sp of list) {
-      if (!sp.id || !sp.name || !sp.startAt || !sp.endAt) {
-        toast("Each sprint needs id, name, startAt and endAt", "error");
+  const validateStep2 = useCallback(
+    (sprintsList?: SprintRow[]) => {
+      const list = sprintsList || sprints;
+      if (!list || list.length === 0) {
+        toast("Add at least one sprint", "error");
         return false;
       }
-    }
-    return true;
-  }
+      for (const sp of list) {
+        if (!sp.id || !sp.name || !sp.startAt || !sp.endAt) {
+          toast("Each sprint needs id, name, startAt and endAt", "error");
+          return false;
+        }
+      }
+      return true;
+    },
+    [sprints],
+  );
 
   async function handleSubmit() {
     if (!validateStep1()) return setStep(1);
@@ -572,13 +498,13 @@ export default function WizardModal({
 
         <div className="p-4">
           <div className="mb-3">
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">
+            <h2 className="mt-1 text-lg font-semibold text-slate-900 pl-4">
               {step === 0
                 ? "Epic Details"
                 : step === 1
                   ? "Plan Your Monthly Capacity"
                   : step === 2
-                    ? "Plan Sprints & Tasks"
+                    ? "List Your Goals"
                     : "Review & Create Epic"}
             </h2>
           </div>
@@ -740,7 +666,7 @@ export default function WizardModal({
                   if (sprints.length === 0) {
                     generateSprintsFromStep2();
                   }
-                  if (validateStep2()) setStep((s) => s + 1);
+                  setStep((s) => s + 1);
                 }}
                 disabled={
                   step === 2 && _weeklyLimit > 0 && _usedWeekly > _weeklyLimit
