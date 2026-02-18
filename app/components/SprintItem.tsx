@@ -192,11 +192,11 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
             className={`space-y-2 text-center md:text-left md:pl-6 ${isPast ? "opacity-60 pointer-events-none" : ""}`}
           >
             <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-foreground">
                 {sprint.name}
               </h2>
               {/** show sprint date range */}
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-muted-foreground">
                 {formatSprintRange(sprint.start, sprint.end)}
               </div>
 
@@ -206,13 +206,13 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
                 {statusLabel}
               </span>
 
-              <span className="text-xs text-gray-400 ml-2">
+              <span className="text-xs text-muted-foreground ml-2">
                 {collapsed ? "▸" : "▾"}
               </span>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full max-w-md h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="w-full max-w-md h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${status === "completed" ? "bg-green-600" : "bg-indigo-600"}`}
                 style={{ width: `${progress}%` }}
@@ -222,7 +222,7 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
 
           {/* Stats (stop header toggle when interacting with controls) */}
           <div
-            className="flex items-center gap-6 md:gap-4 text-sm text-gray-600 w-full md:w-auto justify-center md:justify-end"
+            className="flex items-center gap-6 md:gap-4 text-sm text-muted-foreground w-full md:w-auto justify-center md:justify-end"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
@@ -231,19 +231,19 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
               >
                 {progress}%
               </p>
-              <p className="text-xs text-gray-400">Progress</p>
+              <p className="text-xs text-muted-foreground">Progress</p>
             </div>
 
             <div className="text-center">
-              <p className="text-sm font-semibold text-gray-900">{`${checklistCompleted} / ${checklistTotal}`}</p>
-              <p className="text-xs text-gray-400">Checklist</p>
+              <p className="text-sm font-semibold text-foreground">{`${checklistCompleted} / ${checklistTotal}`}</p>
+              <p className="text-xs text-muted-foreground">Checklist</p>
             </div>
 
             <div className="text-center">
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-foreground">
                 {totalTasks}
               </p>
-              <p className="text-xs text-gray-400">Tasks</p>
+              <p className="text-xs text-muted-foreground">Tasks</p>
             </div>
 
             <>

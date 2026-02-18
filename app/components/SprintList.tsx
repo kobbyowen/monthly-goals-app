@@ -36,12 +36,12 @@ export default function SprintList({ sprints }: { sprints?: Sprint[] } = {}) {
   }, [sprints, epics, getSprintsByEpic, _sprintIds]);
 
   if (!effective || effective.length === 0) {
-    return <p className="text-sm text-slate-500 italic">No sprints.</p>;
+    return <p className="text-sm text-muted-foreground italic">No sprints.</p>;
   }
 
   return (
     <div>
-      <div className="divide-y divide-slate-200">
+      <div className="divide-y divide-border">
         {effective.map((sp) => (
           <div key={sp.id} className="py-4">
             <SprintItem sprintId={sp.id} />

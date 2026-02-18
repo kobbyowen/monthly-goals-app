@@ -134,13 +134,13 @@ export default function MiniTaskCard({
       : 0;
 
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+    <div className="rounded-lg border border-border bg-muted p-2 text-foreground">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-slate-900 truncate">
+        <span className="text-xs font-medium text-foreground truncate">
           {name}
         </span>
         {badge && (
-          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-700">
+          <span className="rounded-full bg-card px-2 py-0.5 text-[10px] text-card-foreground">
             {badge}
           </span>
         )}
@@ -148,11 +148,11 @@ export default function MiniTaskCard({
 
       {/* Left: used time, Right: estimate */}
       <div className="mt-2">
-        <div className="flex items-center justify-between text-[10px] text-slate-500">
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
           <span>{fmtHumanShort(usedSec)}</span>
           <span>
             Est.{" "}
-            <span className="text-slate-700 font-medium">
+            <span className="text-foreground font-medium">
               {formatEstimate(plannedSec)}
             </span>
           </span>

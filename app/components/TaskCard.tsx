@@ -309,7 +309,7 @@ export default function TaskCard({ taskId }: { taskId: string }) {
     <>
       <div
         onClick={() => setOpen(true)}
-        className={`bg-white rounded-md border ${styles.border} p-4 shadow-sm cursor-pointer`}
+        className={`bg-card text-card-foreground rounded-md border border-border ${styles.border} p-4 shadow-sm cursor-pointer`}
       >
         <div className="flex items-start justify-between gap-4">
           {/* Left */}
@@ -318,7 +318,7 @@ export default function TaskCard({ taskId }: { taskId: string }) {
 
             <div className="flex-1">
               <p
-                className={`${status === "completed" ? "text-gray-700" : "text-gray-900"} text-sm font-semibold`}
+                className={`text-sm font-semibold`}
                 style={{
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
@@ -331,7 +331,7 @@ export default function TaskCard({ taskId }: { taskId: string }) {
                 {name}
               </p>
 
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {status === "completed"
                   ? `Completed • ${formatHMS(elapsed)}`
                   : `${checklistCompleted}/${checklistTotal} checklist • ${formatEstimate(

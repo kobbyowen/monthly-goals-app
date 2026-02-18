@@ -37,8 +37,8 @@ export default function Home() {
   // While we don't yet know if the user is logged in, avoid flashing the dashboard
   if (meLoading && !me && !meError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-black">
-        <div className="text-sm text-slate-600 dark:text-slate-300">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-sm text-muted-foreground">
           Loading your workspace...
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-100 dark:bg-black">
+    <div className="min-h-screen flex bg-background">
       <Sidebar
         sprints={epics}
         onCreated={(created) =>

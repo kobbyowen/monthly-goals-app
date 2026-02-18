@@ -45,12 +45,12 @@ export default function SessionItem({ session }: Props) {
     <div
       className={`flex items-center justify-between rounded-md border px-3 py-2 text-xs ${
         isRunning
-          ? "border-yellow-200 bg-yellow-50"
-          : "border-slate-200 bg-white"
+          ? "border-yellow-500/30 bg-yellow-500/10"
+          : "border-border bg-card text-card-foreground"
       }`}
     >
-      <span className="font-mono text-slate-700">{range}</span>
-      <span className="text-slate-500">{human}</span>
+      <span className="font-mono text-foreground">{range}</span>
+      <span className="text-muted-foreground">{human}</span>
     </div>
   );
 }

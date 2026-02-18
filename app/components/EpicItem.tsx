@@ -113,7 +113,7 @@ export default function EpicItem({
           <PopoverButton>
             <button
               aria-label="open epic menu"
-              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-1 rounded hover:bg-muted"
             >
               <svg
                 className="h-5 w-5"
@@ -130,18 +130,18 @@ export default function EpicItem({
           </PopoverButton>
 
           <PopoverPanel className="absolute right-0 z-50 mt-2">
-            <div className="w-64 rounded-lg border border-slate-200 bg-white">
-              <div className="border-b border-slate-100 p-2">
+            <div className="w-64 rounded-lg border border-border bg-card text-card-foreground">
+              <div className="border-b border-border p-2">
                 <button
                   onClick={handleDelete}
-                  className="w-full rounded-md px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                  className="w-full rounded-md px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-muted"
                 >
                   Delete Epic
                 </button>
               </div>
 
               <div className="p-2 space-y-1">
-                <p className="px-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                <p className="px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Sprints
                 </p>
 
@@ -150,9 +150,9 @@ export default function EpicItem({
                     getSprintsByEpic(id).map((sp) => (
                       <div
                         key={sp.id}
-                        className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs hover:bg-slate-50"
+                        className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs hover:bg-muted"
                       >
-                        <span className="text-slate-800 truncate">
+                        <span className="text-foreground truncate">
                           {sp.name || sp.sprintLabel || "Sprint"}
                         </span>
                         <button
@@ -165,7 +165,7 @@ export default function EpicItem({
                       </div>
                     ))
                   ) : (
-                    <div className="px-2 py-2 text-xs text-gray-400">
+                    <div className="px-2 py-2 text-xs text-muted-foreground">
                       No sprints
                     </div>
                   )}

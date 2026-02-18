@@ -133,14 +133,14 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
   if (!hasEpics) {
     return (
       <div className="mx-auto max-w-3xl py-10 px-3 sm:py-16">
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-8 text-center shadow-sm">
+        <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-500">
             Analytics
           </p>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             No monthly epics yet
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             Create a monthly epic to start tracking time, sessions, and
             progress.
           </p>
@@ -159,7 +159,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
     <div className="relative w-full mx-auto max-w-6xl space-y-6 px-3 sm:px-4 md:px-0 sm:space-y-8 lg:space-y-10 pb-16">
       {/* HEADER + EPIC SELECTOR */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold text-slate-900">
+        <h1 className="text-xl font-bold text-foreground">
           Time Management Dashboard
         </h1>
         <div className="w-full sm:w-56">
@@ -167,7 +167,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
             <select
               value={selectedEpicId || ""}
               onChange={(e) => setSelectedEpicId(e.target.value || null)}
-              className="w-full appearance-none rounded-md border border-slate-300 bg-white px-3 py-2 pr-8 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+              className="w-full appearance-none rounded-md border border-border bg-background px-3 py-2 pr-8 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none"
             >
               {epics.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -176,7 +176,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
               ))}
             </select>
 
-            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-muted-foreground">
               <svg
                 className="h-4 w-4"
                 fill="none"
@@ -198,9 +198,9 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
       {/* MONTHLY STATS */}
       <section>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card className="border-slate-200">
-            <p className="text-xs text-slate-500">Estimated Effort</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">
+          <Card className="border-border">
+            <p className="text-xs text-muted-foreground">Estimated Effort</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">
               {(() => {
                 const secs = Number(metrics.totalPlanned ?? 0);
                 return `${Math.round(secs / 3600)}h`;
@@ -209,7 +209,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
           </Card>
 
           <Card className="border-yellow-300">
-            <p className="text-xs text-slate-500">Effort Used</p>
+            <p className="text-xs text-muted-foreground">Effort Used</p>
             <p className="mt-1 text-2xl font-bold text-yellow-600">
               {(() => {
                 const secs = Number(metrics.totalUsed ?? 0);
@@ -219,7 +219,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
           </Card>
 
           <Card className="border-emerald-300">
-            <p className="text-xs text-slate-500">Checklist</p>
+            <p className="text-xs text-muted-foreground">Checklist</p>
             <p className="mt-1 text-2xl font-bold text-emerald-600">
               {(() => {
                 const total = Number(metrics.checklistTotal ?? 0);
@@ -229,9 +229,9 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
             </p>
           </Card>
 
-          <Card className="border-slate-200">
-            <p className="text-xs text-slate-500">Completion</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">
+          <Card className="border-border">
+            <p className="text-xs text-muted-foreground">Completion</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">
               {metrics.completionPercent + "%"}
             </p>
           </Card>
@@ -240,28 +240,30 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
 
       {/* ANALYTICS SUMMARY */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
           Monthly Epic Summary
         </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-emerald-300 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-            <span className="text-xs text-slate-600">Tasks Completed</span>
+          <div className="rounded-xl border border-emerald-300 bg-card text-card-foreground p-4 shadow-sm transition-shadow hover:shadow-md">
+            <span className="text-xs text-muted-foreground">
+              Tasks Completed
+            </span>
             <div className="mt-2 text-3xl font-bold text-emerald-600">
               {completedTasks.length}
             </div>
           </div>
 
-          <div className="rounded-xl border border-yellow-300 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-            <span className="text-xs text-slate-600">In Progress</span>
+          <div className="rounded-xl border border-yellow-300 bg-card text-card-foreground p-4 shadow-sm transition-shadow hover:shadow-md">
+            <span className="text-xs text-muted-foreground">In Progress</span>
             <div className="mt-2 text-3xl font-bold text-yellow-500">
               {inProgressTasks.length}
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-            <span className="text-xs text-slate-600">Not Started</span>
-            <div className="mt-2 text-3xl font-bold text-slate-700">
+          <div className="rounded-xl border border-border bg-card text-card-foreground p-4 shadow-sm transition-shadow hover:shadow-md">
+            <span className="text-xs text-muted-foreground">Not Started</span>
+            <div className="mt-2 text-3xl font-bold text-foreground">
               {notStartedTasks.length}
             </div>
           </div>
@@ -270,16 +272,18 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
 
       {/* ACTIVE TASKS */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
           Active Tasks
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Not Started */}
-          <div className="min-w-60 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="min-w-60 rounded-xl border border-border bg-card text-card-foreground p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">To DO</h3>
-              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-700">
+              <h3 className="text-sm font-semibold text-card-foreground">
+                To DO
+              </h3>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-foreground">
                 {notStartedTasks.length} tasks
               </span>
             </div>
@@ -318,7 +322,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
                 );
               })}
               {!notStartedTasks.length && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   No tasks waiting to start.
                 </p>
               )}
@@ -326,9 +330,9 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
           </div>
 
           {/* In Progress */}
-          <div className="min-w-60 rounded-xl border border-yellow-300 bg-white p-4">
+          <div className="min-w-60 rounded-xl border border-yellow-300 bg-card text-card-foreground p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h3 className="text-sm font-semibold text-card-foreground">
                 In Progress
               </h3>
               <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] text-yellow-700">
@@ -374,7 +378,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
                 );
               })}
               {!inProgressTasks.length && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   No tasks currently in progress.
                 </p>
               )}
@@ -382,9 +386,9 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
           </div>
 
           {/* Completed */}
-          <div className="min-w-60 rounded-xl border border-emerald-300 bg-white p-4">
+          <div className="min-w-60 rounded-xl border border-emerald-300 bg-card text-card-foreground p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h3 className="text-sm font-semibold text-card-foreground">
                 Completed
               </h3>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700">
@@ -422,7 +426,7 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
                 );
               })}
               {!completedTasks.length && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   No completed tasks yet.
                 </p>
               )}
@@ -433,13 +437,13 @@ export default function Dashboard({ epics }: { epics: ApiEpic[] }) {
 
       {/* TIMELINE */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
           Monthly Epic Timeline
         </h2>
 
         <Timeline items={timelineItems} />
 
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           Timeline highlights how work is distributed across this monthly epic.
         </p>
       </section>

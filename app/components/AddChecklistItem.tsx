@@ -41,9 +41,9 @@ export default function AddChecklistItem({
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-md border border-dashed border-slate-300 px-3 py-2">
+    <div className="flex items-center gap-3 rounded-md border border-dashed border-border px-3 py-2">
       {/* Disabled Check Icon */}
-      <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-300 text-slate-300">
+      <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-border text-muted-foreground">
         <FiCheck size={12} />
       </div>
 
@@ -60,7 +60,7 @@ export default function AddChecklistItem({
           }
         }}
         disabled={loading}
-        className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
+        className="flex-1 bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
       />
 
       {/* Add Button */}

@@ -169,16 +169,14 @@ export default function TasksPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen flex bg-slate-100">
+    <div className="min-h-screen flex bg-background">
       <Sidebar sprints={epics as Epic[]} />
 
       <main className="flex-1 h-screen overflow-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-4xl">
-          <div className="mb-4 pb-3 border-b border-slate-200 flex items-center justify-between gap-3">
+          <div className="mb-4 pb-3 border-b border-border flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold text-slate-900 truncate">
-                All Tasks
-              </h1>
+              <h1 className="text-lg font-semibold truncate">All Tasks</h1>
             </div>
 
             <div className="flex items-center gap-2">
@@ -187,14 +185,14 @@ export default function TasksPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search"
-                className="text-sm w-24 sm:w-40 rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700 placeholder:text-slate-400"
+                className="text-sm w-24 sm:w-40 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-2 py-1"
               />
 
               <select
                 aria-label="Filter by epic"
                 value={filterEpic}
                 onChange={(e) => setFilterEpic(e.target.value)}
-                className="text-sm w-28 sm:w-auto rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700"
+                className="text-sm w-28 sm:w-auto rounded-md border border-border bg-background text-foreground px-2 py-1"
               >
                 <option value="">All epics</option>
                 {(epics || []).map((ep) => (
@@ -207,7 +205,7 @@ export default function TasksPage() {
                 aria-label="Filter by sprint"
                 value={filterSprint}
                 onChange={(e) => setFilterSprint(e.target.value)}
-                className="text-sm w-28 rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-700"
+                className="text-sm w-28 rounded-md border border-border bg-background text-foreground px-2 py-1"
               >
                 <option value="">All sprints</option>
                 {(filterEpic ? getSprintsByEpic(filterEpic) || [] : []).map(
@@ -225,10 +223,8 @@ export default function TasksPage() {
             {inProgressTasks.length > 0 && (
               <section>
                 <div className="mb-2 sm:mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-800">
-                    In Progress
-                  </h2>
-                  <span className="ml-4 inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-800">
+                  <h2 className="text-sm font-semibold">In Progress</h2>
+                  <span className="ml-4 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
                     {inProgressTasks.length}
                   </span>
                 </div>
@@ -244,8 +240,8 @@ export default function TasksPage() {
             {todoTasks.length > 0 && (
               <section>
                 <div className="mb-2 sm:mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-800">Todo</h2>
-                  <span className="ml-4 inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-800">
+                  <h2 className="text-sm font-semibold">Todo</h2>
+                  <span className="ml-4 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
                     {todoTasks.length}
                   </span>
                 </div>
@@ -261,10 +257,8 @@ export default function TasksPage() {
             {completedTasks.length > 0 && (
               <section>
                 <div className="mb-2 sm:mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-800">
-                    Completed
-                  </h2>
-                  <span className="ml-4 inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-800">
+                  <h2 className="text-sm font-semibold">Completed</h2>
+                  <span className="ml-4 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
                     {completedTasks.length}
                   </span>
                 </div>
@@ -280,7 +274,7 @@ export default function TasksPage() {
             {inProgressTasks.length === 0 &&
               todoTasks.length === 0 &&
               completedTasks.length === 0 && (
-                <div className="text-center text-sm text-slate-500">
+                <div className="text-center text-sm text-muted-foreground">
                   No tasks in store.
                 </div>
               )}

@@ -235,25 +235,27 @@ export default function WizardStep2({
     <div className="space-y-3 px-4 py-3 sm:px-6 sm:py-4">
       {/* Bulk paste now handled in Step 0 (epic details) */}
       {/* Allocation summary */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-sm">
+      <div className="rounded-lg border border-border bg-muted p-2 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-slate-600">Allocated weekly hours</span>
-          <span className="font-semibold text-slate-900">
+          <span className="text-muted-foreground">Allocated weekly hours</span>
+          <span className="font-semibold text-foreground">
             {used}h / {weeklyLimit}h
           </span>
         </div>
 
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
             className="h-full bg-emerald-500"
             style={{ width: `${percent}%` }}
           />
         </div>
 
-        <p className="mt-2 text-xs text-slate-500">{remaining}h remaining</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {remaining}h remaining
+        </p>
       </div>
 
-      <div className="rounded-md border border-slate-200 bg-blue-50 p-2 text-xs text-slate-700">
+      <div className="rounded-md border border-border bg-muted p-2 text-xs text-foreground">
         <strong className="font-medium">Note:</strong> Goals defined using
         monthly hours will be auto distributed based on total time and priority
         <br />
@@ -270,14 +272,18 @@ export default function WizardStep2({
           const monthlyEq = monthlyEquivalent(g);
           const overalloc = weeklyLimit > 0 && used > weeklyLimit;
           return (
-            <div key={g.id} id={`goal-${g.id}`} className="rounded-lg border border-slate-200 p-2">
+            <div
+              key={g.id}
+              id={`goal-${g.id}`}
+              className="rounded-lg border border-border p-2"
+            >
               <div className="grid grid-cols-12 gap-1 items-center">
                 <input
                   type="text"
                   placeholder="Goal name"
                   value={g.name}
                   onChange={(e) => updateGoal(g.id, { name: e.target.value })}
-                  className={`col-span-12 sm:col-span-6 rounded-md border border-slate-300 px-3 py-1 text-sm focus:border-emerald-500 focus:outline-none ${err ? "border-rose-400" : ""}`}
+                  className={`col-span-12 sm:col-span-6 rounded-md border border-border bg-background px-3 py-1 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none ${err ? "border-rose-400" : ""}`}
                 />
 
                 <div className="col-span-3 sm:col-span-1 md:col-span-1">
@@ -293,7 +299,7 @@ export default function WizardStep2({
                             : Number(e.target.value),
                       })
                     }
-                    className={`w-full rounded-md border border-slate-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none ${
+                    className={`w-full rounded-md border border-border bg-background px-2 py-1 text-sm text-center text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none ${
                       (g.hours ?? 0) <= 0 ? "border-rose-400" : ""
                     }`}
                   />
@@ -304,7 +310,7 @@ export default function WizardStep2({
                   onChange={(e) =>
                     updateGoal(g.id, { effortType: e.target.value as any })
                   }
-                  className="col-span-3 sm:col-span-2 md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  className="col-span-3 sm:col-span-2 md:col-span-2 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
                 >
                   <option value="weekly">/week</option>
                   <option value="monthly">/month</option>
@@ -315,7 +321,7 @@ export default function WizardStep2({
                   onChange={(e) =>
                     updateGoal(g.id, { priority: e.target.value as any })
                   }
-                  className="col-span-3 sm:col-span-2 md:col-span-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                  className="col-span-3 sm:col-span-2 md:col-span-2 rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
                 >
                   <option>High</option>
                   <option>Medium</option>
@@ -329,13 +335,13 @@ export default function WizardStep2({
                   Delete
                 </button>
 
-                <div className="col-span-12 text-xs text-slate-600 mt-1">
+                <div className="col-span-12 text-xs text-muted-foreground mt-1">
                   Monthly:{" "}
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-foreground">
                     {monthlyEq}h
                   </span>{" "}
                   · Weekly:{" "}
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-foreground">
                     {weeklyEq}h
                   </span>
                 </div>
@@ -353,7 +359,7 @@ export default function WizardStep2({
       <button
         onClick={addGoal}
         disabled={weeklyLimit > 0 && used >= weeklyLimit}
-        className={`text-sm font-medium ${weeklyLimit > 0 && used >= weeklyLimit ? "text-slate-400 cursor-not-allowed" : "text-emerald-600 hover:underline"}`}
+        className={`text-sm font-medium ${weeklyLimit > 0 && used >= weeklyLimit ? "text-muted-foreground cursor-not-allowed" : "text-emerald-600 hover:underline"}`}
       >
         + Add Goal
       </button>

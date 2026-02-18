@@ -110,7 +110,7 @@ export default function CheckList({
   return (
     <div className={`space-y-2 ${compact ? "text-sm" : ""}`}>
       {items.length === 0 && !hideEmptyWhenAdding ? (
-        <div className="rounded-md border border-slate-200 bg-white/50 px-3 py-3 text-sm text-slate-500">
+        <div className="rounded-md border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">
           No checklist items.
         </div>
       ) : items.length === 0 && hideEmptyWhenAdding ? null : (

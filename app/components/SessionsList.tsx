@@ -10,7 +10,9 @@ type Props = {
 
 export default function SessionsList({ sessions = [] }: Props) {
   if (!sessions.length) {
-    return <div className="text-sm text-gray-400 py-4">No sessions yet.</div>;
+    return (
+      <div className="text-sm text-muted-foreground py-4">No sessions yet.</div>
+    );
   }
 
   const sorted = [...sessions].sort(

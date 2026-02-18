@@ -115,14 +115,14 @@ export default function CreateEpic({
             className="absolute inset-0 bg-black opacity-40"
             onClick={() => setOpen(false)}
           />
-          <div className="relative z-10 w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
+          <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card text-card-foreground p-6 shadow-lg">
             <h3 className="text-lg font-semibold">Create New Monthly Epic</h3>
             <div className="mt-4">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Month
               </label>
               <select
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm bg-background text-foreground focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 value={selectedMonthKey}
                 onChange={(e) => setSelectedMonthKey(e.target.value)}
               >
@@ -134,11 +134,11 @@ export default function CreateEpic({
               </select>
             </div>
             <div className="mt-4">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Monthly Epic name
               </label>
               <input
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
@@ -147,7 +147,7 @@ export default function CreateEpic({
               />
             </div>
             <div className="mt-4">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Initial weekly sprints (editable)
               </label>
               <div className="space-y-2">
@@ -160,7 +160,7 @@ export default function CreateEpic({
                         copy[idx] = e.target.value;
                         setSprintNames(copy);
                       }}
-                      className="mt-1 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+                      className="mt-1 flex-1 rounded-lg border border-border px-3 py-2 text-sm bg-background text-foreground"
                     />
                     <button
                       onClick={() => {
@@ -168,7 +168,7 @@ export default function CreateEpic({
                           prev.filter((_, i) => i !== idx),
                         );
                       }}
-                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      className="rounded-lg border border-border px-3 py-2 text-sm"
                       aria-label={`Remove weekly sprint ${idx + 1}`}
                     >
                       Remove
@@ -193,7 +193,7 @@ export default function CreateEpic({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                className="rounded-lg border border-border px-4 py-2 text-sm"
               >
                 Cancel
               </button>

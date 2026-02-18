@@ -120,13 +120,13 @@ export default function AddSprintModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white flex flex-col max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground flex flex-col max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Add Sprint</h2>
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold">Add Sprint</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-muted-foreground hover:opacity-80"
           >
             ✕
           </button>
@@ -135,7 +135,7 @@ export default function AddSprintModal({
         {/* Body */}
         <div className="px-5 py-5 space-y-5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Sprint Name
             </label>
             <input
@@ -143,19 +143,19 @@ export default function AddSprintModal({
               onChange={(e) => setName(e.target.value)}
               type="text"
               placeholder="Week 2 Sprint"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Week of Month
             </label>
 
             <select
               value={selectedWeekIndex}
               onChange={(e) => setSelectedWeekIndex(Number(e.target.value))}
-              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+              className="mt-2 w-full rounded-md border border-border bg-background text-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             >
               {weeks.map((w, idx) => (
                 <option key={idx} value={idx}>
@@ -173,7 +173,7 @@ export default function AddSprintModal({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Sprint Goal (optional)
             </label>
             <textarea
@@ -181,20 +181,20 @@ export default function AddSprintModal({
               onChange={(e) => setGoal(e.target.value)}
               rows={3}
               placeholder="What should this sprint achieve?"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-muted-foreground">
             Tasks can be added after creating the sprint.
           </p>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
           <button
             onClick={onClose}
-            className="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700"
+            className="rounded-md bg-muted px-4 py-2 text-sm font-semibold"
           >
             Cancel
           </button>

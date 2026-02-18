@@ -50,7 +50,7 @@ export default function Page() {
     name: e.sprintLabel || e.name,
   }));
   return (
-    <div className="min-h-screen flex bg-slate-100 dark:bg-black">
+    <div className="min-h-screen flex bg-background">
       <Sidebar sprints={epics} />
       <main className="flex-1 h-screen overflow-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl space-y-4">
@@ -59,7 +59,7 @@ export default function Page() {
               <h1 className="text-2xl sm:text-3xl font-extrabold">
                 Monthly Epics
               </h1>
-              <p className="mt-1 text-xs sm:text-sm text-gray-500">
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                 Plan and track goals across weekly sprints.
               </p>
             </div>

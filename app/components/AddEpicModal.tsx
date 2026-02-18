@@ -122,15 +122,13 @@ export default function AddEpicModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card text-card-foreground flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">
-            New Monthly Epic
-          </h2>
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold">New Monthly Epic</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-muted-foreground hover:opacity-80"
           >
             ✕
           </button>
@@ -139,7 +137,7 @@ export default function AddEpicModal({
         {/* Body */}
         <div className="overflow-y-auto px-5 py-5 space-y-6">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Epic Name
             </label>
             <input
@@ -147,12 +145,12 @@ export default function AddEpicModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="January Growth Epic"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Description / Motto
             </label>
             <input
@@ -160,18 +158,18 @@ export default function AddEpicModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Short description or motto"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Month
             </label>
             <select
               value={selectedMonthKey}
               onChange={(e) => setSelectedMonthKey(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             >
               {monthOptions.map((m) => (
                 <option key={m.key} value={m.key}>
@@ -208,7 +206,7 @@ export default function AddEpicModal({
                       copy[idx] = e.target.value;
                       setSprintNames(copy);
                     }}
-                    className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="flex-1 rounded-md border border-border bg-background text-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                   />
                   <button
                     onClick={() =>
@@ -223,17 +221,17 @@ export default function AddEpicModal({
               ))}
             </div>
 
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-[11px] text-muted-foreground">
               Weeks are auto-generated based on the selected month.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
           <button
             onClick={onClose}
-            className="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700"
+            className="rounded-md bg-muted px-4 py-2 text-sm font-semibold"
           >
             Cancel
           </button>

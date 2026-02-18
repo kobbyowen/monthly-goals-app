@@ -42,13 +42,13 @@ export default function WizardStep0({
   return (
     <div className="px-4 py-4 space-y-4">
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Month
         </label>
         <select
           value={month || ""}
           onChange={(e) => onChange({ month: e.target.value })}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none"
         >
           <option value="">Select month</option>
           {monthOptions.map((opt) => (
@@ -60,7 +60,7 @@ export default function WizardStep0({
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Epic name (optional)
         </label>
         <input
@@ -68,25 +68,25 @@ export default function WizardStep0({
           value={epicName ?? ""}
           onChange={(e) => onChange({ name: e.target.value })}
           placeholder="e.g. March Epic"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Motto / Description (optional)
         </label>
         <textarea
           value={epicDescription ?? ""}
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Short description or motto for this epic"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none"
           rows={2}
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Outline your monthly goals (one per line) - hours will be set later
         </label>
         <textarea
@@ -94,7 +94,7 @@ export default function WizardStep0({
           onChange={(e) => onChange({ goalsText: e.target.value })}
           placeholder={`Complete the rocket\nRead the entire bible`}
           rows={4}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none"
         />
       </div>
     </div>

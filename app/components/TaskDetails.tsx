@@ -115,7 +115,7 @@ export default function TaskDetails({
     <div className="space-y-6">
       {/* Task Name */}
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Task Name
         </label>
         <input
@@ -128,7 +128,7 @@ export default function TaskDetails({
             if (e.key === "Enter") handleRename();
             if (e.key === "Escape") setValue(name);
           }}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
         />
       </div>
 
@@ -136,7 +136,7 @@ export default function TaskDetails({
       <div className="grid grid-cols-2 gap-4 text-xs">
         {/* Status */}
         <div>
-          <span className="text-slate-500">Status</span>
+          <span className="text-muted-foreground">Status</span>
           <div
             className={`mt-1 inline-block rounded-full px-2 py-0.5 font-medium ${badge.className}`}
           >
@@ -146,15 +146,15 @@ export default function TaskDetails({
 
         {/* Total Time */}
         <div>
-          <span className="text-slate-500">Total Time</span>
-          <div className="mt-1 font-mono text-sm font-semibold text-slate-900">
+          <span className="text-muted-foreground">Total Time</span>
+          <div className="mt-1 font-mono text-sm font-semibold">
             {formatHMS(totalSeconds)}
           </div>
         </div>
 
         {/* Estimated (editable hours when handler provided) */}
         <div>
-          <span className="text-slate-500">Estimated</span>
+          <span className="text-muted-foreground">Estimated</span>
           <div className="mt-1">
             {onEstimatedHoursChange ? (
               <input
@@ -188,10 +188,10 @@ export default function TaskDetails({
                         : "",
                     );
                 }}
-                className="w-28 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
+                className="w-28 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none"
               />
             ) : (
-              <div className="text-slate-800">
+              <div className="text-foreground">
                 {estimatedSeconds ? formatHMS(estimatedSeconds) : "—"}
               </div>
             )}
@@ -200,7 +200,7 @@ export default function TaskDetails({
 
         {/* Checklist */}
         <div>
-          <span className="text-slate-500">Checklist</span>
+          <span className="text-muted-foreground">Checklist</span>
           <div className="mt-1 text-emerald-600 font-medium">
             {checklistCompleted} / {checklistTotal} completed
           </div>

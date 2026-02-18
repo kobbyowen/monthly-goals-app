@@ -37,12 +37,12 @@ export default function ConfirmProvider() {
         className="absolute inset-0 bg-black/40"
         onClick={() => doClose(false)}
       />
-      <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
-        <div className="text-sm text-slate-900">{message}</div>
+      <div className="relative z-10 w-full max-w-sm rounded-lg bg-card text-card-foreground p-6 shadow-lg border border-border">
+        <div className="text-sm">{message}</div>
         <div className="mt-4 flex justify-end gap-2">
           <button
             onClick={() => doClose(false)}
-            className="rounded-lg border border-slate-300 px-3 py-1.5"
+            className="rounded-lg border border-border px-3 py-1.5"
           >
             Cancel
           </button>

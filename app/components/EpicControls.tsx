@@ -200,13 +200,11 @@ export default function EpicControls({
     <>
       {open && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Epic Settings
-              </h2>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="text-sm font-semibold">Epic Settings</h2>
               <button
-                className="text-slate-400 hover:text-slate-600"
+                className="text-muted-foreground hover:opacity-80"
                 onClick={() => setOpen(false)}
               >
                 ✕
@@ -215,7 +213,7 @@ export default function EpicControls({
 
             <div className="px-5 py-5 space-y-6">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-500">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   Epic Name
                 </label>
                 <input
@@ -230,13 +228,13 @@ export default function EpicControls({
                         }) as Epic,
                     )
                   }
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-md border border-border bg-background text-foreground px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Sprints
                   </h3>
                   <button
@@ -256,13 +254,13 @@ export default function EpicControls({
                   {(epic?.sprints || []).map((sp) => (
                     <div
                       key={sp.id}
-                      className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-xs"
+                      className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs"
                     >
                       <div>
-                        <div className="font-medium text-slate-800">
+                        <div className="font-medium">
                           {(sp as any).sprintLabel || sp.name}
                         </div>
-                        <div className="text-slate-500">
+                        <div className="text-muted-foreground">
                           {(sp.tasks || []).length} tasks ·{" "}
                           {
                             (sp.tasks || []).filter(
@@ -274,7 +272,7 @@ export default function EpicControls({
                       </div>
                       <button
                         onClick={() => deleteSprintById(sp.id)}
-                        className="text-slate-400 text-sm"
+                        className="text-muted-foreground text-sm"
                         aria-label={`Delete sprint ${sp.name}`}
                       >
                         🗑
@@ -297,10 +295,10 @@ export default function EpicControls({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+            <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700"
+                className="rounded-md bg-muted px-4 py-2 text-sm font-semibold"
               >
                 Cancel
               </button>
@@ -319,24 +317,24 @@ export default function EpicControls({
 
       {showAddSprint && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground p-6">
             <h3 className="text-lg font-semibold">Add Sprint</h3>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
                   Sprint name
                 </label>
                 <input
                   value={newSprintName}
                   onChange={(e) => setNewSprintName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm bg-background text-foreground"
                 />
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setShowAddSprint(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                className="rounded-lg border border-border px-4 py-2 text-sm"
               >
                 Cancel
               </button>

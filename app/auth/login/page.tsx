@@ -54,14 +54,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900">Welcome back</h1>
-        <p className="mt-1 text-sm text-slate-600">Sign in to continue</p>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-card text-card-foreground p-6 shadow-sm border border-border">
+        <h1 className="text-xl font-bold">Welcome back</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Sign in to continue
+        </p>
 
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Email
             </label>
             <input
@@ -75,7 +77,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Password
             </label>
             <div className="relative">

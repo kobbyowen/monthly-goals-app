@@ -117,14 +117,14 @@ export default function TaskModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-xl border border-slate-200 bg-white flex flex-col max-h-[90vh]"
+        className="w-full max-w-lg rounded-xl border border-border bg-card text-card-foreground flex flex-col max-h-[90vh]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Task Details</h2>
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold">Task Details</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-muted-foreground hover:opacity-80"
           >
             ✕
           </button>
@@ -133,7 +133,7 @@ export default function TaskModal({
         {/* Scrollable Body */}
         <div className="overflow-y-auto px-5 py-5 space-y-6">
           {/* Task Details */}
-          <div className="mb-2 text-xs text-slate-500">
+          <div className="mb-2 text-xs text-muted-foreground">
             Inputs/modifications are auto saved as you edit
           </div>
           <TaskDetails
@@ -153,7 +153,7 @@ export default function TaskModal({
           {/* Checklist Section */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Checklist
               </h3>
 
@@ -181,13 +181,13 @@ export default function TaskModal({
           {/* Sessions Section */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Sessions
               </h3>
 
               <button
                 onClick={() => setSessionsOpen((v) => !v)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-muted-foreground hover:opacity-80"
               >
                 {sessionsOpen ? (
                   <FiChevronUp size={16} />
@@ -201,8 +201,8 @@ export default function TaskModal({
           </div>
 
           {/* Danger Zone */}
-          <div className="rounded-md border border-rose-200 bg-rose-50 p-3">
-            <p className="text-xs text-rose-700">
+          <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3">
+            <p className="text-xs text-rose-500">
               Deleting this task will permanently remove all sessions and
               checklist items.
             </p>

@@ -99,13 +99,13 @@ export default function AddTaskModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card text-card-foreground flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Add New Task</h2>
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold">Add New Task</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-muted-foreground hover:opacity-80"
           >
             ✕
           </button>
@@ -115,7 +115,7 @@ export default function AddTaskModal({
         <div className="overflow-y-auto px-5 py-5 space-y-6">
           {/* Task Name */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Task Name
             </label>
             <input
@@ -124,13 +124,13 @@ export default function AddTaskModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter task title..."
               maxLength={128}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           {/* Estimated */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Estimated Time (hours)
             </label>
             <input
@@ -140,24 +140,24 @@ export default function AddTaskModal({
               value={estimatedHours}
               onChange={(e) => setEstimatedHours(e.target.value)}
               placeholder="e.g. 4"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           {/* Sprint (when modal is opened with a sprintId we hide the dropdown) */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Assign to Sprint
             </label>
             {sprintId ? (
-              <div className="mt-2 text-sm text-slate-700">
+              <div className="mt-2 text-sm text-foreground">
                 {sprintsById[selectedSprintId]?.name ?? "Sprint"}
               </div>
             ) : (
               <select
                 value={selectedSprintId}
                 onChange={(e) => setSelectedSprintId(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm bg-background text-foreground focus:border-indigo-500 focus:outline-none"
               >
                 {sprints.map((sp) => (
                   <option key={sp.id} value={sp.id}>
@@ -170,7 +170,7 @@ export default function AddTaskModal({
 
           {/* Checklist */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               Checklist (Optional)
             </label>
 
@@ -179,10 +179,10 @@ export default function AddTaskModal({
               value={checklistText}
               onChange={(e) => setChecklistText(e.target.value)}
               placeholder={`Define sprint scope\nReview API structure`}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             />
 
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               Add one checklist item per line
             </p>
           </div>
@@ -196,10 +196,10 @@ export default function AddTaskModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
           <button
             onClick={onClose}
-            className="rounded-md bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+            className="rounded-md bg-muted px-4 py-2 text-sm font-semibold text-foreground hover:opacity-90"
           >
             Cancel
           </button>

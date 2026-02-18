@@ -264,20 +264,20 @@ export default function SemiMiniTaskCard({
       onClick={() => setShowModal(true)}
       role="button"
       tabIndex={0}
-      className={`rounded-lg border border-slate-200 ${borderClass} border-l-4 bg-white px-4 ${compact ? "py-2" : "py-2"} cursor-pointer`}
+      className={`rounded-lg border border-border ${borderClass} border-l-4 bg-card text-card-foreground px-4 ${compact ? "py-2" : "py-2"} cursor-pointer`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-slate-900 truncate">
+          <h3 className="text-sm font-semibold truncate">
             {(task as any).name || (task as any).title}
           </h3>
-          <p className="mt-0.5 text-[11px] text-slate-500">
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             {epic?.name || (task as any).epicName || ""}
             {sprint || task.sprintId
               ? ` · ${sprint?.sprintLabel || sprint?.name || (task as any).sprintName || ""}`
               : ""}
           </p>
-          <div className="mt-1 flex items-center gap-4 text-[11px] text-slate-500">
+          <div className="mt-1 flex items-center gap-4 text-[11px] text-muted-foreground">
             <span>
               {Math.floor(meta.used / 60)}m /{" "}
               {Math.round((meta.est ?? 0) / 3600)}h

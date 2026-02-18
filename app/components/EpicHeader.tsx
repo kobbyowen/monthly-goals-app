@@ -32,29 +32,29 @@ export default function EpicHeader({ epicId }: { epicId: string }) {
   return (
     <>
       <div className="max-w-6xl mx-0 p-0 md:p-4 mb-8 md:mb-4">
-        <section className="bg-transparent rounded-none p-0 md:p-6 space-y-4 md:pb-0 md:space-y-6 border-b border-slate-200">
+        <section className="bg-transparent rounded-none p-0 md:p-6 space-y-4 md:pb-0 md:space-y-6 border-b border-border">
           <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
             {/* Left */}
             <div className="space-y-2 text-center md:text-left">
-              <h1 className="text-2xl font-semibold text-gray-900">
+              <h1 className="text-2xl font-semibold text-foreground">
                 {epic?.name}
               </h1>
 
-              <p className="text-sm text-gray-500 max-w-xl">
+              <p className="text-sm text-muted-foreground max-w-xl">
                 {epic?.description ?? ""}
               </p>
             </div>
 
             {/* Right Stats */}
-            <div className="flex items-center gap-8 md:gap-6 text-sm text-gray-600 w-full md:w-auto justify-center md:justify-end">
+            <div className="flex items-center gap-8 md:gap-6 text-sm text-muted-foreground w-full md:w-auto justify-center md:justify-end">
               <div className="text-center">
-                <p className="font-semibold text-gray-900">{sprintCount}</p>
-                <p className="text-xs text-gray-400">Sprints</p>
+                <p className="font-semibold text-foreground">{sprintCount}</p>
+                <p className="text-xs text-muted-foreground">Sprints</p>
               </div>
 
               <div className="text-center">
-                <p className="font-semibold text-gray-900">{taskCount}</p>
-                <p className="text-xs text-gray-400">Tasks</p>
+                <p className="font-semibold text-foreground">{taskCount}</p>
+                <p className="text-xs text-muted-foreground">Tasks</p>
               </div>
 
               <div className="text-center">
@@ -63,7 +63,7 @@ export default function EpicHeader({ epicId }: { epicId: string }) {
                 >
                   {pct}%
                 </p>
-                <p className="text-xs text-gray-400">Progress</p>
+                <p className="text-xs text-muted-foreground">Progress</p>
               </div>
 
               <button

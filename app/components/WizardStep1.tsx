@@ -131,7 +131,7 @@ export default function WizardStep1({
   return (
     <div className="px-2 py-2 space-y-6">
       {/* Capacity Summary */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs space-y-1">
+      <div className="rounded-lg border border-border bg-muted p-4 text-xs space-y-1">
         <p className="text-xs">
           Total hours in month:
           <span className="ml-1 font-semibold">{totalMonthHours}h</span>
@@ -158,7 +158,7 @@ export default function WizardStep1({
           </span>
         </p>
 
-        <p className="pt-1 text-[11px] text-slate-500">
+        <p className="pt-1 text-[11px] text-muted-foreground">
           {includeWeekends
             ? "Weekends are included in your available hours."
             : "Weekends are excluded from total available time."}
@@ -166,18 +166,18 @@ export default function WizardStep1({
       </div>
 
       {/* Weekly Commitment */}
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-center gap-2 text-sm text-foreground">
         <input
           type="checkbox"
           checked={includeWeekends}
           onChange={(e) => onChange({ includeWeekends: e.target.checked })}
-          className="h-4 w-4 rounded border-slate-300 text-emerald-600"
+          className="h-4 w-4 rounded border-border text-emerald-600"
         />
         Include Saturdays & Sundays
       </label>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
           Hours you will dedicate per week
         </label>
         <input
@@ -189,7 +189,7 @@ export default function WizardStep1({
             onChange({ weeklyCommitment: v === "" ? undefined : Number(v) });
           }}
           placeholder="e.g. 20"
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none"
         />
       </div>
 
@@ -197,7 +197,7 @@ export default function WizardStep1({
 
       {/* Progress */}
       <div>
-        <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Monthly commitment (based on selected month)</span>
           <span>
             {monthlyCommitment}h / {totalMonthHours}h
@@ -205,7 +205,7 @@ export default function WizardStep1({
         </div>
 
         {/* Progress Bar */}
-        <div className="mt-2 h-5 w-full rounded-full bg-slate-200 relative overflow-visible">
+        <div className="mt-2 h-5 w-full rounded-full bg-muted relative overflow-visible">
           <div className="flex h-full rounded-full overflow-hidden">
             <div
               className="h-full bg-emerald-500"
@@ -227,14 +227,14 @@ export default function WizardStep1({
               style={{ left: `${commitmentPercent}%` }}
               className="absolute -top-6 -translate-x-1/2 z-10 pointer-events-none"
             >
-              <div className="h-6 w-10 rounded-full bg-white border border-slate-300 shadow-md flex items-center justify-center text-[11px] font-semibold text-slate-700">
+              <div className="h-6 w-10 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-[11px] font-semibold text-foreground">
                 {Math.round(commitmentPercent)}%
               </div>
             </div>
           )}
         </div>
 
-        <div className="mt-2 text-[11px] text-slate-500">
+        <div className="mt-2 text-[11px] text-muted-foreground">
           {monthlyCommitment <= recommendedSafeCommitment ? (
             <>
               Current commitment sits inside the
@@ -253,7 +253,7 @@ export default function WizardStep1({
           )}
         </div>
 
-        <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-slate-500">
+        <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-emerald-500" /> Safe
           </span>

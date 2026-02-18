@@ -202,52 +202,54 @@ export default function WizardStep3({ data }: Props) {
   return (
     <div className="space-y-6 px-4 py-4">
       {/* Monthly Overview */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="rounded-lg border border-border bg-muted p-4 text-sm">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Monthly Overview
         </h3>
 
         <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-slate-500">Month</p>
-            <p className="font-semibold text-slate-900">{monthKey || "—"}</p>
+            <p className="text-muted-foreground">Month</p>
+            <p className="font-semibold text-foreground">{monthKey || "—"}</p>
           </div>
 
           <div>
-            <p className="text-slate-500">Weekends</p>
-            <p className="font-semibold text-slate-900">
+            <p className="text-muted-foreground">Weekends</p>
+            <p className="font-semibold text-foreground">
               {includeWeekends ? "Included" : "Excluded"}
             </p>
           </div>
 
           <div>
-            <p className="text-slate-500">Weekly Commitment</p>
-            <p className="font-semibold text-slate-900">
+            <p className="text-muted-foreground">Weekly Commitment</p>
+            <p className="font-semibold text-foreground">
               {weeklyCommitment}h / week
             </p>
           </div>
 
           <div>
-            <p className="text-slate-500">Monthly commitment</p>
-            <p className="font-semibold text-slate-900">{monthlyCommitment}h</p>
+            <p className="text-muted-foreground">Monthly commitment</p>
+            <p className="font-semibold text-foreground">
+              {monthlyCommitment}h
+            </p>
           </div>
         </div>
       </div>
 
       {/* Capacity Summary */}
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Capacity Usage
         </h3>
 
-        <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <span>Commitment vs available hours</span>
           <span>
             {monthlyCommitment}h / {totalHours}h
           </span>
         </div>
 
-        <div className="mt-2 h-3 w-full rounded-full overflow-hidden bg-slate-200 flex">
+        <div className="mt-2 h-3 w-full rounded-full overflow-hidden bg-muted flex">
           <div
             className="h-full bg-emerald-500"
             style={{ width: `${greenW}%` }}
@@ -259,7 +261,7 @@ export default function WizardStep3({ data }: Props) {
           <div className="h-full bg-rose-500" style={{ width: `${redW}%` }} />
         </div>
 
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           {percent <= 33
             ? "Your plan is within a healthy commitment range."
             : percent <= 67
@@ -271,24 +273,24 @@ export default function WizardStep3({ data }: Props) {
       {/* Goals Summary */}
       <div>
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Goals
           </h3>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-muted-foreground">
             {goals.length} goal{goals.length === 1 ? "" : "s"}
           </div>
         </div>
         <div className="mt-2 space-y-2">
           {goals.length === 0 && (
-            <div className="text-xs text-slate-500">No goals added.</div>
+            <div className="text-xs text-muted-foreground">No goals added.</div>
           )}
           {goals.map((g: any) => (
             <div
               key={g.id}
-              className="rounded-md border border-slate-200 px-3 py-2 text-sm flex items-center justify-between"
+              className="rounded-md border border-border px-3 py-2 text-sm flex items-center justify-between"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <p className="font-medium text-slate-900 truncate">{g.name}</p>
+                <p className="font-medium text-foreground truncate">{g.name}</p>
                 {/* priority badge */}
                 <span
                   className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -302,7 +304,7 @@ export default function WizardStep3({ data }: Props) {
                   {(g.priority || "").toLowerCase()}
                 </span>
               </div>
-              <p className="text-sm font-semibold text-slate-800 ml-4 whitespace-nowrap">
+              <p className="text-sm font-semibold text-foreground ml-4 whitespace-nowrap">
                 {g.effortType === "monthly"
                   ? `${g.hours}h / month`
                   : `${g.weekly}h / week`}
@@ -315,19 +317,19 @@ export default function WizardStep3({ data }: Props) {
       {/* Auto-generated preview */}
       {previewWeeks.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Epic Overview
           </h3>
-          <div className="mt-2 rounded-md border border-slate-200 px-3 py-3 text-sm bg-white">
+          <div className="mt-2 rounded-md border border-border px-3 py-3 text-sm bg-card text-card-foreground">
             <div className="text-sm font-semibold text-emerald-600">
               {data.epicName || monthKey || "—"}
             </div>
             {data.epicDescription && (
-              <div className="mt-1 text-xs text-slate-500 italic">
+              <div className="mt-1 text-xs text-muted-foreground italic">
                 {data.epicDescription}
               </div>
             )}
-            <div className="mt-3 text-xs text-slate-600 space-y-2">
+            <div className="mt-3 text-xs text-muted-foreground space-y-2">
               {(() => {
                 const fmt = (d: Date) =>
                   d.toLocaleDateString(undefined, {
@@ -357,8 +359,8 @@ export default function WizardStep3({ data }: Props) {
                         key={`g_${i}`}
                         className={`flex items-center justify-between ${isPast ? "opacity-60 italic" : ""}`}
                       >
-                        <div className="text-slate-700">{sp.name}</div>
-                        <div className="text-slate-600">{`${fmt(w.start)} — ${fmt(w.end)} · ${sp.hours}h ${isPast ? "· past" : ""}`}</div>
+                        <div className="text-card-foreground">{sp.name}</div>
+                        <div className="text-muted-foreground">{`${fmt(w.start)} — ${fmt(w.end)} · ${sp.hours}h ${isPast ? "· past" : ""}`}</div>
                       </div>,
                     );
                   } else {
@@ -367,9 +369,9 @@ export default function WizardStep3({ data }: Props) {
                         key={`s_${i}`}
                         className="flex items-center justify-between"
                       >
-                        <div className="text-slate-400 italic">
+                        <div className="text-muted-foreground italic">
                           Week {weekNum} Sprint
-                          <span className="ml-2 text-xs text-slate-400">
+                          <span className="ml-2 text-xs text-muted-foreground">
                             (skipped for insufficient days -{" "}
                             {includeWeekends ? `${totalDays}` : `${workDays}`}{" "}
                             day
@@ -379,7 +381,7 @@ export default function WizardStep3({ data }: Props) {
                             )
                           </span>
                         </div>
-                        <div className="text-slate-400">{""}</div>
+                        <div className="text-muted-foreground">{""}</div>
                       </div>,
                     );
                   }
