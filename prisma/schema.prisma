@@ -28,6 +28,7 @@ model Sprint {
   plannedTime        Int      @default(0)
   actualTimeSpent    Int      @default(0)
   tasks              Task[]
+  todoTasks          TodoTask[]
   @@map("sprints")
 }
 
@@ -45,6 +46,7 @@ model Task {
   sprint            Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
   sessions          Session[]
   checklists        TaskChecklist[]
+  todoTasks         TodoTask[]
   @@map("tasks")
 }
 
@@ -92,4 +94,28 @@ model TaskChecklist {
   task        Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@map("task_checklists")
+}
+
+model TodoTask {
+  id                      String   @id @default(uuid())
+  sprintId                String   @map("sprint_id")
+  taskId                  String?  @map("task_id")
+  title                   String
+  dueDate                 String   @map("due_date")
+  plannedHours            Float    @default(0) @map("planned_hours")
+  usedSeconds             Int      @default(0) @map("used_seconds")
+  startedAt               String?  @map("started_at")
+  currentSessionStartedAt String?  @map("current_session_started_at")
+  status                  String   @default("todo")
+  completed               Boolean  @default(false)
+  completedAt             String?  @map("completed_at")
+  priority                String   @default("medium")
+  sortOrder               Int      @default(0) @map("sort_order")
+  createdAt               String?  @map("created_at")
+  updatedAt               String?  @map("updated_at")
+
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  task   Task?  @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@map("todo_tasks")
 }
