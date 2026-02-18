@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         // Map tasks into algorithm shape
         const shaped = tasks.map((t: any) => ({
             id: t.id,
-            name: t.name,
+            title: t.title || t.name || `Task ${t.id}`,
             // interpret plannedTime as hours (fallback 0) -> convert to seconds
             total_time_needed_seconds: (Number(t.plannedTime) || 0) * 3600,
             // use timeActuallySpent if present (assumed seconds), fallback to timeSpent
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         const created = [];
         for (const a of allocations) {
             // create a todo per allocation
-            const title = `Work on ${a.id}`;
+            const title = a.title || `Work on ${a.id}`;
             const plannedHours = (a.time_allocated_seconds || 0) / 3600;
             const dueDate = new Date().toISOString().slice(0, 10); // today
 

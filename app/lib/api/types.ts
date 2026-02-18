@@ -40,6 +40,7 @@ export interface Task {
     position?: number | null;
     checklists?: Checklist[];
     sessions?: Session[];
+    todos?: Todo[];
     completed?: boolean;
     createdAt: string;
     updatedAt: string;
@@ -59,6 +60,23 @@ export interface Sprint {
     tasks?: Task[];
     createdAt: string;
     updatedAt: string;
+}
+
+export interface Todo {
+    id: ID;
+    sprintId: ID;
+    taskId?: ID | null;
+    title: string;
+    dueDate: string;
+    plannedHours?: number | null;
+    usedSeconds?: number | null;
+    status?: string | null;
+    completed?: boolean;
+    completedAt?: string | null;
+    priority?: string | null;
+    sortOrder?: number | null;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Epic {
