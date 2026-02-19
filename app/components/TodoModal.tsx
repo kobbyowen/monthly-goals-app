@@ -25,6 +25,9 @@ export default function TodoModal({
 
   const updateTodoStore = useRootEpicStore((s) => s.updateTodo);
   const updateChecklistStore = useRootEpicStore((s) => s.updateChecklist);
+  const storeChecklists = todo.taskId
+    ? useRootEpicStore((s) => s.getChecklistsByTask(todo.taskId as string))
+    : [];
 
   const titleTimer = useRef<number | null>(null);
   const hoursTimer = useRef<number | null>(null);
@@ -69,6 +72,15 @@ export default function TodoModal({
     };
   }, [plannedHours, todo.id, updateTodoStore]);
 
+  // close on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   async function handleChecklistToggle(checklistId: string, done: boolean) {
     try {
       const resp = await apiUpdateChecklist(checklistId, { done });
@@ -88,6 +100,13 @@ export default function TodoModal({
       <div className="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-sm font-semibold">Edit Todo</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-muted-foreground hover:text-card-foreground"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="space-y-5 px-5 py-5">
@@ -134,11 +153,17 @@ export default function TodoModal({
               Goals Checklist
             </h3>
             <div className="space-y-2">
-              {(checklists || []).length > 0 ? (
-                checklists.map((c) => (
+              {(storeChecklists && storeChecklists.length > 0
+                ? storeChecklists
+                : checklists || []
+              ).length > 0 ? (
+                (storeChecklists && storeChecklists.length > 0
+                  ? storeChecklists
+                  : checklists || []
+                ).map((c) => (
                   <label
                     key={c.id}
-                    className="flex items-center gap-2 text-sm text-slate-700"
+                    className="flex items-center gap-2 text-sm text-card-foreground"
                   >
                     <input
                       type="checkbox"

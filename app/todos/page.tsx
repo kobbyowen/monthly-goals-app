@@ -5,6 +5,10 @@ import Sidebar from "../components/Sidebar";
 import TodoItemsList from "../components/TodoItemsList";
 import TodoEmptyDay from "../components/TodoEmptyDay";
 import GenerateTodosModal from "../components/GenerateTodosModal";
+import dynamic from "next/dynamic";
+const AddNewTodoModal = dynamic(() => import("../components/AddNewTodoModal"), {
+  ssr: false,
+});
 import useRootEpicStore from "@stores/rootEpicStore";
 import { useShallow } from "zustand/shallow";
 import { getEpics } from "@lib/api";
@@ -44,6 +48,7 @@ export default function Page() {
   }, [mounted, todos]);
 
   const [openGenerate, setOpenGenerate] = useState(false);
+  const [openAddTodo, setOpenAddTodo] = useState(false);
 
   const todayLabel = new Date().toLocaleDateString(undefined, {
     month: "short",
@@ -53,17 +58,23 @@ export default function Page() {
 
   if (!mounted) return null;
   return (
-    <div className="min-h-screen flex bg-slate-100 dark:bg-[#050505]">
+    <div className="min-h-screen flex bg-white dark:bg-[#050505]">
       <Sidebar sprints={epics as Epic[]} />
 
       <main className="flex-1 h-screen overflow-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-4xl">
           <div className="mb-4 pb-3 border-b border-border flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold truncate">Todo</h1>
+              <h1 className="text-lg font-semibold truncate">My Day</h1>
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setOpenAddTodo(true)}
+                className="rounded-md bg-emerald-600 px-3 py-1 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Add New Todo
+              </button>
               <input
                 aria-label="Search todos"
                 value={query}
@@ -161,6 +172,11 @@ export default function Page() {
               onClose={() => setOpenGenerate(false)}
               onCreated={() => {}}
             />
+            {openAddTodo ? (
+              // lazy load modal component
+              //@ts-ignore
+              <AddNewTodoModal onClose={() => setOpenAddTodo(false)} />
+            ) : null}
           </div>
         </div>
       </main>
