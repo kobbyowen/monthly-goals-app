@@ -61,6 +61,23 @@ export interface ChecklistItem {
     updatedAt?: string;
 }
 
+export interface Todo {
+    id: ID;
+    sprintId?: ID | null;
+    taskId?: ID | null;
+    title: string;
+    dueDate?: string | null;
+    plannedHours?: number | null;
+    usedSeconds?: number | null;
+    status?: string | null;
+    completed?: boolean;
+    completedAt?: string | null;
+    priority?: string | null;
+    sortOrder?: number | null;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface DashboardMetrics {
     totalEpics: number;
     totalSprints: number;

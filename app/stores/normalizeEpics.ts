@@ -7,6 +7,7 @@ type Normalized = {
     tasks: Task[];
     sessions: Session[];
     checklists: ChecklistItem[];
+    todos?: any[];
 };
 
 export function normalizeApiEpics(apiEpics: ApiEpic[]): Normalized {
@@ -15,6 +16,7 @@ export function normalizeApiEpics(apiEpics: ApiEpic[]): Normalized {
     const tasks: Task[] = [];
     const sessions: Session[] = [];
     const checklists: ChecklistItem[] = [];
+    const todos: any[] = [];
 
     for (const aEpic of apiEpics) {
         const epicSprintIds: ID[] = [];
@@ -56,6 +58,28 @@ export function normalizeApiEpics(apiEpics: ApiEpic[]): Normalized {
                             position: c.position ?? undefined,
                             createdAt: c.createdAt ?? undefined,
                             updatedAt: c.updatedAt ?? undefined,
+                        });
+                    }
+                }
+
+                // normalize todoTasks attached directly to task
+                if (Array.isArray((t as any).todoTasks)) {
+                    for (const td of (t as any).todoTasks) {
+                        todos.push({
+                            id: td.id,
+                            sprintId: td.sprintId ?? null,
+                            taskId: td.taskId ?? taskId,
+                            title: td.title,
+                            dueDate: td.dueDate ?? undefined,
+                            plannedHours: td.plannedHours ?? td.plannedTime ?? undefined,
+                            usedSeconds: td.usedSeconds ?? undefined,
+                            status: td.status ?? undefined,
+                            completed: td.completed ?? false,
+                            completedAt: td.completedAt ?? undefined,
+                            priority: td.priority ?? undefined,
+                            sortOrder: td.sortOrder ?? undefined,
+                            createdAt: td.createdAt ?? undefined,
+                            updatedAt: td.updatedAt ?? undefined,
                         });
                     }
                 }
@@ -135,9 +159,29 @@ export function normalizeApiEpics(apiEpics: ApiEpic[]): Normalized {
                             createdAt: t.createdAt ?? undefined,
                             updatedAt: t.updatedAt ?? undefined,
                         });
+                        // normalize todoTasks within sprint->task
+                        if (Array.isArray((t as any).todoTasks)) {
+                            for (const td of (t as any).todoTasks) {
+                                todos.push({
+                                    id: td.id,
+                                    sprintId: td.sprintId ?? s.id,
+                                    taskId: td.taskId ?? t.id,
+                                    title: td.title,
+                                    dueDate: td.dueDate ?? undefined,
+                                    plannedHours: td.plannedHours ?? td.plannedTime ?? undefined,
+                                    usedSeconds: td.usedSeconds ?? undefined,
+                                    status: td.status ?? undefined,
+                                    completed: td.completed ?? false,
+                                    completedAt: td.completedAt ?? undefined,
+                                    priority: td.priority ?? undefined,
+                                    sortOrder: td.sortOrder ?? undefined,
+                                    createdAt: td.createdAt ?? undefined,
+                                    updatedAt: td.updatedAt ?? undefined,
+                                });
+                            }
+                        }
                     }
                 }
-
                 // determine weekOfMonth (preserve if provided, otherwise try to parse from name)
                 let weekOfMonth: number | undefined = undefined;
                 if (typeof (s as any).weekOfMonth === 'number') {
@@ -166,6 +210,28 @@ export function normalizeApiEpics(apiEpics: ApiEpic[]): Normalized {
                     createdAt: s.createdAt ?? undefined,
                     updatedAt: s.updatedAt ?? undefined,
                 });
+
+                // also normalize any todoTasks attached directly to sprint
+                if (Array.isArray((s as any).todoTasks)) {
+                    for (const td of (s as any).todoTasks) {
+                        todos.push({
+                            id: td.id,
+                            sprintId: td.sprintId ?? s.id,
+                            taskId: td.taskId ?? null,
+                            title: td.title,
+                            dueDate: td.dueDate ?? undefined,
+                            plannedHours: td.plannedHours ?? td.plannedTime ?? undefined,
+                            usedSeconds: td.usedSeconds ?? undefined,
+                            status: td.status ?? undefined,
+                            completed: td.completed ?? false,
+                            completedAt: td.completedAt ?? undefined,
+                            priority: td.priority ?? undefined,
+                            sortOrder: td.sortOrder ?? undefined,
+                            createdAt: td.createdAt ?? undefined,
+                            updatedAt: td.updatedAt ?? undefined,
+                        });
+                    }
+                }
             }
         }
 
@@ -183,7 +249,7 @@ export function normalizeApiEpics(apiEpics: ApiEpic[]): Normalized {
         });
     }
 
-    return { epics, sprints, tasks, sessions, checklists };
+    return { epics, sprints, tasks, sessions, checklists, todos };
 }
 
 export default normalizeApiEpics;

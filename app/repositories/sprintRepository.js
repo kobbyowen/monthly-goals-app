@@ -57,10 +57,16 @@ async function createSprint(payload) {
           sn && typeof sn === "object" ? sn.end || sn.endAt : undefined;
         let finalChildId = childId;
         if (providedId) {
-          const existingChild = await prisma.sprint.findUnique({ where: { id: providedId } });
+          const existingChild = await prisma.sprint.findUnique({
+            where: { id: providedId },
+          });
           if (existingChild) {
             // If same owner (or no owner set), allow overwrite by deleting first
-            if (!s.userId || !existingChild.userId || existingChild.userId === s.userId) {
+            if (
+              !s.userId ||
+              !existingChild.userId ||
+              existingChild.userId === s.userId
+            ) {
               await prisma.sprint.delete({ where: { id: providedId } });
             } else {
               // Conflict with another user's sprint id: generate a new id to avoid unique constraint
@@ -95,7 +101,10 @@ async function listSprints(userId, kind) {
   if (kind) where.kind = kind;
   return prisma.sprint.findMany({
     where,
-    include: { tasks: { include: { sessions: true, checklists: true } } },
+    include: {
+      tasks: { include: { sessions: true, checklists: true, todoTasks: true } },
+      todoTasks: true,
+    },
   });
 }
 
@@ -103,14 +112,22 @@ async function getSprint(id, userId) {
   const where = userId ? { id, userId } : { id };
   const sprint = await prisma.sprint.findFirst({
     where,
-    include: { tasks: { include: { sessions: true, checklists: true } } },
+    include: {
+      tasks: { include: { sessions: true, checklists: true, todoTasks: true } },
+      todoTasks: true,
+    },
   });
   if (!sprint) return null;
   // If this row represents an epic, also load its child sprints (kind='sprint')
   if (sprint.kind === "epic") {
     const children = await prisma.sprint.findMany({
       where: { epicId: sprint.id },
-      include: { tasks: { include: { sessions: true, checklists: true } } },
+      include: {
+        tasks: {
+          include: { sessions: true, checklists: true, todoTasks: true },
+        },
+        todoTasks: true,
+      },
     });
     // compute aggregated metrics across epic + children
     const allTasks = [...(sprint.tasks || [])];

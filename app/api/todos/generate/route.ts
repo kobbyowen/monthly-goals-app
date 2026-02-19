@@ -30,18 +30,50 @@ function generateDailyTodos(tasks: any[], dailySeconds: number): any[] {
 
     scored.sort((a, b) => b.score - a.score);
 
-    const MAX_SINGLE = scored.length <= 2 ? dailySeconds : Math.floor(dailySeconds / 2);
-
-    let remainingDay = dailySeconds;
+    // Distribute dailySeconds across tasks proportionally to their score,
+    // but ensure every task gets at least an even minimum share so we don't
+    // assign the entire day to a single top-scored task.
     const todos: any[] = [];
+    let remainingDay = dailySeconds;
 
+    const totalScore = scored.reduce((s: number, t: any) => s + (t.score || 0), 0) || scored.length;
+    const minShare = Math.max(1, Math.floor(dailySeconds / scored.length));
+
+    // First pass: give each task a proportional (or minimum) share, capped by its remaining need
+    const allocations: Record<string, number> = {};
     for (const task of scored) {
         if (remainingDay <= 0) break;
-        const cap = Math.min(MAX_SINGLE, remainingDay);
-        const allocation = Math.min(task.remaining, cap);
-        if (allocation <= 0) continue;
-        todos.push({ id: task.id, priority: task.priority || "high", score: Number(task.score.toFixed(2)), time_allocated_seconds: allocation });
-        remainingDay -= allocation;
+        const proportion = Math.round((task.score / totalScore) * dailySeconds);
+        const desired = Math.max(minShare, proportion);
+        const alloc = Math.min(task.remaining, desired, remainingDay);
+        if (alloc <= 0) {
+            allocations[task.id] = 0;
+            continue;
+        }
+        allocations[task.id] = alloc;
+        remainingDay -= alloc;
+    }
+
+    // Second pass: if we still have time left, distribute one-second increments to tasks
+    // that can accept more, iterating in score order until we exhaust remainingDay.
+    if (remainingDay > 0) {
+        for (const task of scored) {
+            if (remainingDay <= 0) break;
+            const already = allocations[task.id] || 0;
+            const canTake = Math.max(0, task.remaining - already);
+            if (canTake <= 0) continue;
+            const give = Math.min(canTake, remainingDay);
+            allocations[task.id] = already + give;
+            remainingDay -= give;
+        }
+    }
+
+    // Build result preserving score and priority
+    for (const task of scored) {
+        const time_allocated_seconds = allocations[task.id] || 0;
+        if (time_allocated_seconds > 0) {
+            todos.push({ id: task.id, priority: task.priority || "high", score: Number((task.score || 0).toFixed(2)), time_allocated_seconds });
+        }
     }
 
     return todos;
@@ -84,7 +116,9 @@ export async function POST(req: NextRequest) {
         const created = [];
         for (const a of allocations) {
             // create a todo per allocation
-            const title = a.title || `Work on ${a.id}`;
+            // prefer the DB task's name/title when available
+            const taskRow = tasks.find((tt: any) => tt.id === a.id) || {};
+            const title = taskRow.title || taskRow.name || a.name || a.title || `Work on ${a.id}`;
             const plannedHours = (a.time_allocated_seconds || 0) / 3600;
             const dueDate = new Date().toISOString().slice(0, 10); // today
 

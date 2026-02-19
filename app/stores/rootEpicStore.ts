@@ -6,6 +6,7 @@ import {
     Task,
     Session,
     ChecklistItem,
+    Todo,
     DashboardMetrics,
     ID,
 } from './types';
@@ -34,6 +35,7 @@ export type RootEpicState = {
     tasks: EntityState<Task>;
     sessions: EntityState<Session>;
     checklists: EntityState<ChecklistItem>;
+    todos: EntityState<Todo>;
     dashboard: DashboardState;
     // internal version counter used to invalidate memoized selectors
     _version: number;
@@ -42,17 +44,21 @@ export type RootEpicState = {
     addTask: (t: Task) => void;
     addSession: (s: Session) => void;
     addChecklist: (c: ChecklistItem) => void;
+    addTodo: (t: Todo) => void;
+    addTodos: (arr: Todo[]) => void;
     addEpicsFromApi: (apiEpics: ApiEpic[]) => void;
     updateEpic: (id: ID, patch: Partial<Epic>) => void;
     updateSprint: (id: ID, patch: Partial<Sprint>) => void;
     updateTask: (id: ID, patch: Partial<Task>) => void;
     updateSession: (id: ID, patch: Partial<Session>) => void;
     updateChecklist: (id: ID, patch: Partial<ChecklistItem>) => void;
+    updateTodo: (id: ID, patch: Partial<Todo>) => void;
     removeEpic: (id: ID) => void;
     removeSprint: (id: ID) => void;
     removeTask: (id: ID) => void;
     removeSession: (id: ID) => void;
     removeChecklist: (id: ID) => void;
+    removeTodo: (id: ID) => void;
     resetAll: () => void;
     // memoized selectors
     getTasksBySprint: (sprintId: ID) => Task[];
@@ -60,6 +66,9 @@ export type RootEpicState = {
     getSessionsByTask: (taskId: ID) => Session[];
     getChecklistsByTask: (taskId: ID) => ChecklistItem[];
     getTasksByEpic: (epicId: ID) => Task[];
+    getTodosByTask: (taskId: ID) => Todo[];
+    getTodosBySprint: (sprintId: ID) => Todo[];
+    getTodosByEpic: (epicId: ID) => Todo[];
 };
 
 // helper factory to create an empty entity state
@@ -90,6 +99,9 @@ export const useRootEpicStore = create<RootEpicState>()(
         const sessionsByTaskCache: Map<ID, { version: number; result: Session[] }> = new Map();
         const checklistsByTaskCache: Map<ID, { version: number; result: ChecklistItem[] }> = new Map();
         const tasksByEpicCache: Map<ID, { version: number; result: Task[] }> = new Map();
+        const todosByTaskCache: Map<ID, { version: number; result: Todo[] }> = new Map();
+        const todosBySprintCache: Map<ID, { version: number; result: Todo[] }> = new Map();
+        const todosByEpicCache: Map<ID, { version: number; result: Todo[] }> = new Map();
 
         return {
             epics: {
@@ -148,6 +160,16 @@ export const useRootEpicStore = create<RootEpicState>()(
                 reset: () => set((st: RootEpicState) => ({ checklists: { ...st.checklists, byId: {}, allIds: [] }, _version: (st._version ?? 0) + 1 })),
             },
 
+            todos: {
+                byId: {},
+                allIds: [],
+                add: (t: Todo) => set((st: RootEpicState) => ({ todos: { ...st.todos, byId: { ...st.todos.byId, [t.id]: t }, allIds: st.todos.allIds.includes(t.id) ? st.todos.allIds : [...st.todos.allIds, t.id] }, _version: (st._version ?? 0) + 1 })),
+                addMany: (arr: Todo[]) => set((st: RootEpicState) => { const next: Record<ID, Todo> = { ...st.todos.byId }; const ids = new Set(st.todos.allIds); arr.forEach((it: Todo) => { next[it.id] = it; ids.add(it.id); }); return { todos: { ...st.todos, byId: next, allIds: Array.from(ids) }, _version: (st._version ?? 0) + 1 }; }),
+                update: (id: ID, patch: Partial<Todo>) => set((st: RootEpicState) => ({ todos: { ...st.todos, byId: { ...st.todos.byId, [id]: { ...st.todos.byId[id], ...patch } } }, _version: (st._version ?? 0) + 1 })),
+                remove: (id: ID) => set((st: RootEpicState) => { const next = { ...st.todos.byId }; delete next[id]; return { todos: { ...st.todos, byId: next, allIds: st.todos.allIds.filter((x: ID) => x !== id) }, _version: (st._version ?? 0) + 1 }; }),
+                reset: () => set((st: RootEpicState) => ({ todos: { ...st.todos, byId: {}, allIds: [] }, _version: (st._version ?? 0) + 1 })),
+            },
+
             dashboard,
 
             addEpic: (e: Epic) => get().epics.add(e),
@@ -155,6 +177,8 @@ export const useRootEpicStore = create<RootEpicState>()(
             addTask: (t: Task) => get().tasks.add(t),
             addSession: (s: Session) => get().sessions.add(s),
             addChecklist: (c: ChecklistItem) => get().checklists.add(c),
+            addTodo: (t: Todo) => get().todos.add(t),
+            addTodos: (arr: Todo[]) => get().todos.addMany(arr),
 
             addEpicsFromApi: (apiEpics: ApiEpic[]) => {
                 const normalized = normalizeApiEpics(apiEpics);
@@ -194,6 +218,11 @@ export const useRootEpicStore = create<RootEpicState>()(
                 get().tasks.addMany(cleanTasks as any);
                 get().sessions.addMany(cleanSessions as any);
                 get().checklists.addMany(cleanChecklists as any);
+                // if API returns todos in normalized payload, add them
+                if (Array.isArray((normalized as any).todos)) {
+                    const cleanTodos = dedupeById((normalized as any).todos || []);
+                    get().todos.addMany(cleanTodos as any);
+                }
             },
 
             updateEpic: (id: ID, patch: Partial<Epic>) => get().epics.update(id, patch),
@@ -201,12 +230,14 @@ export const useRootEpicStore = create<RootEpicState>()(
             updateTask: (id: ID, patch: Partial<Task>) => get().tasks.update(id, patch),
             updateSession: (id: ID, patch: Partial<Session>) => get().sessions.update(id, patch),
             updateChecklist: (id: ID, patch: Partial<ChecklistItem>) => get().checklists.update(id, patch),
+            updateTodo: (id: ID, patch: Partial<Todo>) => get().todos.update(id, patch),
 
             removeEpic: (id: ID) => get().epics.remove(id),
             removeSprint: (id: ID) => get().sprints.remove(id),
             removeTask: (id: ID) => get().tasks.remove(id),
             removeSession: (id: ID) => get().sessions.remove(id),
             removeChecklist: (id: ID) => get().checklists.remove(id),
+            removeTodo: (id: ID) => get().todos.remove(id),
 
             resetAll: () => {
                 get().epics.reset();
@@ -214,6 +245,7 @@ export const useRootEpicStore = create<RootEpicState>()(
                 get().tasks.reset();
                 get().sessions.reset();
                 get().checklists.reset();
+                get().todos.reset();
                 get().dashboard.reset();
             },
 
@@ -251,6 +283,52 @@ export const useRootEpicStore = create<RootEpicState>()(
                     .map((id) => st.sessions.byId[id])
                     .filter((s) => s && s.taskId === taskId);
                 sessionsByTaskCache.set(taskId, { version: ver, result });
+                return result;
+            },
+
+            getTodosByTask: (taskId: ID) => {
+                const st = get();
+                const ver = st._version ?? 0;
+                const cached = todosByTaskCache.get(taskId);
+                if (cached && cached.version === ver) return cached.result;
+                const result: Todo[] = st.todos.allIds
+                    .map((id) => st.todos.byId[id])
+                    .filter((t) => t && t.taskId === taskId)
+                    .sort((a, b) => (a.dueDate || "") > (b.dueDate || "") ? 1 : -1);
+                todosByTaskCache.set(taskId, { version: ver, result });
+                return result;
+            },
+
+            getTodosBySprint: (sprintId: ID) => {
+                const st = get();
+                const ver = st._version ?? 0;
+                const cached = todosBySprintCache.get(sprintId);
+                if (cached && cached.version === ver) return cached.result;
+                const result: Todo[] = st.todos.allIds
+                    .map((id) => st.todos.byId[id])
+                    .filter((t) => t && t.sprintId === sprintId)
+                    .sort((a, b) => (a.dueDate || "") > (b.dueDate || "") ? 1 : -1);
+                todosBySprintCache.set(sprintId, { version: ver, result });
+                return result;
+            },
+
+            getTodosByEpic: (epicId: ID) => {
+                const st = get();
+                const ver = st._version ?? 0;
+                const cached = todosByEpicCache.get(epicId);
+                if (cached && cached.version === ver) return cached.result;
+                // gather sprint ids for epic
+                const sprintIds = st.sprints.allIds.map((id) => st.sprints.byId[id]).filter(s => s && s.epicId === epicId).map(s => s.id);
+                const taskIds = new Set<ID>([
+                    ...st.tasks.allIds.map(id => st.tasks.byId[id]).filter(t => t && t.epicId === epicId).map(t => t.id),
+                    ...st.sprints.allIds.map(sid => st.sprints.byId[sid]).filter(s => s && s.epicId === epicId).flatMap(s => (s.taskIds || []) as ID[])
+                ]);
+
+                const result: Todo[] = st.todos.allIds
+                    .map((id) => st.todos.byId[id])
+                    .filter((t) => t && ((t.sprintId && sprintIds.includes(t.sprintId)) || (t.taskId && taskIds.has(t.taskId))))
+                    .sort((a, b) => (a.dueDate || "") > (b.dueDate || "") ? 1 : -1);
+                todosByEpicCache.set(epicId, { version: ver, result });
                 return result;
             },
 

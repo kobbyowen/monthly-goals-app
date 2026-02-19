@@ -64,6 +64,26 @@ function IconAnalytics() {
   );
 }
 
+function IconSun() {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M12 4V2M12 22v-2M4.93 4.93L3.51 3.51M20.49 20.49l-1.42-1.42M2 12H4M20 12h2M4.93 19.07l-1.42 1.42M20.49 3.51l-1.42 1.42"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="4" fill="currentColor" />
+    </svg>
+  );
+}
+
 function IconSprint() {
   return (
     <svg
@@ -263,6 +283,13 @@ export default function Sidebar({
         >
           <IconDashboard />
           <span>Dashboard</span>
+        </Link>
+        <Link
+          href={withBase("/todos")}
+          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/todos") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
+        >
+          <IconSun />
+          <span>My Todo</span>
         </Link>
         <Link
           href={withBase("/tasks")}

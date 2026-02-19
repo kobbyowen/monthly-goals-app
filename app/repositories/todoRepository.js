@@ -1,4 +1,5 @@
 import prisma from "@lib/prisma.js";
+const { randomUUID } = require("crypto");
 
 const VALID_STATUS = new Set(["todo", "running", "paused", "completed"]);
 
@@ -193,6 +194,7 @@ async function createTodo(data, userId) {
 
         const sess = await tx.session.create({
           data: {
+            id: randomUUID(),
             taskId: payload.taskId,
             startedAt: startedAt,
             endedAt: completedAt,
@@ -384,6 +386,7 @@ async function updateTodo(id, data, userId) {
 
         const sess = await tx.session.create({
           data: {
+            id: randomUUID(),
             taskId: existing.taskId,
             startedAt: startedAt,
             endedAt: completedAt,
