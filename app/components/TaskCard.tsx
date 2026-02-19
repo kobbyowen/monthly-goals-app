@@ -309,7 +309,7 @@ export default function TaskCard({ taskId }: { taskId: string }) {
     <>
       <div
         onClick={() => setOpen(true)}
-        className={`bg-card text-card-foreground rounded-md border border-border ${styles.border} p-4 shadow-sm cursor-pointer`}
+        className={`relative bg-card text-card-foreground rounded-md border border-border ${styles.border} p-4 shadow-sm cursor-pointer overflow-hidden`}
       >
         <div className="flex items-start justify-between gap-4">
           {/* Left */}
@@ -349,6 +349,23 @@ export default function TaskCard({ taskId }: { taskId: string }) {
             <div className="flex items-center gap-2">{renderActions()}</div>
           </div>
         </div>
+        {/* Progress bar + label */}
+        {plannedTimeSeconds && plannedTimeSeconds > 0 ? (
+          <>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-100 rounded-b-md overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${status === "completed" ? "bg-green-500" : "bg-yellow-500"}`}
+                style={{
+                  width: `${Math.min(100, Math.max(0, Math.round((elapsed / plannedTimeSeconds) * 100)))}%`,
+                  borderRadius: "2px",
+                }}
+              />
+            </div>
+            <div className="absolute -bottom-5 right-3 text-[11px] text-muted-foreground">
+              {formatEstimate(elapsed)} / {formatEstimate(plannedTimeSeconds)}
+            </div>
+          </>
+        ) : null}
       </div>
 
       {open && <TaskModal taskId={taskId} onClose={() => setOpen(false)} />}

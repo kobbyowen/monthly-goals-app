@@ -150,6 +150,7 @@ export default function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mobileMounted, setMobileMounted] = useState(open);
   const [showAddEpic, setShowAddEpic] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   useEffect(() => {
@@ -220,6 +221,16 @@ export default function Sidebar({
     return () => clearTimeout(timer);
   }, [now]);
 
+  // control mounting for mobile overlay so we can animate out
+  React.useEffect(() => {
+    if (open) {
+      setMobileMounted(true);
+      return;
+    }
+    const t = setTimeout(() => setMobileMounted(false), 220);
+    return () => clearTimeout(t);
+  }, [open]);
+
   const epicsWithMonth = (sprints || []).map((e: Epic) => {
     const y = typeof e.epicYear === "number" ? e.epicYear : undefined;
     const m = typeof e.epicMonth === "number" ? e.epicMonth : undefined;
@@ -269,122 +280,124 @@ export default function Sidebar({
           SA
         </div>
         <div>
-          <div className="text-sm font-semibold">Monthly Goals Planner</div>
-          <div className="text-xs text-gray-500">
+          <div className="text-sm font-medium">Monthly Goals Planner</div>
+          <div className="text-[11px] text-gray-500">
             Monthly epics & weekly sprints
           </div>
         </div>
       </div>
 
-      <nav className="mb-6">
+      <nav className="mb-4">
         <Link
           href={withBase("/")}
-          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname === "/" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
+          className={`flex items-center gap-2 w-full text-left px-2 py-2 rounded cursor-pointer text-xs ${pathname === "/" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconDashboard />
           <span>Dashboard</span>
         </Link>
         <Link
           href={withBase("/todos")}
-          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/todos") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
+          className={`flex items-center gap-2 w-full text-left px-2 py-2 rounded cursor-pointer text-xs ${pathname?.startsWith("/todos") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconSun />
           <span>My Todo</span>
         </Link>
         <Link
           href={withBase("/tasks")}
-          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/tasks") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
+          className={`flex items-center gap-2 w-full text-left px-2 py-2 rounded cursor-pointer text-xs ${pathname?.startsWith("/tasks") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconTasks />
           <span>All Tasks</span>
         </Link>
         <Link
           href={withBase("/analytics")}
-          className={`flex items-center gap-2 w-full text-left px-2 py-3 rounded cursor-pointer text-sm ${pathname?.startsWith("/analytics") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
+          className={`flex items-center gap-2 w-full text-left px-2 py-2 rounded cursor-pointer text-xs ${pathname?.startsWith("/analytics") ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-50 dark:hover:bg-gray-900"}`}
         >
           <IconAnalytics />
           <span>Analytics</span>
         </Link>
       </nav>
 
-      <div className="space-y-6">
-        <div>
-          <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
-            Current Epic
+      <div className="space-y-4">
+        <div className="overflow-y-auto max-h-[calc(100vh-220px)] pr-2">
+          <div>
+            <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
+              Current Epic
+            </div>
+            <div className="text-[10px] text-gray-400 mb-2">
+              for current month
+            </div>
+            <ul className="space-y-2">
+              {currentEpics.length ? (
+                currentEpics.map((ep) => (
+                  <li key={ep.id}>
+                    <EpicItem
+                      id={ep.id}
+                      name={ep.name}
+                      activeId={activeId}
+                      onSelect={onSelect}
+                      closeOnSelect={closeOnSelect}
+                      onClose={() => setOpen(false)}
+                    />
+                  </li>
+                ))
+              ) : (
+                <li className="text-xs text-gray-500">No current epics</li>
+              )}
+            </ul>
           </div>
-          <div className="text-[10px] text-gray-400 mb-2">
-            for current month
-          </div>
-          <ul className="space-y-3">
-            {currentEpics.length ? (
-              currentEpics.map((ep) => (
-                <li key={ep.id}>
-                  <EpicItem
-                    id={ep.id}
-                    name={ep.name}
-                    activeId={activeId}
-                    onSelect={onSelect}
-                    closeOnSelect={closeOnSelect}
-                    onClose={() => setOpen(false)}
-                  />
-                </li>
-              ))
-            ) : (
-              <li className="text-xs text-gray-500">No current epics</li>
-            )}
-          </ul>
-        </div>
 
-        <div>
-          <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
-            Past Epics
+          <div className="mt-4">
+            <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
+              Past Epics
+            </div>
+            <div className="text-[10px] text-gray-400 mb-2">For past month</div>
+            <ul className="space-y-2">
+              {pastEpics.length ? (
+                pastEpics.map((ep) => (
+                  <li key={ep.id}>
+                    <EpicItem
+                      id={ep.id}
+                      name={ep.name}
+                      activeId={activeId}
+                      onSelect={onSelect}
+                      closeOnSelect={closeOnSelect}
+                      onClose={() => setOpen(false)}
+                    />
+                  </li>
+                ))
+              ) : (
+                <li className="text-xs text-gray-500">No past epics</li>
+              )}
+            </ul>
           </div>
-          <div className="text-[10px] text-gray-400 mb-2">For past month</div>
-          <ul className="space-y-3">
-            {pastEpics.length ? (
-              pastEpics.map((ep) => (
-                <li key={ep.id}>
-                  <EpicItem
-                    id={ep.id}
-                    name={ep.name}
-                    activeId={activeId}
-                    onSelect={onSelect}
-                    closeOnSelect={closeOnSelect}
-                    onClose={() => setOpen(false)}
-                  />
-                </li>
-              ))
-            ) : (
-              <li className="text-xs text-gray-500">No past epics</li>
-            )}
-          </ul>
-        </div>
 
-        <div>
-          <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
-            Future Epics
+          <div className="mt-4">
+            <div className="text-xs font-semibold uppercase text-gray-400 mb-1">
+              Future Epics
+            </div>
+            <div className="text-[10px] text-gray-400 mb-2">
+              for future months
+            </div>
+            <ul className="space-y-2">
+              {futureEpicsList.length ? (
+                futureEpicsList.map((ep) => (
+                  <li key={ep.id}>
+                    <EpicItem
+                      id={ep.id}
+                      name={ep.name}
+                      activeId={activeId}
+                      onSelect={onSelect}
+                      closeOnSelect={closeOnSelect}
+                      onClose={() => setOpen(false)}
+                    />
+                  </li>
+                ))
+              ) : (
+                <li className="text-xs text-gray-500">No future epics</li>
+              )}
+            </ul>
           </div>
-          <div className="text-[10px] text-gray-400 mb-2">
-            for future months
-          </div>
-          <ul className="space-y-3">
-            {futureEpicsList.length ? (
-              futureEpicsList.map((ep) => (
-                <li key={ep.id}>
-                  <EpicItem
-                    id={ep.id}
-                    name={ep.name}
-                    activeId={activeId}
-                    onSelect={onSelect}
-                    closeOnSelect={closeOnSelect}
-                    onClose={() => setOpen(false)}
-                  />
-                </li>
-              ))
-            ) : (
-              <li className="text-xs text-gray-500">No future epics</li>
-            )}
-          </ul>
         </div>
 
         <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
@@ -451,50 +464,59 @@ export default function Sidebar({
       )}
       {/* Mobile / tablet slide-in sidebar */}
       {open && (
-        <aside className="lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between pt-5 h-screen">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-md bg-linear-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                SA
+        <div className="lg:hidden fixed inset-0 z-40">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setOpen(false)}
+          />
+          <aside
+            className="absolute inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#0b0b0b] dark:border-gray-800 border-r border-gray-100 p-4 shadow-xl flex flex-col justify-between pt-5 h-screen"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-md bg-linear-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                  SA
+                </div>
+                <div>
+                  <div className="text-sm font-semibold">Sprint App</div>
+                </div>
               </div>
+              <button
+                aria-label="close sidebar"
+                className="px-2 py-1"
+                onClick={() => setOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-hidden">{renderBody(true)}</div>
+
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold">Sprint App</div>
+                <div className="text-sm font-medium">
+                  {user?.name || "Signed in"}
+                </div>
+                <div className="text-xs text-gray-400">{user?.email || ""}</div>
               </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await logout();
+                  } catch {}
+                  authClear();
+                  useUserStore.getState().clearUser();
+                  router.push(withBase("/auth/login"));
+                  setOpen(false);
+                }}
+                className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
+              >
+                Logout
+              </button>
             </div>
-            <button
-              aria-label="close sidebar"
-              className="px-2 py-1"
-              onClick={() => setOpen(false)}
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-hidden">{renderBody(true)}</div>
-
-          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-600 flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">
-                {user?.name || "Signed in"}
-              </div>
-              <div className="text-xs text-gray-400">{user?.email || ""}</div>
-            </div>
-            <button
-              onClick={async () => {
-                try {
-                  await logout();
-                } catch {}
-                authClear();
-                useUserStore.getState().clearUser();
-                router.push(withBase("/auth/login"));
-                setOpen(false);
-              }}
-              className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-gray-50 whitespace-nowrap"
-            >
-              Logout
-            </button>
-          </div>
-        </aside>
+          </aside>
+        </div>
       )}
 
       {/* Mobile hamburger is provided by a separate MobileHeader component */}
