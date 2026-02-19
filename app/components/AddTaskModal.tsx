@@ -69,6 +69,7 @@ export default function AddTaskModal({
       const created = await createTask({
         sprintId: selectedSprintId,
         title: trimmed,
+        plannedTime: plannedSeconds,
       });
       const resolvedSprintId = created.sprintId ?? selectedSprintId;
       const resolvedEpicId =

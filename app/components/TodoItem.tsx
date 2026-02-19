@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import TodoModal from "./TodoModal";
 import type { Todo } from "@lib/api/types";
 import {
   updateTodo as apiUpdateTodo,
@@ -26,6 +27,7 @@ export default function TodoItem({
   ) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const completed = !!todo.completed;
 
   const updateTodoStore = useRootEpicStore((s) => s.updateTodo);
@@ -69,9 +71,6 @@ export default function TodoItem({
     onToggleChecklist?.(todoId, checklistId, done);
   }
 
-  const totalChecklist = (checklists || []).length;
-  const completedChecklist = (checklists || []).filter((c) => c.done).length;
-
   // lookup sprint and epic names from the store when available
   const sprint = useRootEpicStore((s) =>
     todo.sprintId ? s.sprints.byId[todo.sprintId] : undefined,
@@ -80,14 +79,22 @@ export default function TodoItem({
     const sp = todo.sprintId ? s.sprints.byId[todo.sprintId] : undefined;
     return sp && sp.epicId ? s.epics.byId[sp.epicId]?.name : undefined;
   });
+
+  // prefer checklist items from store (if taskId present), otherwise use prop
   const checklistItems = todo.taskId
     ? useRootEpicStore((s) => s.getChecklistsByTask(todo.taskId as string))
     : [];
-  const checklistCount = checklistItems?.length ?? totalChecklist;
+  const itemsToRender =
+    checklistItems && checklistItems.length > 0
+      ? checklistItems
+      : checklists || [];
+  const totalChecklist = itemsToRender.length;
+  const completedChecklist = itemsToRender.filter((c) => c.done).length;
+  const checklistCount = totalChecklist;
 
   return (
     <div
-      className={`rounded-lg border border-slate-200 bg-white px-4 py-3 ${completed ? "opacity-70" : ""}`}
+      className={`rounded-lg border border-border bg-card px-4 py-3 ${completed ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -95,31 +102,27 @@ export default function TodoItem({
             type="checkbox"
             checked={completed}
             onChange={(e) => handleToggleComplete(todo.id, e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            className="mt-1 h-4 w-4 rounded border-border text-emerald-600 bg-card focus:ring-emerald-500"
           />
 
           <div
             role="button"
             tabIndex={0}
-            onClick={() => setExpanded((s) => !s)}
+            onClick={() => setShowModal(true)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") setExpanded((s) => !s);
+              if (e.key === "Enter" || e.key === " ") setShowModal(true);
             }}
             className="flex-1 min-w-0 cursor-pointer"
           >
             <h3
-              className={`text-sm font-medium truncate ${completed ? "text-slate-400 line-through" : "text-slate-900"}`}
+              className={`text-sm font-medium truncate ${completed ? "text-muted-foreground line-through" : "text-card-foreground"}`}
             >
               {todo.title}
             </h3>
 
             {completed ? (
-              <p className="mt-0.5 text-[11px] text-slate-400">
-                Completed{todo.plannedHours ? ` · ${todo.plannedHours}h` : ""}
-              </p>
-            ) : (
               <>
-                <p className="mt-0.5 text-[11px] text-slate-500">
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {epicName ? (
                     <span className="truncate">{epicName}</span>
                   ) : null}
@@ -128,7 +131,23 @@ export default function TodoItem({
                   ) : null}
                 </p>
 
-                <div className="mt-1 flex items-center gap-4 text-[11px] text-slate-500">
+                <div className="mt-1 flex items-center gap-4 text-[11px] text-muted-foreground">
+                  {todo.plannedHours ? <span>{todo.plannedHours}h</span> : null}
+                  <span className="font-medium text-emerald-600">{`${completedChecklist} / ${checklistCount}`}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {epicName ? (
+                    <span className="truncate">{epicName}</span>
+                  ) : null}
+                  {sprint ? (
+                    <span className="ml-1"> · {sprint.name}</span>
+                  ) : null}
+                </p>
+
+                <div className="mt-1 flex items-center gap-4 text-[11px] text-muted-foreground">
                   {todo.plannedHours ? (
                     <span>{todo.plannedHours}h planned</span>
                   ) : null}
@@ -140,9 +159,11 @@ export default function TodoItem({
         </div>
 
         <button
-          onClick={() => handleDelete(todo.id)}
+          onClick={() => !completed && handleDelete(todo.id)}
           aria-label="Delete todo"
-          className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
+          aria-disabled={completed}
+          disabled={completed}
+          className={`rounded-md p-1.5 text-muted-foreground ${completed ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-rose-500"}`}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -182,35 +203,14 @@ export default function TodoItem({
         </button>
       </div>
 
-      {expanded && (
-        <div className="mt-3 border-t border-slate-100 pt-3 space-y-2 dark:border-gray-800">
-          {totalChecklist ? (
-            checklists.map((c) => (
-              <label
-                key={c.id}
-                className="flex items-center gap-2 text-sm text-card-foreground"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!c.done}
-                  onChange={(e) =>
-                    handleToggleChecklist(todo.id, c.id, e.target.checked)
-                  }
-                  className="h-4 w-4 rounded-full border-border text-emerald-600 bg-card"
-                />
-                <span
-                  className={`${c.done ? "line-through text-muted-foreground" : ""}`}
-                >
-                  {c.title}
-                </span>
-              </label>
-            ))
-          ) : (
-            <div className="text-sm text-slate-500 dark:text-slate-400">
-              No checklist items
-            </div>
-          )}
-        </div>
+      {showModal && (
+        <TodoModal
+          todo={todo}
+          checklists={itemsToRender}
+          epicName={epicName}
+          sprintName={sprint?.name}
+          onClose={() => setShowModal(false)}
+        />
       )}
     </div>
   );

@@ -412,6 +412,32 @@ async function updateTodo(id, data, userId) {
     });
   }
 
+  // If undoing a completed todo (marking completed=false) and previously it was completed,
+  // remove any session that was auto-created for this todo.
+  if (!willBeCompleted && previouslyCompleted && existing.taskId) {
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.todoTask.update({
+        where: { id },
+        data: payload,
+      });
+
+      try {
+        // Sessions created by the todo use a notes string 'Auto-created from todo <id>'
+        await tx.session.deleteMany({
+          where: { notes: `Auto-created from todo ${id}` },
+        });
+      } catch (e) {
+        // If deletion fails, rethrow to rollback transaction
+        throw e;
+      }
+
+      return tx.todoTask.findUnique({
+        where: { id: updated.id },
+        include: { task: true },
+      });
+    });
+  }
+
   return prisma.todoTask.update({
     where: { id },
     data: payload,
