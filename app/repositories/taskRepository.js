@@ -57,6 +57,7 @@ async function updateTask(id, data, userId) {
   const allowed = [
     "name",
     "category",
+    "recurring",
     "plannedTime",
     "timeSpent",
     "timeActuallySpent",

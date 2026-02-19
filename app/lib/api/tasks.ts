@@ -27,7 +27,12 @@ export async function createTask(payload: { sprintId?: string | null; title: str
 }
 
 export async function updateTask(id: string, payload: Partial<Task>): Promise<Task> {
-    return request<Task>({ path: `/tasks/${encodeURIComponent(id)}`, method: 'PATCH', body: payload });
+    const updated = await request<Task>({ path: `/tasks/${encodeURIComponent(id)}`, method: 'PATCH', body: payload });
+    // Ensure `recurring` is present in the returned object when the caller updated it.
+    if ((updated as any).recurring === undefined && (payload as any) && Object.prototype.hasOwnProperty.call(payload, 'recurring')) {
+        (updated as any).recurring = !!(payload as any).recurring;
+    }
+    return updated;
 }
 
 export async function deleteTask(id: string): Promise<{ success: boolean }> {

@@ -36,6 +36,7 @@ model Task {
   id                String   @id
   sprintId          String
   name              String
+  recurring         Boolean  @default(false)
   category          String?
   plannedTime       Int      @default(0)
   timeSpent         Int      @default(0)

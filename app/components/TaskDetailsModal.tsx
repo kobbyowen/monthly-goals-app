@@ -84,6 +84,18 @@ export default function TaskModal({
     }
   }
 
+  // Toggle recurring flag
+  async function handleToggleRecurring(newVal: boolean) {
+    if (!task) return;
+    try {
+      const updated = await apiUpdateTask(taskId, { recurring: newVal } as any);
+      storeUpdateTask(updated.id, updated);
+      if (onUpdated) onUpdated();
+    } catch (err) {
+      toast("Failed to save recurring flag", "error");
+    }
+  }
+
   if (!task) return null;
 
   const isRunning = !!sessions?.find((s) => !s.endedAt);
@@ -145,6 +157,8 @@ export default function TaskModal({
               task.plannedTime ? (task.plannedTime as number) / 3600 : undefined
             }
             onEstimatedHoursChange={handleEstimatedHoursChange}
+            recurring={!!task.recurring}
+            onToggleRecurring={handleToggleRecurring}
             checklistTotal={checklists.length}
             checklistCompleted={checklistCompleted}
             onRename={handleRenameTask}

@@ -18,6 +18,8 @@ type Props = {
    */
   estimatedHours?: number;
   onEstimatedHoursChange?: (hours: number | null | undefined) => void;
+  recurring?: boolean;
+  onToggleRecurring?: (v: boolean) => void;
 };
 
 function formatHMS(totalSeconds: number) {
@@ -37,6 +39,8 @@ export default function TaskDetails({
   checklistTotal,
   checklistCompleted,
   onRename,
+  recurring,
+  onToggleRecurring,
 }: Props) {
   const [value, setValue] = useState(name);
   const [hoursValue, setHoursValue] = useState<string>(
@@ -203,6 +207,24 @@ export default function TaskDetails({
           <span className="text-muted-foreground">Checklist</span>
           <div className="mt-1 text-emerald-600 font-medium">
             {checklistCompleted} / {checklistTotal} completed
+          </div>
+        </div>
+
+        {/* Recurring */}
+        <div>
+          <span className="text-muted-foreground">Recurring</span>
+          <div className="mt-1 flex items-center gap-3">
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={!!recurring}
+                onChange={(e) => onToggleRecurring?.(e.target.checked)}
+                className="rounded"
+              />
+            </label>
+            <span className="text-xs text-muted-foreground">
+              Recurring tasks create a daily todo.
+            </span>
           </div>
         </div>
       </div>

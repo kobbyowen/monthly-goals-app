@@ -170,11 +170,20 @@ export default function GenerateTodosModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-xl rounded-xl border border-border bg-card text-card-foreground flex flex-col max-h-[90vh] overflow-auto">
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="text-sm font-semibold">Generate Todos for Today</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create today’s tasks based on your sprint goals.
-          </p>
+        <div className="border-b border-border px-6 py-4 flex items-start justify-between">
+          <div>
+            <h2 className="text-sm font-semibold">Generate Todos for Today</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create today’s tasks based on your sprint goals.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:opacity-80 ml-4"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="space-y-6 px-6 py-6">
@@ -257,6 +266,9 @@ export default function GenerateTodosModal({
               All tasks are selected by default. Unselect any you don't want
               included.
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Recurring tasks create a daily todo.
+            </p>
 
             <div className="mt-3 space-y-2">
               <div className="max-h-64 overflow-auto pr-2 scrollbar-thin scrollbar-thumb-slate-400">
@@ -285,6 +297,11 @@ export default function GenerateTodosModal({
                         >
                           {t.name || t.title || t.name}
                         </span>
+                        {t.recurring ? (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px]">
+                            Recurring
+                          </span>
+                        ) : null}
                       </div>
                       <span className="text-xs text-muted-foreground">
                         {isCompleted ? "Completed" : t.priority || "High"}

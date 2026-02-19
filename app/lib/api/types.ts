@@ -29,6 +29,7 @@ export interface Task {
     // server canonical field is `title` but UI historically used `name`
     title: string;
     name?: string;
+    recurring?: boolean;
     description?: string | null;
     kind?: string | null;
     estimate?: number | null;

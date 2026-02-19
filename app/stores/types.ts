@@ -31,6 +31,7 @@ export interface Task {
     sprintId?: ID | null;
     epicId?: ID | null;
     name: string;
+    recurring: boolean;
     description?: string | null;
     completed?: boolean;
     plannedTime?: number | null;
