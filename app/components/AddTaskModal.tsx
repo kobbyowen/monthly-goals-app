@@ -32,6 +32,7 @@ export default function AddTaskModal({
   const [estimatedHours, setEstimatedHours] = useState("");
   const [selectedSprintId, setSelectedSprintId] = useState(sprintId);
   const [checklistText, setChecklistText] = useState("");
+  const [recurring, setRecurring] = useState(false);
 
   /* -------------------------
      Placeholder Utility
@@ -70,6 +71,7 @@ export default function AddTaskModal({
         sprintId: selectedSprintId,
         title: trimmed,
         plannedTime: plannedSeconds,
+        recurring,
       });
       const resolvedSprintId = created.sprintId ?? selectedSprintId;
       const resolvedEpicId =
@@ -188,11 +190,22 @@ export default function AddTaskModal({
             </p>
           </div>
 
-          {/* Info Box */}
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs text-slate-600">
-              Estimated time cannot be edited after creation.
-            </p>
+          {/* Recurring toggle */}
+          <div className="flex items-start gap-3">
+            <label className="inline-flex items-center mt-1">
+              <input
+                type="checkbox"
+                checked={recurring}
+                onChange={(e) => setRecurring(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-emerald-600 bg-card"
+              />
+            </label>
+            <div>
+              <div className="text-sm text-foreground">Recurring</div>
+              <div className="text-xs text-muted-foreground">
+                Recurring tasks create a daily todo.
+              </div>
+            </div>
           </div>
         </div>
 

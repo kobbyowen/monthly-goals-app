@@ -10,13 +10,15 @@ export async function getTask(id: string): Promise<Task> {
  * Create task. The server expects POST to `/sprints/:id/tasks`.
  * We generate a client id and normalize fields to match server expectations.
  */
-export async function createTask(payload: { sprintId?: string | null; title: string; description?: string | null; plannedTime?: number | null }): Promise<Task> {
+export async function createTask(payload: { sprintId?: string | null; title: string; description?: string | null; plannedTime?: number | null; recurring?: boolean }): Promise<Task> {
     const clientId = uuidv4();
     const body: any = {
         id: clientId,
         name: payload.title,
         plannedTime: typeof payload.plannedTime === 'number' ? payload.plannedTime : 0,
     };
+
+    if (typeof payload.recurring === 'boolean') body.recurring = !!payload.recurring;
 
     if (payload.sprintId) {
         return request<Task>({ path: `/sprints/${encodeURIComponent(payload.sprintId)}/tasks`, method: 'POST', body });

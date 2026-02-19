@@ -135,12 +135,12 @@ export default function MiniTaskCard({
 
   return (
     <div className="rounded-lg border border-border bg-muted p-2 text-foreground">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-foreground truncate">
+      <div className="flex items-center justify-between min-w-0">
+        <span className="text-xs font-medium text-foreground flex-1 min-w-0 overflow-hidden truncate whitespace-nowrap">
           {name}
         </span>
         {badge && (
-          <span className="rounded-full bg-card px-2 py-0.5 text-[10px] text-card-foreground">
+          <span className="rounded-full bg-card px-2 py-0.5 text-[10px] text-card-foreground flex-shrink-0 ml-2">
             {badge}
           </span>
         )}

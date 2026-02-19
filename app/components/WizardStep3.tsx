@@ -290,7 +290,9 @@ export default function WizardStep3({ data }: Props) {
               className="rounded-md border border-border px-3 py-2 text-sm flex items-center justify-between"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <p className="font-medium text-foreground truncate">{g.name}</p>
+                <p className="font-medium text-foreground flex-1 min-w-0 overflow-hidden truncate whitespace-nowrap">
+                  {g.name}
+                </p>
                 {/* priority badge */}
                 <span
                   className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -304,7 +306,7 @@ export default function WizardStep3({ data }: Props) {
                   {(g.priority || "").toLowerCase()}
                 </span>
               </div>
-              <p className="text-sm font-semibold text-foreground ml-4 whitespace-nowrap">
+              <p className="text-sm font-semibold text-foreground ml-4 whitespace-nowrap flex-shrink-0">
                 {g.effortType === "monthly"
                   ? `${g.hours}h / month`
                   : `${g.weekly}h / week`}

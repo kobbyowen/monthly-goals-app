@@ -274,12 +274,48 @@ export default function GenerateTodosModal({
               <div className="max-h-64 overflow-auto pr-2 scrollbar-thin scrollbar-thumb-slate-400">
                 {(tasks || []).map((t: any) => {
                   const isCompleted = !!t.completed;
+
+                  // compute used seconds for this task from sessions
+                  const sessionsForTask = getSessionsByTask
+                    ? getSessionsByTask(t.id)
+                    : [];
+                  const sessionsSecs = Array.isArray(sessionsForTask)
+                    ? sessionsForTask.reduce(
+                        (s2: number, s: any) =>
+                          s2 + (Number(s.seconds || s.duration || 0) || 0),
+                        0,
+                      )
+                    : 0;
+
+                  // interpret plannedTime: if looks like seconds (>1000) treat as seconds, else hours->seconds
+                  const plannedRaw =
+                    typeof t.plannedTime !== "undefined"
+                      ? Number(t.plannedTime)
+                      : typeof t.estimate !== "undefined"
+                        ? Number(t.estimate)
+                        : 0;
+                  const plannedSec =
+                    plannedRaw > 1000 ? plannedRaw : plannedRaw * 3600;
+                  const remainingSec = Math.max(
+                    0,
+                    Math.round(plannedSec - sessionsSecs),
+                  );
+
+                  const remainingLabel =
+                    remainingSec > 0
+                      ? remainingSec >= 3600
+                        ? `${Math.round(remainingSec / 3600)}h left`
+                        : remainingSec >= 60
+                          ? `${Math.round(remainingSec / 60)}m left`
+                          : `${remainingSec}s left`
+                      : "";
+
                   return (
                     <label
                       key={t.id}
                       className={`flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm ${isCompleted ? "opacity-70" : ""}`}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <input
                           type="checkbox"
                           checked={!isCompleted ? !!includedTasks[t.id] : false}
@@ -293,7 +329,7 @@ export default function GenerateTodosModal({
                           className="h-4 w-4 rounded border-border text-emerald-600 bg-card"
                         />
                         <span
-                          className={`${isCompleted ? "line-through text-muted-foreground" : "text-card-foreground"}`}
+                          className={`${isCompleted ? "line-through text-muted-foreground" : "text-card-foreground"} flex-1 min-w-0 overflow-hidden truncate whitespace-nowrap`}
                         >
                           {t.name || t.title || t.name}
                         </span>
@@ -303,9 +339,16 @@ export default function GenerateTodosModal({
                           </span>
                         ) : null}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {isCompleted ? "Completed" : t.priority || "High"}
-                      </span>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="text-xs text-muted-foreground">
+                          {isCompleted ? "Completed" : t.priority || "High"}
+                        </span>
+                        {!isCompleted && remainingLabel ? (
+                          <span className="text-xs text-muted-foreground">
+                            {remainingLabel}
+                          </span>
+                        ) : null}
+                      </div>
                     </label>
                   );
                 })}

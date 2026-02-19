@@ -101,10 +101,12 @@ export default function EpicItem({
           onSelect?.(id);
           if (closeOnSelect) onClose?.();
         }}
-        className="flex items-center gap-2 flex-1"
+        className="flex items-center gap-2 flex-1 min-w-0"
       >
         <IconSprint />
-        <span className="truncate">{name}</span>
+        <span className="flex-1 min-w-0 overflow-hidden truncate whitespace-nowrap">
+          {name}
+        </span>
       </Link>
 
       <div className="relative">
