@@ -31,30 +31,43 @@ export default function AddNewTodoModal({ onClose }: { onClose: () => void }) {
   }, [sprintIds, sprintsById, todayIso]);
 
   const currentEpic = React.useMemo(() => {
-    const epics = (epicIds || []).map((id) => epicsById[id]).filter(Boolean) as any[];
+    const epics = (epicIds || [])
+      .map((id) => epicsById[id])
+      .filter(Boolean) as any[];
     // prefer epics that contain a sprint that includes today
     for (const e of epics) {
       const sps = getSprintsByEpic(e.id) || [];
-      if (sps.find((sp: any) => {
-        const start = sp.start || sp.startDate || sp.startAt || null;
-        const end = sp.end || sp.endDate || sp.endAt || null;
-        return start && end && start <= todayIso && todayIso <= end;
-      })) return e;
+      if (
+        sps.find((sp: any) => {
+          const start = sp.start || sp.startDate || sp.startAt || null;
+          const end = sp.end || sp.endDate || sp.endAt || null;
+          return start && end && start <= todayIso && todayIso <= end;
+        })
+      )
+        return e;
     }
     // fallback: match by epicMonth/year if present
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
-    const byMonth = epics.find((e) => (e.epicMonth === month && (!e.epicYear || e.epicYear === year)));
+    const byMonth = epics.find(
+      (e) => e.epicMonth === month && (!e.epicYear || e.epicYear === year),
+    );
     return byMonth as any | undefined;
   }, [epicIds, epicsById, getSprintsByEpic, todayIso]);
 
-  const [selectedEpicId, setSelectedEpicId] = useState<string | "">(currentEpic ? currentEpic.id : "");
-  const [selectedSprintId, setSelectedSprintId] = useState<string | "">(currentSprint ? currentSprint.id : "");
+  const [selectedEpicId, setSelectedEpicId] = useState<string | "">(
+    currentEpic ? currentEpic.id : "",
+  );
+  const [selectedSprintId, setSelectedSprintId] = useState<string | "">(
+    currentSprint ? currentSprint.id : "",
+  );
 
   const tasks = React.useMemo(() => {
     if (selectedSprintId) return getTasksBySprint(selectedSprintId) || [];
-    const all = (taskIds || []).map((id) => tasksById[id]).filter(Boolean) as any[];
+    const all = (taskIds || [])
+      .map((id) => tasksById[id])
+      .filter(Boolean) as any[];
     return all;
   }, [taskIds, tasksById, selectedSprintId, getTasksBySprint]);
   const addTodoStore = useRootEpicStore((s) => s.addTodo);
@@ -63,13 +76,17 @@ export default function AddNewTodoModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     // initialize defaults when store data loads
     if (!selectedEpicId && currentEpic) setSelectedEpicId(currentEpic.id);
-    if (!selectedSprintId && currentSprint) setSelectedSprintId(currentSprint.id);
+    if (!selectedSprintId && currentSprint)
+      setSelectedSprintId(currentSprint.id);
     // when epic selection changes, update sprint list and reset sprint/task selections
     if (!selectedEpicId) return;
     const sps = getSprintsByEpic(selectedEpicId) || [];
     if (sps.length > 0) {
       // if current selectedSprintId is not in sps, pick the one containing today or first
-      if (!selectedSprintId || !sps.find((s: any) => s.id === selectedSprintId)) {
+      if (
+        !selectedSprintId ||
+        !sps.find((s: any) => s.id === selectedSprintId)
+      ) {
         const todaySprint = sps.find((sp: any) => {
           const start = sp.start || sp.startDate || sp.startAt || null;
           const end = sp.end || sp.endDate || sp.endAt || null;
@@ -157,11 +174,15 @@ export default function AddNewTodoModal({ onClose }: { onClose: () => void }) {
               className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none mb-3"
             >
               <option value="">(none)</option>
-              { (epicIds || []).map((id) => {
+              {(epicIds || []).map((id) => {
                 const e = epicsById[id];
                 if (!e) return null;
-                return <option key={e.id} value={e.id}>{e.name || e.id}</option>;
-              }) }
+                return (
+                  <option key={e.id} value={e.id}>
+                    {e.name || e.id}
+                  </option>
+                );
+              })}
             </select>
 
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -173,11 +194,16 @@ export default function AddNewTodoModal({ onClose }: { onClose: () => void }) {
               className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none mb-3"
             >
               <option value="">Select a sprint</option>
-              { (selectedEpicId ? (getSprintsByEpic(selectedEpicId) || []) : (sprintIds || []).map((id) => sprintsById[id]))
+              {(selectedEpicId
+                ? getSprintsByEpic(selectedEpicId) || []
+                : (sprintIds || []).map((id) => sprintsById[id])
+              )
                 .filter(Boolean)
                 .map((sp: any) => (
-                  <option key={sp.id} value={sp.id}>{sp.name || sp.sprintLabel || sp.id}</option>
-                )) }
+                  <option key={sp.id} value={sp.id}>
+                    {sp.name || sp.sprintLabel || sp.id}
+                  </option>
+                ))}
             </select>
 
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
