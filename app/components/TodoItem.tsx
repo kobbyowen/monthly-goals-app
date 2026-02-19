@@ -72,9 +72,22 @@ export default function TodoItem({
   const totalChecklist = (checklists || []).length;
   const completedChecklist = (checklists || []).filter((c) => c.done).length;
 
+  // lookup sprint and epic names from the store when available
+  const sprint = useRootEpicStore((s) =>
+    todo.sprintId ? s.sprints.byId[todo.sprintId] : undefined,
+  );
+  const epicName = useRootEpicStore((s) => {
+    const sp = todo.sprintId ? s.sprints.byId[todo.sprintId] : undefined;
+    return sp && sp.epicId ? s.epics.byId[sp.epicId]?.name : undefined;
+  });
+  const checklistItems = todo.taskId
+    ? useRootEpicStore((s) => s.getChecklistsByTask(todo.taskId as string))
+    : [];
+  const checklistCount = checklistItems?.length ?? totalChecklist;
+
   return (
     <div
-      className={`rounded-lg border border-border bg-card px-4 py-3 ${completed ? "opacity-70" : ""}`}
+      className={`rounded-lg border border-slate-200 bg-white px-4 py-3 ${completed ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -82,7 +95,7 @@ export default function TodoItem({
             type="checkbox"
             checked={completed}
             onChange={(e) => handleToggleComplete(todo.id, e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-border text-emerald-600 bg-card focus:ring-emerald-500"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
           />
 
           <div
@@ -95,24 +108,33 @@ export default function TodoItem({
             className="flex-1 min-w-0 cursor-pointer"
           >
             <h3
-              className={`text-sm font-medium truncate ${completed ? "text-muted-foreground line-through" : "text-card-foreground"}`}
+              className={`text-sm font-medium truncate ${completed ? "text-slate-400 line-through" : "text-slate-900"}`}
             >
               {todo.title}
             </h3>
 
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {todo.sprintId ? "Sprint" : ""}{" "}
-              {todo.dueDate ? `· ${todo.dueDate}` : ""}
-            </p>
+            {completed ? (
+              <p className="mt-0.5 text-[11px] text-slate-400">
+                Completed{todo.plannedHours ? ` · ${todo.plannedHours}h` : ""}
+              </p>
+            ) : (
+              <>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  {epicName ? (
+                    <span className="truncate">{epicName}</span>
+                  ) : null}
+                  {sprint ? (
+                    <span className="ml-1"> · {sprint.name}</span>
+                  ) : null}
+                </p>
 
-            {!completed && (
-              <div className="mt-1 flex items-center gap-4 text-[11px] text-muted-foreground">
-                {totalChecklist > 0 ? (
-                  <span>{`${completedChecklist}/${totalChecklist} checklist`}</span>
-                ) : (
-                  <span>—</span>
-                )}
-              </div>
+                <div className="mt-1 flex items-center gap-4 text-[11px] text-slate-500">
+                  {todo.plannedHours ? (
+                    <span>{todo.plannedHours}h planned</span>
+                  ) : null}
+                  <span className="font-medium text-emerald-600">{`${completedChecklist} / ${checklistCount}`}</span>
+                </div>
+              </>
             )}
           </div>
         </div>
