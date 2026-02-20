@@ -119,9 +119,9 @@ export default function GenerateTodosModal({
     }
 
     const remainingHours = Math.max(0, totalNeeded - totalUsedHours);
-    const recommended = Math.max(
-      1,
-      Math.ceil(remainingHours / Math.max(1, daysLeft)),
+    const recommended = Math.min(
+      16,
+      Math.max(1, Math.ceil(remainingHours / Math.max(1, daysLeft))),
     );
 
     return { totalNeeded, totalUsedHours, daysLeft, recommended };
