@@ -184,25 +184,25 @@ export default function Sidebar({
     // if user exists but epics store is empty (e.g., after full page refresh), hydrate epics
     if (user) {
       try {
-        const epicsLen = useRootEpicStore.getState().epics.allIds.length;
-        if (epicsLen === 0) {
-          let mounted2 = true;
-          void getEpics()
-            .then((epics) => {
-              if (!mounted2) return;
-              try {
-                useRootEpicStore.getState().addEpicsFromApi(epics);
-              } catch (_e) {}
-            })
-            .catch(() => {});
-          return () => {
-            mounted2 = false;
-          };
-        }
+        let mounted2 = true;
+        void getEpics()
+          .then((epics) => {
+            if (!mounted2) {
+              return;
+            }
+            try {
+              useRootEpicStore.getState().addEpicsFromApi(epics);
+            } catch (_e) {}
+          })
+          .catch(() => {});
+        return () => {
+          mounted2 = false;
+        };
       } catch (_e) {}
     }
     return;
   }, [user, setUser]);
+
   const [now, setNow] = React.useState(() => new Date());
   const curYear = now.getFullYear();
   const curMonth = now.getMonth() + 1;

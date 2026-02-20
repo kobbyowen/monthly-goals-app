@@ -204,7 +204,6 @@ export function createStructuredPlan(wizardData: any) {
     };
 
 
-    console.log({ payload })
     return payload;
 }
 

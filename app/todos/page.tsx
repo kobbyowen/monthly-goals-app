@@ -37,9 +37,7 @@ export default function Page() {
         if (!mountedFlag) return;
         try {
           useRootEpicStore.getState().addEpicsFromApi(epics);
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) {}
       })
       .catch(() => {});
     return () => {

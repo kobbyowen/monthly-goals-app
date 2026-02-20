@@ -6,6 +6,7 @@ import Sidebar from "@components/Sidebar";
 import SprintList from "@components/SprintList";
 import EpicHeader from "@components/EpicHeader";
 import { useRootEpicStore, Sprint } from "@stores";
+import { useEpic } from "../../hooks/useEpic";
 import { useShallow } from "zustand/shallow";
 
 export default function EpicPage() {
@@ -22,6 +23,15 @@ export default function EpicPage() {
   const sprintView: Sprint[] = useRootEpicStore(
     useShallow((s) => s.getSprintsByEpic(epicId)),
   );
+
+  // fetch latest epic from server on page load/navigation and add to store
+  const { epic: fetchedEpic } = useEpic(epicId);
+  const addEpicToStore = useRootEpicStore((s) => s.addEpic);
+  React.useEffect(() => {
+    if (fetchedEpic && fetchedEpic.id) {
+      addEpicToStore(fetchedEpic as any);
+    }
+  }, [fetchedEpic, addEpicToStore]);
 
   const sortedSprints = React.useMemo(() => {
     if (!sprintView || !sprintView.length) return sprintView;

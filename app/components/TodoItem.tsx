@@ -6,6 +6,8 @@ import {
   updateTodo as apiUpdateTodo,
   deleteTodo as apiDeleteTodo,
 } from "@lib/api/todos";
+import { getSessionsForTask } from "@lib/api/sessions";
+import { getTask } from "@lib/api/index";
 import { updateChecklist as apiUpdateChecklist } from "@lib/api/checklists";
 import useRootEpicStore from "@stores/rootEpicStore";
 
@@ -33,6 +35,8 @@ export default function TodoItem({
   const updateTodoStore = useRootEpicStore((s) => s.updateTodo);
   const removeTodoStore = useRootEpicStore((s) => s.removeTodo);
   const updateChecklistStore = useRootEpicStore((s) => s.updateChecklist);
+  const addSessionStore = useRootEpicStore((s) => s.addSession);
+  const addTaskStore = useRootEpicStore((s) => s.addTask);
 
   async function handleToggleComplete(id: string, checked: boolean) {
     try {
@@ -45,6 +49,26 @@ export default function TodoItem({
       console.error(err);
     }
     onToggleComplete?.(id, checked);
+
+    // After toggling completion, refresh sessions for the related task (if any)
+    // and add them to the client store so UI reflects updated time/sessions.
+    try {
+      if (todo?.taskId) {
+        const sessions = await getSessionsForTask(todo.taskId as string);
+        if (Array.isArray(sessions) && sessions.length > 0) {
+          sessions.forEach((s) => addSessionStore(s));
+        }
+        // Refresh the related Task and add it to the store so task state updates
+        try {
+          const task = await getTask(todo.taskId as string);
+          if (task && (task as any).id) addTaskStore(task as any);
+        } catch (err) {
+          console.error("Failed to refresh task after todo toggle", err);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to refresh sessions after todo toggle", e);
+    }
   }
 
   async function handleDelete(id: string) {
