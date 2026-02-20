@@ -212,7 +212,7 @@ export default function SprintItem({ sprintId }: { sprintId: string }) {
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full max-w-md h-2 bg-muted rounded-full overflow-hidden">
+            <div className="w-full max-w-md h-2 bg-gray-200 dark:bg-slate-800 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${status === "completed" ? "bg-green-600" : "bg-indigo-600"}`}
                 style={{ width: `${progress}%` }}

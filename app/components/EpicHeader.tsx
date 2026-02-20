@@ -23,9 +23,8 @@ export default function EpicHeader({ epicId }: { epicId: string }) {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const sprintCount = (sprintView || []).length;
-  const taskCount =
-    (epic?.taskIds?.length || 0) +
-    (sprintView || []).reduce((acc, s) => acc + (s.taskIds?.length || 0), 0);
+  // Use the same task list used to compute progress so counts/percentages align
+  const taskCount = tasks.length || 0;
 
   const [open, setOpen] = useState(false);
 

@@ -117,18 +117,26 @@ export function generateTodosAllocation(
         (sum, task) => sum + task.capacitySeconds,
         0
       );
+      const recurringStageCapDemand = recurringTasks.reduce(
+        (sum, task) => sum + Math.min(task.capacitySeconds, task.perDayShare),
+        0
+      );
 
       if (recurringDemand <= remainingToAllocate) {
         for (const task of sortByStableId(recurringTasks)) {
-          allocationById.set(task.id, task.capacitySeconds);
-          remainingToAllocate -= task.capacitySeconds;
+          const stageCap = Math.min(task.capacitySeconds, task.perDayShare);
+          if (stageCap <= 0) {
+            continue;
+          }
+          allocationById.set(task.id, stageCap);
+          remainingToAllocate -= stageCap;
         }
         decisions.push(
-          `Recurring-first: recurring demand (${recurringDemand}s) fully satisfied.`
+          `Recurring-first: daily recurring stage cap allocated ${recurringStageCapDemand}s from ${recurringDemand}s total recurring demand.`
         );
       } else {
         decisions.push(
-          `Recurring-first: recurring demand (${recurringDemand}s) exceeds target (${remainingToAllocate}s), applying fair distribution.`
+          `Recurring-first: recurring demand (${recurringDemand}s) exceeds target (${remainingToAllocate}s), applying fair per-day capped distribution.`
         );
         const recurringResult = allocateFairRecurring(
           recurringTasks,
@@ -326,9 +334,10 @@ function allocateFairRecurring(
 ): Map<string, number> {
   const result = new Map<string, number>();
   const byId = sortByStableId(recurringTasks);
+  const stageCaps = byId.map((task) => Math.min(task.capacitySeconds, task.perDayShare));
   const perDayWeights = byId.map((task) => {
     const share = Math.max(FIVE_MINUTES_SECONDS, Math.ceil(task.remainingRaw / Math.max(1, daysLeft)));
-    return Math.min(task.capacitySeconds, floorToAllowedSeconds(share));
+    return Math.min(Math.min(task.capacitySeconds, task.perDayShare), floorToAllowedSeconds(share));
   });
   const totalWeight = perDayWeights.reduce((sum, value) => sum + value, 0) || byId.length;
 
@@ -336,7 +345,7 @@ function allocateFairRecurring(
   for (let i = 0; i < byId.length; i += 1) {
     const task = byId[i];
     const proportional = Math.floor((targetSeconds * perDayWeights[i]) / totalWeight);
-    const bounded = Math.min(task.capacitySeconds, floorToAllowedSeconds(proportional));
+    const bounded = Math.min(stageCaps[i], floorToAllowedSeconds(proportional));
     if (bounded > 0) {
       result.set(task.id, bounded);
       allocated += bounded;
@@ -348,10 +357,11 @@ function allocateFairRecurring(
     const candidates = byId
       .map((task) => {
         const current = result.get(task.id) || 0;
-        if (current >= task.capacitySeconds) {
+        const stageCap = Math.min(task.capacitySeconds, task.perDayShare);
+        if (current >= stageCap) {
           return null;
         }
-        const next = nextAllowedSeconds(task.capacitySeconds, current);
+        const next = nextAllowedSeconds(stageCap, current);
         const delta = next - current;
         if (delta <= 0 || delta > remaining) {
           return null;
@@ -600,4 +610,3 @@ function toValidatedNumber(value: unknown, id: string, fieldName: string, decisi
 function sortByStableId<T extends { id: string }>(tasks: T[]): T[] {
   return [...tasks].sort((a, b) => a.id.localeCompare(b.id));
 }
-

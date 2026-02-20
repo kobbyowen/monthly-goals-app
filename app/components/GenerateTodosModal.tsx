@@ -174,7 +174,7 @@ export default function GenerateTodosModal({
           <div>
             <h2 className="text-sm font-semibold">Generate Todos for Today</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create today’s tasks based on your sprint goals.
+              Create tasks based on your sprint goals.
             </p>
           </div>
           <button
@@ -271,7 +271,7 @@ export default function GenerateTodosModal({
             </p>
 
             <div className="mt-3 space-y-2">
-              <div className="max-h-64 overflow-auto pr-2 scrollbar-thin scrollbar-thumb-slate-400">
+              <div className="max-h-44 md:max-h-64 overflow-auto pr-2 scrollbar-thin scrollbar-thumb-slate-400">
                 {(tasks || []).map((t: any) => {
                   const isCompleted = !!t.completed;
 
