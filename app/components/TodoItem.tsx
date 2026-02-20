@@ -87,8 +87,10 @@ export default function TodoItem({
     done: boolean,
   ) {
     try {
-      const resp = await apiUpdateChecklist(checklistId, { done });
-      updateChecklistStore(checklistId, { done: !!(resp as any).done });
+      const resp = await apiUpdateChecklist(checklistId, { completed: done });
+      updateChecklistStore(checklistId, {
+        done: !!((resp as any).completed ?? (resp as any).done),
+      });
     } catch (err) {
       console.error(err);
     }
